@@ -1,0 +1,331 @@
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-panel: var(--panel);
+  --color-panel-border: var(--panel-border);
+  --color-brand: var(--brand);
+  --color-brand-foreground: var(--brand-foreground);
+  --color-brand-soft: var(--brand-soft);
+  --color-header: var(--header);
+}
+
+:root {
+  --radius: 0.375rem;
+  /* Light blue theme inspired by 中国长航 dashboard */
+  --background: oklch(0.97 0.012 240);
+  --foreground: oklch(0.28 0.03 245);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.28 0.03 245);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.28 0.03 245);
+  --primary: oklch(0.6 0.2 250);
+  --primary-foreground: oklch(0.99 0.005 240);
+  --secondary: oklch(0.965 0.015 240);
+  --secondary-foreground: oklch(0.32 0.04 245);
+  --muted: oklch(0.965 0.012 240);
+  --muted-foreground: oklch(0.55 0.025 245);
+  --accent: oklch(0.93 0.06 245);
+  --accent-foreground: oklch(0.35 0.12 250);
+  --destructive: oklch(0.62 0.22 27);
+  --destructive-foreground: oklch(0.99 0.005 240);
+  --border: oklch(0.91 0.02 240);
+  --input: oklch(0.93 0.015 240);
+  --ring: oklch(0.6 0.2 250);
+
+  --panel: oklch(1 0 0);
+  --panel-border: oklch(0.91 0.02 240);
+  --brand: oklch(0.6 0.2 250);
+  --brand-foreground: oklch(0.99 0 0);
+  --brand-soft: oklch(0.95 0.04 250);
+  --header: oklch(1 0 0);
+
+  /* ===== 全局颜色 token —— 与 src/lib/tokens.ts 同源 ===== */
+  /* 品牌主色 */
+  --token-primary: #1677FF;
+  --token-primary-hover: #4D94FF;
+  --token-primary-active: #0E5FD9;
+  --token-primary-light: #EFF6FF;
+  /* 文本 */
+  --token-text-primary: #1E293B;
+  --token-text-secondary: #475569;
+  --token-text-tertiary: #64748B;
+  --token-text-disabled: #94A3B8;
+  /* 背景 / 边框 */
+  --token-bg-page: #F5F7FB;
+  --token-bg-card: #FFFFFF;
+  --token-bg-subtle: #F8FAFD;
+  --token-border-default: #E2E8F0;
+  --token-border-light: #EEF1F6;
+  /* 状态 */
+  --token-status-good: #059669;
+  --token-status-good-bg: #ECFDF5;
+  --token-status-normal: #1677FF;
+  --token-status-normal-bg: #EFF6FF;
+  --token-status-warning: #D97706;
+  --token-status-warning-bg: #FFF4E6;
+  --token-status-danger: #DC2626;
+  --token-status-danger-bg: #FEF2F2;
+  --token-trend-up: #DC2626;
+  --token-trend-down: #059669;
+  /* 业态色 */
+  --token-biz-residential: #5B8DEF;
+  --token-biz-apartment: #2DBDA8;
+  --token-biz-parking: #F08A8A;
+  --token-biz-commercial: #F4B042;
+  --token-biz-office: #A78BFA;
+  --token-biz-other: #94A3B8;
+  /* 拿地年份 */
+  --token-year-2021-before: #94A3B8;
+  --token-year-2022: #0E84B8;
+  --token-year-2023: #2DBDA8;
+  --token-year-2024: #A78BFA;
+  --token-year-2025: #1677FF;
+  --token-year-2026: #F4B042;
+  /* 项目类别 */
+  --token-project-large: #6366F1;
+  --token-project-normal: #0E9C8F;
+  --token-project-commercial: #0E84B8;
+  --token-project-slow: #E11D48;
+  --token-project-parking-tail: #64748B;
+}
+
+@layer base {
+  * { border-color: var(--color-border); }
+  html { font-size: 14px; }
+  body {
+    background: linear-gradient(180deg, oklch(0.985 0.01 240) 0%, oklch(0.95 0.025 245) 100%);
+    color: var(--color-foreground);
+    font-size: 14px;
+    font-family: -apple-system, BlinkMacSystemFont, "Source Han Sans SC", "Noto Sans SC", "PingFang SC", sans-serif;
+  }
+}
+
+/* ===== 统一文字层级 token（Tailwind v4 utilities） =====
+ * t-page-title    20/600/text-primary
+ * t-section-title 14/600/text-primary  卡片/图表/表格模块标题
+ * t-metric-value  24/700/text-primary  指标主数值
+ * t-metric-label  12/500/text-tertiary 指标辅助
+ * t-body          13/400/text-secondary 正文
+ * t-table-header  12/500/text-tertiary 表头
+ * t-caption       11/400/text-tertiary 辅助说明 / 单位
+ * t-tag           11/500/leading-none  标签胶囊
+ */
+@utility t-page-title    { font-size: 20px; line-height: 28px; font-weight: 600; color: var(--token-text-primary); }
+@utility t-section-title { font-size: 14px; line-height: 22px; font-weight: 600; color: var(--token-text-primary); }
+@utility t-metric-value  { font-size: 24px; line-height: 32px; font-weight: 700; color: var(--token-text-primary); }
+@utility t-metric-label  { font-size: 12px; line-height: 18px; font-weight: 500; color: var(--token-text-tertiary); }
+@utility t-body          { font-size: 13px; line-height: 20px; font-weight: 400; color: var(--token-text-secondary); }
+@utility t-table-header  { font-size: 12px; line-height: 18px; font-weight: 500; color: var(--token-text-tertiary); }
+@utility t-caption       { font-size: 11px; line-height: 16px; font-weight: 400; color: var(--token-text-tertiary); }
+@utility t-tag           { font-size: 11px; line-height: 1; font-weight: 500; }
+
+/* 文本颜色快捷类，对齐全局 token */
+@utility text-token-primary   { color: var(--token-text-primary); }
+@utility text-token-secondary { color: var(--token-text-secondary); }
+@utility text-token-tertiary  { color: var(--token-text-tertiary); }
+@utility text-token-disabled  { color: var(--token-text-disabled); }
+
+.rank-scroll::-webkit-scrollbar { width: 6px; }
+.rank-scroll::-webkit-scrollbar-track { background: transparent; }
+.rank-scroll::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 3px; }
+.rank-scroll::-webkit-scrollbar-thumb:hover { background: #94A3B8; }
+
+.inventory-treemap svg text,
+.inventory-treemap svg text * {
+  fill: var(--token-text-primary) !important;
+  color: var(--token-text-primary) !important;
+  font-weight: 400 !important;
+  fill-opacity: 1 !important;
+}
+
+/* ===== 全局图标视觉规范 =====
+ * 三档尺寸（按语义使用，新增图标必须使用以下 utility，不再混用 w-3 / w-3.5 / w-4 / w-5）：
+ *   icon-sm  14px  表格操作、排序、展开收起、行内辅助、查看详情箭头
+ *   icon-md  16px  筛选器、按钮、Tab、普通操作入口
+ *   icon-lg  18px  卡片/模块/弹窗标题
+ *
+ * 颜色：必须引用全局 token，不要使用 text-emerald-400 / text-red-500 / 硬编码 hex。
+ *   text-token-tertiary（默认） / text-token-secondary / text-token-disabled
+ *   text-status-good / text-status-warning / text-status-danger
+ *   text-[var(--color-brand)]（主操作 / hover）
+ *
+ * 标题容器：模块/卡片/弹窗标题左侧统一使用 .icon-title 容器（32×32，圆角 8px，brand-soft 底）。
+ */
+@utility icon-sm { width: 14px; height: 14px; flex-shrink: 0; }
+@utility icon-md { width: 16px; height: 16px; flex-shrink: 0; }
+@utility icon-lg { width: 18px; height: 18px; flex-shrink: 0; }
+
+@utility icon-title {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: var(--token-primary-light);
+  color: var(--token-primary);
+  flex-shrink: 0;
+}
+
+/* 状态色文字（图标 / 标签通用） */
+@utility text-status-good    { color: var(--token-status-good); }
+@utility text-status-warning { color: var(--token-status-warning); }
+@utility text-status-danger  { color: var(--token-status-danger); }
+
+/* ===== 全局表格规范 =====
+ * 统一企业级 BI 表格的容器 / 表头 / 行 / 单元格 / 排序 / 状态。
+ * 适用范围：首页、21年及之前、自助查询及其全部弹窗中的明细表。
+ *
+ * 用法（行内类组合）：
+ *   <div class="tbl-container">
+ *     <table class="tbl">
+ *       <thead class="tbl-thead">
+ *         <tr><th class="tbl-th">业态</th><th class="tbl-th tbl-th-num">货值</th></tr>
+ *       </thead>
+ *       <tbody>
+ *         <tr class="tbl-row"><td class="tbl-td">住宅</td><td class="tbl-td tbl-td-num">123.45</td></tr>
+ *       </tbody>
+ *     </table>
+ *   </div>
+ *
+ * 规则：
+ *   - 文本列默认左对齐；数值列加 tbl-*-num（右对齐 + tabular-nums）；操作列加 tbl-*-action（居中）。
+ *   - 表头一律 nowrap，不允许换行，也不允许省略号截断。
+ *   - 长表格弹窗：thead 加 sticky top-0 z-10 实现固定表头。
+ *   - 行可点击时加 tbl-row-clickable；选中行加 tbl-row-selected。
+ *   - 空值统一通过 formatNumber/formatAmount/formatPercent 返回 "--"，组件层不再判空。
+ */
+@utility tbl-container {
+  background: var(--token-bg-card);
+  border: 1px solid var(--token-border-default);
+  border-radius: 10px;
+  overflow: auto;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+@utility tbl {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+@utility tbl-thead {
+  background: var(--token-bg-subtle);
+}
+@utility tbl-th {
+  height: 36px;
+  padding: 0 12px;
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 500;
+  color: var(--token-text-tertiary);
+  text-align: left;
+  white-space: nowrap;
+  border-bottom: 1px solid var(--token-border-light);
+  background: var(--token-bg-subtle);
+}
+@utility tbl-th-num    { text-align: right; }
+@utility tbl-th-action { text-align: center; }
+@utility tbl-td {
+  height: 40px;
+  padding: 0 12px;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 400;
+  color: var(--token-text-primary);
+  white-space: nowrap;
+  border-bottom: 1px solid var(--token-border-light);
+  vertical-align: middle;
+}
+@utility tbl-td-num    { text-align: right; font-variant-numeric: tabular-nums; }
+@utility tbl-td-action { text-align: center; }
+@utility tbl-row {
+  transition: background-color 120ms ease;
+}
+@utility tbl-row-clickable {
+  cursor: pointer;
+  transition: background-color 150ms ease;
+
+  &:hover {
+    background: var(--token-bg-subtle);
+  }
+}
+@utility tbl-row-selected {
+  background: var(--token-primary-light);
+  box-shadow: inset 2px 0 0 var(--token-primary);
+}
+@utility tbl-row-highlight    { background: color-mix(in oklab, var(--token-primary-light) 70%, white); }
+
+/* 排序图标统一：14px / tertiary / 当前列 primary，hover 行展示可点击 */
+@utility tbl-sort {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  user-select: none;
+}
+@utility tbl-sort-icon        { width: 14px; height: 14px; color: var(--token-text-tertiary); }
+@utility tbl-sort-icon-active { color: var(--token-primary); }
+
+/* 表格顶部工具栏（左侧 tab/说明，右侧 搜索/导出/操作） */
+@utility tbl-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  height: 44px;
+  padding: 0 4px;
+}
+
+/* 分页区（统一靠右） */
+@utility tbl-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 8px 12px;
+  font-size: 12px;
+  color: var(--token-text-tertiary);
+  border-top: 1px solid var(--token-border-light);
+}
+
+/* === Requirements drawer: shift fixed overlays/dialogs to avoid being covered === */
+body[data-req-open="1"] [data-radix-dialog-overlay],
+body[data-req-open="1"] [data-sonner-toaster] {
+  right: var(--req-drawer-w, 0px) !important;
+  width: auto !important;
+}
+body[data-req-open="1"] [data-radix-dialog-content],
+body[data-req-open="1"] [data-radix-popper-content-wrapper] {
+  margin-left: calc(-1 * var(--req-drawer-w, 0px) / 2) !important;
+}
+/* 自定义全屏遮罩（fixed inset-0）也要让出需求面板宽度 */
+body[data-req-open="1"] .fixed.inset-0 {
+  right: var(--req-drawer-w, 0px) !important;
+}
+
