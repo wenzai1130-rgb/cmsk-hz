@@ -1159,7 +1159,7 @@ function StageCard({ detail }: { detail: DetailShape }) {
     target: string;
     rate: number;
   }) => (
-    <div className="min-w-0 h-full bg-white rounded-lg border border-white shadow-sm hover:shadow-md transition-all px-2.5 py-2 flex flex-col justify-center">
+    <div className="min-w-0 min-h-[72px] max-h-[96px] h-full bg-white rounded-lg border border-white shadow-sm hover:shadow-md transition-all px-2.5 py-2 flex flex-col justify-center">
       <div>
         <span className="text-[11px] font-medium text-slate-500 tracking-tight">{kind}</span>
       </div>
@@ -1191,7 +1191,7 @@ function StageCard({ detail }: { detail: DetailShape }) {
     sub?: string;
     tip?: string;
   }) => (
-    <div className="min-w-0 h-full bg-white rounded-lg border border-white shadow-sm hover:shadow-md transition-all px-2.5 py-2 flex flex-col justify-center">
+    <div className="min-w-0 min-h-[72px] max-h-[96px] h-full bg-white rounded-lg border border-white shadow-sm hover:shadow-md transition-all px-2.5 py-2 flex flex-col justify-center">
       <div className="flex min-w-0 items-center justify-between gap-1">
         <span className="text-[11px] font-medium text-slate-500">{title}</span>
         {tip ? (
@@ -1215,8 +1215,8 @@ function StageCard({ detail }: { detail: DetailShape }) {
         <span className="text-[14px] font-medium">经营指标</span>
       </div>
 
-      <div className="flex-1 min-h-0 p-2 rounded-xl bg-[#F5F8FF] border border-blue-100/60">
-        <div className="h-full grid grid-cols-[repeat(auto-fit,minmax(118px,1fr))] auto-rows-fr gap-2 items-stretch">
+      <div className="flex-1 min-h-0 p-2 rounded-xl bg-[#F5F8FF] border border-blue-100/60 flex flex-col justify-between">
+        <div className="h-full grid grid-cols-3 grid-rows-2 gap-x-2 gap-y-[clamp(8px,2.4vh,16px)] items-center content-between">
           <ProgressCard kind="年度签约" value={yearly.sign.value} units={yearly.sign.units} target={yearly.sign.target} rate={yearly.sign.rate} />
           <ProgressCard kind="年度回款" value={yearly.payback.value} target={yearly.payback.target} rate={yearly.payback.rate} />
           <StatCard title={yearly.unpaid.title} main={yearly.unpaid.main} sub={yearly.unpaid.sub} tip="签未回 = 累计签约金额 − 累计回款金额" />
