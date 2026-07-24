@@ -513,7 +513,7 @@ export default function ProjectDetail() {
 
             {/* Row 1 - Right: SupplyCard + StageCard + Milestone */}
             <div className="flex flex-col gap-4">
-              <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,2fr)] gap-4">
+              <div className="grid grid-cols-[minmax(0,1.35fr)_minmax(0,1.15fr)] gap-4">
                 <ModuleBadge moduleId="pd-supply" className="block">
                   <SupplyCard detail={detail} />
                 </ModuleBadge>
@@ -1004,52 +1004,102 @@ function SupplyCard({ detail }: { detail: DetailShape }) {
       </div>
 
 
-      {/* 底部：土储 → 在建 → 竣工 阶段流转 */}
+      {/* 底部：总货值阶段分布 */}
       <div className="mt-4 pt-4 border-t border-[#F1F5F9]">
         {(() => {
           const unsold = detail.unsoldValue;
-          const s1 = Math.round(unsold * 0.28 * 100) / 100;
-          const s2 = Math.round(unsold * 0.51 * 100) / 100;
-          const s3 = Math.round((unsold - s1 - s2) * 100) / 100;
+          const roundAmount = (n: number) => Math.round(n * 100) / 100;
+          const unopened = roundAmount(unsold * 0.34);
+          const unavailable = roundAmount(unsold * 0.2);
+          const selling = roundAmount(Math.max(0, unsold - unopened - unavailable));
+          const availableUncertified = roundAmount(selling * 0.19);
+          const availableCertified = roundAmount(selling * 0.33);
+          const completedUncertified = roundAmount(selling * 0.05);
+          const completedCertified = roundAmount(Math.max(0, selling - availableUncertified - availableCertified - completedUncertified));
           const stages = [
-            { step: 1, label: "土储", value: s1, tint: "#94A3B8", bg: "#F1F5F9" },
-            { step: 2, label: "在建", value: s2, tint: "#F59E0B", bg: "#FEF3C7" },
-            { step: 3, label: "竣工", value: s3, tint: "#1677FF", bg: "#DBEAFE" },
+            {
+              step: 1,
+              label: "未开工",
+              value: unopened,
+              tint: "#64748B",
+              bg: "#FFF7ED",
+              itemTone: "bg-slate-50 text-slate-600",
+              valueTone: "text-slate-600",
+              cols: "grid-cols-1",
+              items: [{ label: "土地储备", value: unopened }],
+            },
+            {
+              step: 2,
+              label: "开工不可售",
+              value: unavailable,
+              tint: "#D97706",
+              bg: "#FFF7ED",
+              itemTone: "bg-orange-50 text-[#C2410C]",
+              valueTone: "text-[#C2410C]",
+              cols: "grid-cols-1",
+              items: [{ label: "开工未达预售", value: unavailable }],
+            },
+            {
+              step: 3,
+              label: "在售",
+              value: selling,
+              tint: "#1677FF",
+              bg: "#EFF6FF",
+              itemTone: "bg-blue-50 text-[#1D4ED8]",
+              valueTone: "text-[#1D4ED8]",
+              cols: "grid-cols-2",
+              items: [
+                { label: "在建达售未取证", value: availableUncertified },
+                { label: "已竣工未取证未售", value: completedUncertified },
+                { label: "在建已取证未售", value: availableCertified },
+                { label: "已竣工已取证未售", value: completedCertified },
+              ],
+            },
           ];
           return (
-        <div className="flex items-center justify-center gap-4">
-          {stages.map((s, i, arr) => (
-            <div key={s.step} className="flex items-center gap-4">
-              <div className="flex flex-col gap-1 min-w-0">
-                <div className="flex items-center gap-1.5 whitespace-nowrap">
-                  <span
-                    className="inline-flex items-center justify-center w-4 h-4 rounded-full text-[10px] font-semibold tabular-nums"
-                    style={{ background: s.bg, color: s.tint }}
-                  >
-                    {s.step}
-                  </span>
-                  <span className="text-[12px] text-[#475569]">{s.label}</span>
-                </div>
-                <div className="flex items-baseline gap-1 whitespace-nowrap">
-                  {(() => {
-                    const a = autoAmountFromYi(s.value);
-                    return (
-                      <>
-                        <span className="text-[18px] font-bold tabular-nums text-[#1E293B] leading-none">{a.num}</span>
-                        <span className="text-[11px] text-[#6B7280]">{a.unit}</span>
-                      </>
-                    );
-                  })()}
-                </div>
-              </div>
-              {i < arr.length - 1 && (
-                <span className="shrink-0 inline-flex items-center justify-center w-6 h-6 rounded-full bg-[#EFF6FF] ring-1 ring-[#DBEAFE]">
-                  <ChevronRight className="w-3.5 h-3.5 text-[#1677FF]" strokeWidth={2.5} />
-                </span>
-              )}
+            <div className="grid grid-cols-[minmax(82px,0.75fr)_auto_minmax(108px,0.9fr)_auto_minmax(0,2fr)] gap-1.5 items-start overflow-hidden">
+              {stages.map((s, i, arr) => (
+                <Fragment key={s.step}>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5 whitespace-nowrap">
+                      <span
+                        className="inline-flex items-center justify-center w-4 h-4 rounded-full text-[10px] font-bold tabular-nums"
+                        style={{ background: s.bg, color: s.tint }}
+                      >
+                        {s.step}
+                      </span>
+                      <span className="text-[12px] font-semibold text-[#64748B]">{s.label}</span>
+                    </div>
+                    <div className="mt-2 flex items-baseline gap-1 whitespace-nowrap">
+                      <span className="text-xl font-bold tabular-nums text-[#1E293B] leading-none">
+                        {s.value.toFixed(2)}
+                      </span>
+                      <span className="text-[12px] font-medium text-[#64748B]">亿</span>
+                    </div>
+                    <div className={`mt-2.5 grid ${s.cols} gap-1.5 min-w-0`}>
+                      {s.items.map((item) => (
+                        <div
+                          key={item.label}
+                          className={`min-h-6 rounded-md pl-2 pr-5 py-1 flex items-center justify-between gap-1 min-w-0 ${s.itemTone}`}
+                        >
+                          <span className="text-[11px] leading-tight break-keep shrink-0">{item.label}</span>
+                          <span className={`w-8 text-right text-[11px] font-bold tabular-nums whitespace-nowrap shrink-0 ${s.valueTone}`}>
+                            {item.value.toFixed(2)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  {i < arr.length - 1 && (
+                    <div className="pt-1">
+                      <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-[#EFF6FF]">
+                        <ChevronRight className="w-3 h-3 text-[#1677FF]" strokeWidth={2.6} />
+                      </span>
+                    </div>
+                  )}
+                </Fragment>
+              ))}
             </div>
-          ))}
-        </div>
 
           );
         })()}
@@ -1089,7 +1139,7 @@ function StageCard({ detail }: { detail: DetailShape }) {
     const num = match ? match[1] : value;
     const unit = match ? match[2].trim() : "";
     return (
-      <span className="inline-flex items-baseline gap-0.5 tabular-nums leading-none">
+      <span className="inline-flex min-w-0 items-baseline gap-0.5 tabular-nums leading-none whitespace-nowrap">
         <span className={`font-bold ${numSize} ${color}`}>{num}</span>
         {unit && <span className={`font-medium text-slate-500 ${unitSize}`}>{unit}</span>}
       </span>
@@ -1109,11 +1159,11 @@ function StageCard({ detail }: { detail: DetailShape }) {
     target: string;
     rate: number;
   }) => (
-    <div className="bg-white rounded-lg border border-white shadow-sm hover:shadow-md transition-all px-3 py-2">
+    <div className="min-w-0 h-full bg-white rounded-lg border border-white shadow-sm hover:shadow-md transition-all px-2.5 py-2 flex flex-col justify-center">
       <div>
         <span className="text-[11px] font-medium text-slate-500 tracking-tight">{kind}</span>
       </div>
-      <div className="mt-1 flex items-baseline gap-1.5 tabular-nums leading-none">
+      <div className="mt-1 flex min-w-0 flex-wrap items-baseline gap-x-1.5 gap-y-1 tabular-nums leading-none">
         <ValueWithUnit value={normalizeAmountStr(value)} color="text-[#1677FF]" />
         {units && <ValueWithUnit value={units} color="text-[#F59E0B]" numSize="text-[12px]" />}
       </div>
@@ -1123,9 +1173,9 @@ function StageCard({ detail }: { detail: DetailShape }) {
           style={{ width: `${Math.min(100, rate)}%` }}
         />
       </div>
-      <div className="mt-1 flex items-center justify-between text-[10px] font-medium">
-        <span className="text-slate-400 truncate">{normalizeAmountStr(target)}</span>
-        <span className="text-slate-500 tabular-nums">{rate.toFixed(2)}%</span>
+      <div className="mt-1 flex min-w-0 items-center justify-between gap-1 text-[10px] font-medium">
+        <span className="text-slate-400 whitespace-nowrap">{normalizeAmountStr(target)}</span>
+        <span className="text-slate-500 tabular-nums whitespace-nowrap">{rate.toFixed(2)}%</span>
       </div>
     </div>
   );
@@ -1141,8 +1191,8 @@ function StageCard({ detail }: { detail: DetailShape }) {
     sub?: string;
     tip?: string;
   }) => (
-    <div className="bg-white rounded-lg border border-white shadow-sm hover:shadow-md transition-all px-3 py-2 flex flex-col justify-center">
-      <div className="flex items-center justify-between">
+    <div className="min-w-0 h-full bg-white rounded-lg border border-white shadow-sm hover:shadow-md transition-all px-2.5 py-2 flex flex-col justify-center">
+      <div className="flex min-w-0 items-center justify-between gap-1">
         <span className="text-[11px] font-medium text-slate-500">{title}</span>
         {tip ? (
           <InfoTip tip={tip} />
@@ -1150,7 +1200,7 @@ function StageCard({ detail }: { detail: DetailShape }) {
           <Info className="w-3 h-3 text-[#94A3B8]" />
         )}
       </div>
-      <div className="mt-1 flex items-baseline gap-1.5 tabular-nums leading-none">
+      <div className="mt-1 flex min-w-0 flex-wrap items-baseline gap-x-1.5 gap-y-1 tabular-nums leading-none">
         <ValueWithUnit value={normalizeAmountStr(main)} color="text-[#1677FF]" />
         {sub && <ValueWithUnit value={normalizeAmountStr(sub)} color="text-[#F59E0B]" numSize="text-[12px]" />}
       </div>
@@ -1165,8 +1215,8 @@ function StageCard({ detail }: { detail: DetailShape }) {
         <span className="text-[14px] font-medium">经营指标</span>
       </div>
 
-      <div className="p-2.5 rounded-xl bg-[#F5F8FF] border border-blue-100/60">
-        <div className="grid grid-cols-3 gap-2.5 items-stretch">
+      <div className="flex-1 min-h-0 p-2 rounded-xl bg-[#F5F8FF] border border-blue-100/60">
+        <div className="h-full grid grid-cols-[repeat(auto-fit,minmax(118px,1fr))] auto-rows-fr gap-2 items-stretch">
           <ProgressCard kind="年度签约" value={yearly.sign.value} units={yearly.sign.units} target={yearly.sign.target} rate={yearly.sign.rate} />
           <ProgressCard kind="年度回款" value={yearly.payback.value} target={yearly.payback.target} rate={yearly.payback.rate} />
           <StatCard title={yearly.unpaid.title} main={yearly.unpaid.main} sub={yearly.unpaid.sub} tip="签未回 = 累计签约金额 − 累计回款金额" />
@@ -2324,7 +2374,3 @@ function ProjectAnalysisTab({ project }: { project: (typeof groupProjectAnalysis
     </div>
   );
 }
-
-
-
-

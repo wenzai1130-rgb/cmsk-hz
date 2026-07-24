@@ -982,7 +982,7 @@ function StructurePieCard({
           <span className="text-[15px] font-semibold text-foreground">{title}</span>
         </div>
       </div>
-      <div className="px-5 py-4 flex-1 flex items-center gap-5 min-w-0">
+      <div className="px-5 py-4 flex-1 flex items-center gap-4 min-w-0">
         <div className="relative w-[170px] h-[170px] shrink-0">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
@@ -1092,7 +1092,7 @@ function InBuildStructureCard({
           在建合计 <span className="text-slate-900 font-semibold tabular-nums">{total.toFixed(2)}</span> {unit}
         </div>
       </div>
-      <div className="px-5 py-4 flex-1 flex flex-col gap-3 min-w-0">
+      <div className="px-5 py-4 flex-1 flex flex-col gap-4 min-w-0">
         {/* KPI 行 */}
         <div className="grid grid-cols-3 gap-2">
           {kpis.map((k) => (
@@ -1406,7 +1406,7 @@ function HomePage() {
       </div>
 
       {/* Page content */}
-      <main className="px-6 py-5 space-y-5">
+      <main className="px-6 py-5 space-y-4">
         {/* Core metrics — 首屏视觉重点 */}
         <section className="grid grid-cols-[28fr_44fr_28fr] gap-4 pb-1">
           {/* Card 1: 总货值及供货 — 蓝色系 */}
@@ -1424,7 +1424,7 @@ function HomePage() {
                 </div>
                 
               </div>
-              <div className="grid grid-cols-2 gap-5">
+              <div className="grid grid-cols-2 gap-4">
                 <div className="flex flex-col">
                   <KpiTrendPopover metric="未售总货值">
                     <div
@@ -1534,7 +1534,7 @@ function HomePage() {
               </div>
               
             </div>
-            <div className="grid grid-cols-2 gap-5">
+            <div className="grid grid-cols-2 gap-4">
               <div className="flex flex-col">
                 <KpiTrendPopover metric="年累计签约">
                   <div
@@ -1828,7 +1828,7 @@ function HomePage() {
                 const den = +(kpi.den * factor).toFixed(2);
                 return (
                   <div className="flex items-end justify-between mb-2 gap-4 flex-wrap">
-                    <div className="flex items-end gap-5">
+                    <div className="flex items-end gap-4">
                       <div>
                         <div className="text-[11px] text-muted-foreground mb-0.5">{rateMode}去化率</div>
                         <div className="flex items-baseline">
@@ -2079,7 +2079,7 @@ function UnsoldCard({
           ))}
         </div>
       </div>
-      <div className="grid grid-cols-[minmax(0,0.7fr)_minmax(0,1.3fr)] gap-5">
+      <div className="grid grid-cols-[minmax(0,0.7fr)_minmax(0,1.3fr)] gap-4">
         {/* 主指标 */}
         <div className="flex flex-col justify-start pt-1">
           <div className="text-xs text-muted-foreground mb-1.5">总未售货值</div>
@@ -2094,7 +2094,7 @@ function UnsoldCard({
           </div>
         </div>
         {/* 未售分项明细 */}
-        <div className="grid grid-cols-2 gap-x-5 gap-y-2 content-start">
+        <div className="grid grid-cols-2 gap-4 content-start">
           {list.map((r) => {
             const v = r.value * factor;
             const pct = (r.value / sum) * 100;
@@ -3518,7 +3518,7 @@ function ValueAnalysisCard({
       )}
 
       {/* KPI + 业态筛选 */}
-      <div className="px-4 pt-3 flex flex-wrap items-stretch gap-3 justify-between">
+      <div className="px-4 pt-3 flex flex-wrap items-stretch gap-4 justify-between">
         <div
           className="grid gap-0 rounded-md border border-[#EEF1F6] bg-[#FAFBFC] flex-1 min-w-[420px]"
           style={{ gridTemplateColumns: `repeat(${kpis.length}, minmax(0, 1fr))` }}
