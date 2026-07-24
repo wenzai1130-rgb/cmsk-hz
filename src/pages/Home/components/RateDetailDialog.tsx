@@ -8,14 +8,16 @@ import { toast } from "sonner";
 import * as XLSX from "xlsx";
 import { HierarchyTag, type HierarchyType } from "@/components/HierarchyTag";
 
-const LEVEL_TYPES: HierarchyType[] = ["cityGroup", "cityCompany", "businessType", "project", "phase"];
+const LEVEL_TYPES: HierarchyType[] = ["cityGroup", "cityCompany", "businessType", "project"];
 
 export type RateMode = "取证" | "达售";
 export type RatePeriod = "月度" | "年度";
 
-type Dim = "城市群" | "城市公司" | "业态" | "项目" | "分期";
-const DIMS: Dim[] = ["城市群", "城市公司", "业态", "项目", "分期"];
-const DIM_LEVEL: Record<Dim, number> = { 城市群: 0, 城市公司: 1, 业态: 2, 项目: 3, 分期: 4 };
+type Dim = "城市群组" | "城市公司" | "业态" | "项目";
+const DIMS: Dim[] = ["城市群组", "城市公司", "业态", "项目"];
+const DIM_LEVEL: Record<Dim, number> = { 城市群组: 0, 城市公司: 1, 业态: 2, 项目: 3 };
+const BIZ_TYPES = ["住宅", "商业", "公寓", "写字楼", "车位", "配套及其他"] as const;
+type BizType = (typeof BIZ_TYPES)[number];
 
 import { formatNumber, formatPercent } from "@/lib/format";
 const fmt2 = (n: number | null | undefined) => formatNumber(n, { thousand: false });
@@ -37,7 +39,8 @@ type Metrics = {
 type Row = Metrics & {
   id: string;
   name: string;
-  level: number; // 0..4
+  level: number; // 0..3
+  bizType?: BizType;
   openDate?: string; // 开盘时间，仅项目级填充
   children?: Row[];
 };
@@ -63,10 +66,14 @@ const PROJECT_OPEN_DATES: Record<string, string> = {
   "长沙雍景华府": "2025-03-14",
   "成都招商大魔方": "2026-04-21",
   "重庆江湾城": "2024-11-28",
+  "深圳湾车位资产": "2025-12-01",
+  "广州配套中心": "2024-06-18",
+  "上海前滩车位": "2026-01-20",
+  "成都配套商业": "2025-09-06",
 };
 
 // ---- Mock data builders ----
-const CLUSTERS: { name: string; companies: { name: string; types: { name: string; projects: { name: string; phases: string[] }[] }[] }[] }[] = [
+const CLUSTERS: { name: string; companies: { name: string; types: { name: BizType; projects: { name: string; phases: string[] }[] }[] }[] }[] = [
   {
     name: "南部城市群",
     companies: [
@@ -76,10 +83,12 @@ const CLUSTERS: { name: string; companies: { name: string; types: { name: string
           { name: "招商蛇口·璟悦", phases: ["一期"] },
         ]},
         { name: "公寓", projects: [{ name: "海上世界公寓", phases: ["A区", "B区"] }] },
+        { name: "车位", projects: [{ name: "深圳湾车位资产", phases: ["地库"] }] },
       ]},
       { name: "广州公司", types: [
         { name: "住宅", projects: [{ name: "金山谷", phases: ["一期", "二期", "三期"] }] },
         { name: "商业", projects: [{ name: "广州天玺", phases: ["商业组团"] }] },
+        { name: "配套及其他", projects: [{ name: "广州配套中心", phases: ["配套"] }] },
       ]},
       { name: "佛山公司", types: [
         { name: "住宅", projects: [{ name: "佛山公园大道", phases: ["一期"] }] },
@@ -95,6 +104,7 @@ const CLUSTERS: { name: string; companies: { name: string; types: { name: string
           { name: "前滩玺悦", phases: ["一期"] },
         ]},
         { name: "写字楼", projects: [{ name: "上海招商局大厦", phases: ["主楼"] }] },
+        { name: "车位", projects: [{ name: "上海前滩车位", phases: ["地库"] }] },
       ]},
       { name: "杭州公司", types: [
         { name: "住宅", projects: [{ name: "杭州雍景湾", phases: ["一期", "二期"] }] },
@@ -133,6 +143,7 @@ const CLUSTERS: { name: string; companies: { name: string; types: { name: string
     companies: [
       { name: "成都公司", types: [
         { name: "住宅", projects: [{ name: "成都招商大魔方", phases: ["一期", "二期"] }] },
+        { name: "配套及其他", projects: [{ name: "成都配套商业", phases: ["配套"] }] },
       ]},
       { name: "重庆公司", types: [
         { name: "住宅", projects: [{ name: "重庆江湾城", phases: ["一期"] }] },
@@ -179,23 +190,44 @@ function aggregate(children: Metrics[]): Metrics {
   return { startStock, newAdd, soldNew, soldOld, remainNew, remainOld, rateYearTarget, rateCurTarget, rateOldStock };
 }
 
-// build full tree once
-const FULL_TREE: Row[] = CLUSTERS.map((c) => {
-  const companies: Row[] = c.companies.map((co) => {
-    const types: Row[] = co.types.map((t) => {
-      const projects: Row[] = t.projects.map((p) => {
-        const phases: Row[] = p.phases.map((ph) => {
-          const k = `${c.name}/${co.name}/${t.name}/${p.name}/${ph}`;
-          return { id: k, name: ph, level: 4, ...leafMetrics(k) };
-        });
-        return { id: `${c.name}/${co.name}/${t.name}/${p.name}`, name: p.name, level: 3, openDate: PROJECT_OPEN_DATES[p.name] ?? "", children: phases, ...aggregate(phases) };
-      });
-      return { id: `${c.name}/${co.name}/${t.name}`, name: t.name, level: 2, children: projects, ...aggregate(projects) };
+function buildProjectTree(): Row[] {
+  return CLUSTERS.flatMap((c) => {
+    const companies: Row[] = c.companies.flatMap((co) => {
+      const projects: Row[] = co.types.flatMap((t) =>
+        t.projects.map((p) => {
+          const k = `${c.name}/${co.name}/${t.name}/${p.name}`;
+          return {
+            id: k,
+            name: p.name,
+            level: 3,
+            bizType: t.name,
+            openDate: PROJECT_OPEN_DATES[p.name] ?? "",
+            ...leafMetrics(k),
+          };
+        }),
+      );
+      if (!projects.length) return [];
+      return [{ id: `${c.name}/${co.name}`, name: co.name, level: 1, children: projects, ...aggregate(projects) }];
     });
-    return { id: `${c.name}/${co.name}`, name: co.name, level: 1, children: types, ...aggregate(types) };
+    if (!companies.length) return [];
+    return [{ id: c.name, name: c.name, level: 0, children: companies, ...aggregate(companies) }];
   });
-  return { id: c.name, name: c.name, level: 0, children: companies, ...aggregate(companies) };
-});
+}
+
+function buildBizRows(tree: Row[]): Row[] {
+  return BIZ_TYPES.flatMap((biz) => {
+    const projects: Row[] = [];
+    const walk = (rows: Row[]) => {
+      for (const r of rows) {
+        if (r.level === 3 && r.bizType === biz) projects.push(r);
+        if (r.children?.length) walk(r.children);
+      }
+    };
+    walk(tree);
+    if (!projects.length) return [];
+    return [{ id: `业态/${biz}`, name: biz, level: 2, bizType: biz, ...aggregate(projects) }];
+  });
+}
 
 // 收集所有 level 严格小于 targetLevel 的节点 id —— 用于"全局一键展开"
 function collectIdsUpToLevel(rows: Row[], targetLevel: number, acc: string[] = []): string[] {
@@ -256,7 +288,7 @@ export function RateDetailDialog({
   caliberLabel?: string;
   date?: string;
 }) {
-  const [dim, setDim] = useState<Dim>("城市群");
+  const [dim, setDim] = useState<Dim>("城市群组");
   const [period, setPeriod] = useState<RatePeriod>(initialPeriod ?? "月度");
   const [mode, setMode] = useState<RateMode>("取证");
   const [keyword, setKeyword] = useState("");
@@ -305,7 +337,7 @@ export function RateDetailDialog({
 
   // dim 切换 = 重设全局展开深度（保留用户后续单行手动操作）
   useEffect(() => {
-    const ids = collectIdsUpToLevel(FULL_TREE, DIM_LEVEL[dim]);
+    const ids = collectIdsUpToLevel(buildProjectTree(), DIM_LEVEL[dim]);
     setExpanded(new Set(ids));
     setPage(1);
     setSortKey("rateYearTarget");
@@ -314,10 +346,12 @@ export function RateDetailDialog({
   useEffect(() => { setPage(1); }, [keyword, pageSize, sortKey, sortDir]);
 
   const topRows = useMemo(() => {
-    if (mode === "取证") return FULL_TREE;
+    const fullTree = buildProjectTree();
+    const tree = dim === "业态" ? buildBizRows(fullTree) : fullTree;
+    if (mode === "取证") return tree;
     const mapRow = (r: Row): Row => ({ ...adjustRow(r), children: r.children?.map(mapRow) });
-    return FULL_TREE.map(mapRow);
-  }, [mode]);
+    return tree.map(mapRow);
+  }, [mode, dim]);
 
   const filtered = useMemo(() => filterTree(topRows, keyword.trim()), [topRows, keyword]);
 
@@ -386,7 +420,10 @@ export function RateDetailDialog({
 
   const onExport = () => {
     const targetLevel = DIM_LEVEL[dim];
-    const PATH_HEADERS = ["城市群", "城市公司", "业态", "项目", "分期"].slice(0, targetLevel + 1);
+    const PATH_HEADERS =
+      dim === "业态"
+        ? ["业态"]
+        : ["城市群组", "城市公司", "项目"].slice(0, dim === "项目" ? 3 : targetLevel + 1);
 
     // 收集到 targetLevel 的所有节点，并带上祖先路径
     const rows: { path: string[]; row: Row }[] = [];
@@ -408,14 +445,14 @@ export function RateDetailDialog({
       ? rows.filter((x) => x.path.some((p) => p.includes(k)) || (x.row.openDate ?? "").includes(k))
       : rows;
 
-    const includeOpenDate = dim === "项目" || dim === "分期";
+    const includeProjectAttrs = dim === "项目";
     const header = [
       "序号",
       ...PATH_HEADERS,
-      ...(includeOpenDate ? ["开盘时间"] : []),
+      ...(includeProjectAttrs ? ["业态", "开盘时间"] : []),
       L.startStock, L.newAdd,
-      `${L.sold}-${L.soldNew}`, `${L.sold}-${L.soldOld}`, `${L.sold}-${L.subtotal}`,
-      `剩余在售-${L.remainNew}`, `剩余在售-${L.remainOld}`, `剩余在售-${L.subtotal}`,
+      `${L.sold}-${L.soldOld}`, `${L.sold}-${L.soldNew}`, `${L.sold}-${L.subtotal}`,
+      `剩余在售-${L.remainOld}`, `剩余在售-${L.remainNew}`, `剩余在售-${L.subtotal}`,
       `去化率-${L.ratePrimary}(%)`, `去化率-${L.rateCurrent}(%)`, `去化率-${L.rateOldStock}(%)`,
     ];
 
@@ -427,10 +464,10 @@ export function RateDetailDialog({
       aoa.push([
         i + 1,
         ...x.path,
-        ...(includeOpenDate ? [r.openDate ?? ""] : []),
+        ...(includeProjectAttrs ? [r.bizType ?? "", r.openDate ?? ""] : []),
         r.startStock, r.newAdd,
-        r.soldNew, r.soldOld, soldSub,
-        r.remainNew, r.remainOld, remainSub,
+        r.soldOld, r.soldNew, soldSub,
+        r.remainOld, r.remainNew, remainSub,
         r.rateYearTarget, r.rateCurTarget, r.rateOldStock,
       ]);
     });
@@ -524,20 +561,22 @@ export function RateDetailDialog({
 
         {/* Toolbar */}
         <div className="px-6 h-[56px] flex items-center justify-between border-b border-slate-100 gap-4">
-          <div className="inline-flex p-0.5 rounded-md bg-slate-100">
-            {DIMS.map((d) => (
-              <button
-                key={d}
-                onClick={() => setDim(d)}
-                className={`px-3 h-8 rounded text-[13px] transition ${
-                  dim === d
-                    ? "bg-white text-[#1677FF] shadow-sm font-medium"
-                    : "text-slate-600 hover:text-slate-800"
-                }`}
-              >
-                {d}
-              </button>
-            ))}
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="inline-flex p-0.5 rounded-md bg-slate-100 shrink-0">
+              {DIMS.map((d) => (
+                <button
+                  key={d}
+                  onClick={() => setDim(d)}
+                  className={`px-3 h-8 rounded text-[13px] transition ${
+                    dim === d
+                      ? "bg-white text-[#1677FF] shadow-sm font-medium"
+                      : "text-slate-600 hover:text-slate-800"
+                  }`}
+                >
+                  {d}
+                </button>
+              ))}
+            </div>
           </div>
           <div className="flex items-center gap-2">
             <div className="inline-flex p-0.5 rounded-md bg-slate-100">
@@ -599,12 +638,21 @@ export function RateDetailDialog({
                   className="sticky top-0 z-30 bg-[#F1F5F9] border-b border-r border-[#E2E8F0] px-3 py-2 text-left font-medium align-middle"
                   style={{ width: W_NAME, minWidth: W_NAME, left: NAME_LEFT, position: "sticky" }}
                 >{dim}</th>
-                <ThSortable
-                  rowSpan={2}
-                  onClick={() => onSort("openDate")}
-                  sortIcon={sortIcon("openDate")}
-                  align="left"
-                >开盘时间</ThSortable>
+                {dim === "项目" && (
+                  <>
+                    <th
+                      rowSpan={2}
+                      className="sticky top-0 z-20 bg-[#F1F5F9] border-b border-[#E2E8F0] px-3 py-2 text-left font-medium align-middle whitespace-nowrap"
+                      style={{ minWidth: 92 }}
+                    >业态</th>
+                    <ThSortable
+                      rowSpan={2}
+                      onClick={() => onSort("openDate")}
+                      sortIcon={sortIcon("openDate")}
+                      align="left"
+                    >开盘时间</ThSortable>
+                  </>
+                )}
                 <ThSortable rowSpan={2} onClick={() => onSort("startStock")} sortIcon={sortIcon("startStock")}>{L.startStock}</ThSortable>
                 <ThSortable rowSpan={2} onClick={() => onSort("newAdd")} sortIcon={sortIcon("newAdd")}>{L.newAdd}</ThSortable>
                 <th colSpan={3} className="sticky top-0 z-20 bg-[#F1F5F9] border-b border-l border-[#E2E8F0] px-3 py-2 text-center font-medium">{L.sold}</th>
@@ -612,11 +660,11 @@ export function RateDetailDialog({
                 <th colSpan={3} className="sticky top-0 z-20 bg-[#F1F5F9] border-b border-l border-[#E2E8F0] px-3 py-2 text-center font-medium">去化率</th>
               </tr>
               <tr className="bg-[#F8FAFC] text-[11.5px]">
-                <ThSortable onClick={() => onSort("soldNew")} sortIcon={sortIcon("soldNew")} bordered>{L.soldNew}</ThSortable>
-                <ThSortable onClick={() => onSort("soldOld")} sortIcon={sortIcon("soldOld")}>{L.soldOld}</ThSortable>
+                <ThSortable onClick={() => onSort("soldOld")} sortIcon={sortIcon("soldOld")} bordered>{L.soldOld}</ThSortable>
+                <ThSortable onClick={() => onSort("soldNew")} sortIcon={sortIcon("soldNew")}>{L.soldNew}</ThSortable>
                 <th className="sticky top-0 z-20 bg-[#F8FAFC] border-b border-[#EEF2F7] px-3 py-1.5 text-right font-normal text-[#64748B] whitespace-nowrap">{L.subtotal}</th>
-                <ThSortable onClick={() => onSort("remainNew")} sortIcon={sortIcon("remainNew")} bordered>{L.remainNew}</ThSortable>
-                <ThSortable onClick={() => onSort("remainOld")} sortIcon={sortIcon("remainOld")}>{L.remainOld}</ThSortable>
+                <ThSortable onClick={() => onSort("remainOld")} sortIcon={sortIcon("remainOld")} bordered>{L.remainOld}</ThSortable>
+                <ThSortable onClick={() => onSort("remainNew")} sortIcon={sortIcon("remainNew")}>{L.remainNew}</ThSortable>
                 <th className="sticky top-0 z-20 bg-[#F8FAFC] border-b border-[#EEF2F7] px-3 py-1.5 text-right font-normal text-[#64748B] whitespace-nowrap">{L.subtotal}</th>
                 <ThSortable onClick={() => onSort("rateYearTarget")} sortIcon={sortIcon("rateYearTarget")} bordered>{L.ratePrimary}</ThSortable>
                 <ThSortable onClick={() => onSort("rateCurTarget")} sortIcon={sortIcon("rateCurTarget")}>{L.rateCurrent}</ThSortable>
@@ -626,13 +674,14 @@ export function RateDetailDialog({
             <tbody>
               {visibleRows.map((r, idx) => {
 
-                const isTop = r.level === 0;
-                const indent = r.level * 20;
+                const targetLevel = DIM_LEVEL[dim];
+                const isTop = r.level === targetLevel;
+                const indent = dim === "业态" ? 0 : r.level * 20;
                 const hasChildren = !!(r.children && r.children.length);
                 const isExpanded = effectiveExpanded.has(r.id);
-                // 序号仅在 Level 0 顶层渲染
+                // 序号仅在当前维度行渲染
                 const indexLabel = isTop
-                  ? String(pageStart + pageRows.indexOf(r) + 1).padStart(2, "0")
+                  ? String(pageStart + visibleRows.slice(0, idx + 1).filter((row) => row.level === targetLevel).length).padStart(2, "0")
                   : "";
                 const soldSub = +(r.soldNew + r.soldOld).toFixed(2);
                 const remainSub = +(r.remainNew + r.remainOld).toFixed(2);
@@ -665,16 +714,23 @@ export function RateDetailDialog({
                         <span className={isTop ? "font-medium text-[#1E293B] ml-2.5" : "text-[#475569] ml-2.5"}>{r.name}</span>
                       </div>
                     </td>
-                    <td className="px-3 py-2.5 text-left text-[#475569] border-b border-[#F1F5F9] whitespace-nowrap tabular-nums" style={{ minWidth: 120 }}>
-                      {r.level === 3 ? (r.openDate || "--") : "--"}
-                    </td>
+                    {dim === "项目" && (
+                      <>
+                        <td className="px-3 py-2.5 text-left text-[#475569] border-b border-[#F1F5F9] whitespace-nowrap" style={{ minWidth: 92 }}>
+                          {r.level === 3 ? (r.bizType || "--") : "--"}
+                        </td>
+                        <td className="px-3 py-2.5 text-left text-[#475569] border-b border-[#F1F5F9] whitespace-nowrap tabular-nums" style={{ minWidth: 120 }}>
+                          {r.level === 3 ? (r.openDate || "--") : "--"}
+                        </td>
+                      </>
+                    )}
                     {numCell(r.startStock)}
                     {numCell(r.newAdd)}
-                    <td className="px-3 py-2.5 text-right tabular-nums text-[#475569] border-b border-l border-[#F1F5F9]">{fmt2(r.soldNew)}</td>
-                    {numCell(r.soldOld)}
+                    <td className="px-3 py-2.5 text-right tabular-nums text-[#475569] border-b border-l border-[#F1F5F9]">{fmt2(r.soldOld)}</td>
+                    {numCell(r.soldNew)}
                     <td className="px-3 py-2.5 text-right tabular-nums text-[#1E293B] font-medium border-b border-[#F1F5F9]">{fmt2(soldSub)}</td>
-                    <td className="px-3 py-2.5 text-right tabular-nums text-[#475569] border-b border-l border-[#F1F5F9]">{fmt2(r.remainNew)}</td>
-                    {numCell(r.remainOld)}
+                    <td className="px-3 py-2.5 text-right tabular-nums text-[#475569] border-b border-l border-[#F1F5F9]">{fmt2(r.remainOld)}</td>
+                    {numCell(r.remainNew)}
                     <td className="px-3 py-2.5 text-right tabular-nums text-[#1E293B] font-medium border-b border-[#F1F5F9]">{fmt2(remainSub)}</td>
                     <td className="px-3 py-2.5 text-right tabular-nums border-b border-l border-[#F1F5F9] text-[var(--color-brand)] font-medium">{pct(r.rateYearTarget)}</td>
                     {numCell(r.rateCurTarget, true)}
@@ -684,7 +740,7 @@ export function RateDetailDialog({
               })}
               {visibleRows.length === 0 && (
                 <tr>
-                  <td colSpan={12} className="px-3 py-16 text-center text-[#94A3B8]">暂无数据</td>
+                  <td colSpan={dim === "项目" ? 14 : 12} className="px-3 py-16 text-center text-[#94A3B8]">暂无数据</td>
                 </tr>
               )}
             </tbody>

@@ -271,10 +271,17 @@ const DONE_COLORS = ["#2563EB", "#60A5FA"];
 
 // 在建在售货值按 "取证未售货龄" 分布（亿）
 const IN_BUILD_AGE_BUCKETS = [
-  { age: "6个月以内", 达售未取证: 18.5, 取证未售: 1.2 },
-  { age: "6-12个月", 达售未取证: 12.8, 取证未售: 0.9 },
-  { age: "12-18个月", 达售未取证: 6.4, 取证未售: 0.6 },
   { age: "18个月以上", 达售未取证: 3.3, 取证未售: 0.3 },
+  { age: "12-18个月", 达售未取证: 6.4, 取证未售: 0.6 },
+  { age: "6-12个月", 达售未取证: 12.8, 取证未售: 0.9 },
+  { age: "6个月以内", 达售未取证: 18.5, 取证未售: 1.2 },
+];
+
+const DONE_AGE_BUCKETS = [
+  { age: "18个月以上", 达售未取证: 36.2, 取证未售: 8.1 },
+  { age: "12-18个月", 达售未取证: 27.4, 取证未售: 7.2 },
+  { age: "6-12个月", 达售未取证: 22.6, 取证未售: 6.4 },
+  { age: "6个月以内", 达售未取证: 15.8, 取证未售: 4.3 },
 ];
 
 
@@ -347,7 +354,7 @@ function CardHead({
       {detail && (
         <button
           onClick={onDetail}
-          className="text-xs text-[var(--color-brand)] hover:underline flex items-center gap-0.5"
+          className="text-xs text-[var(--color-brand)] hover:underline flex items-center gap-0.5 rounded-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-brand)] disabled:opacity-50 disabled:cursor-not-allowed"
         >
           查看详情 <ChevronRight className="w-3.5 h-3.5" />
         </button>
@@ -362,6 +369,25 @@ function Card({ children, className = "" }: { children: React.ReactNode; classNa
       className={`bg-white rounded-xl border border-[#E2E8F0] shadow-[0_1px_2px_rgba(15,23,42,0.04)] hover:shadow-[0_4px_16px_rgba(15,23,42,0.06)] transition-shadow ${className}`}
     >
       {children}
+    </div>
+  );
+}
+
+function EmptyState({
+  title = "暂无数据",
+  description,
+  className = "",
+}: {
+  title?: string;
+  description?: string;
+  className?: string;
+}) {
+  return (
+    <div
+      className={`flex min-h-[120px] flex-1 flex-col items-center justify-center rounded-lg border border-dashed border-[#CBD5E1] bg-[#F8FAFC] px-4 py-6 text-center ${className}`}
+    >
+      <div className="text-sm font-medium text-[#475569]">{title}</div>
+      {description && <div className="mt-1 text-xs leading-5 text-[#94A3B8]">{description}</div>}
     </div>
   );
 }
@@ -481,6 +507,7 @@ function StageDistributionCard({
   }));
 
   const totalAll = 568 * areaFactor;
+  const hasStageData = stages.some((s) => s.total > 0 || s.items.some((it) => it.value > 0));
 
   return (
     <div className="relative h-full bg-white rounded-[14px] border border-[#E5EAF1] shadow-[0_1px_2px_rgba(15,23,42,0.04)] hover:shadow-[0_10px_28px_-8px_rgba(15,23,42,0.12)] hover:-translate-y-0.5 transition-all duration-200 overflow-hidden flex flex-col">
@@ -508,11 +535,12 @@ function StageDistributionCard({
           <span className="text-[16px] font-semibold text-foreground">{cardTitle}</span>
         </div>
       </div>
+      {hasStageData ? (
       <div className="relative flex flex-1 min-h-0 items-stretch">
         {stages.map((s, i) => {
           const isLast = i === stages.length - 1;
           const basis = s.idx === 1 ? "22%" : s.idx === 2 ? "39%" : "39%";
-          const innerPad = "pl-8 pr-8";
+          const innerPad = "px-[clamp(0.75rem,2vw,2rem)]";
           return (
             <div key={s.idx} className="relative flex" style={{ width: basis, flex: `0 0 ${basis}` }}>
               <div className={`flex-1 ${innerPad} py-2.5 flex flex-col justify-start min-w-0`}>
@@ -588,6 +616,11 @@ function StageDistributionCard({
           );
         })}
       </div>
+      ) : (
+        <div className="relative flex flex-1 min-h-0 px-4 pb-4 pt-2">
+          <EmptyState title="暂无阶段数据" description="当前筛选条件下暂无可展示的阶段分布" />
+        </div>
+      )}
     </div>
   );
 }
@@ -1042,14 +1075,18 @@ function StructurePieCard({
   );
 }
 
-// ====== 在建货值结构分析卡片（KPI + 取证未售货龄堆叠柱） ======
-function InBuildStructureCard({
+// ====== 货值结构分析卡片（货龄堆叠柱） ======
+function AgeStackStructureCard({
   title,
   icon,
   factor,
   unit,
   accentBg,
   accentFg,
+  buckets,
+  firstLabel,
+  secondLabel,
+  colors,
 }: {
   title: string;
   icon: React.ReactNode;
@@ -1057,24 +1094,16 @@ function InBuildStructureCard({
   unit: string;
   accentBg: string;
   accentFg: string;
+  buckets: { age: string; 达售未取证: number; 取证未售: number }[];
+  firstLabel: string;
+  secondLabel: string;
+  colors: [string, string];
 }) {
-  const dasold = +(41 * factor).toFixed(2);
-  const certUnsold = +(3 * factor).toFixed(2);
-  const openNoPresale = +(241 * factor).toFixed(2);
-  const total = +(dasold + certUnsold + openNoPresale).toFixed(2);
-  const onSale = +(dasold + certUnsold).toFixed(2);
-
-  const bars = IN_BUILD_AGE_BUCKETS.map((b) => ({
+  const bars = buckets.map((b) => ({
     age: b.age,
-    达售未取证: +(b.达售未取证 * factor).toFixed(2),
-    取证未售: +(b.取证未售 * factor).toFixed(2),
+    [firstLabel]: +(b.达售未取证 * factor).toFixed(2),
+    [secondLabel]: +(b.取证未售 * factor).toFixed(2),
   }));
-
-  const kpis = [
-    { label: "开工未达预售", value: openNoPresale, color: "#F59E0B" },
-    { label: "在建达售未取证", value: dasold, color: "#FB923C" },
-    { label: "在建取证未售", value: certUnsold, color: "#FDBA74" },
-  ];
 
   return (
     <Card className="flex flex-col h-full">
@@ -1088,40 +1117,14 @@ function InBuildStructureCard({
           </span>
           <span className="text-[15px] font-semibold text-foreground">{title}</span>
         </div>
-        <div className="text-[11px] text-slate-500">
-          在建合计 <span className="text-slate-900 font-semibold tabular-nums">{total.toFixed(2)}</span> {unit}
-        </div>
       </div>
-      <div className="px-5 py-4 flex-1 flex flex-col gap-4 min-w-0">
-        {/* KPI 行 */}
-        <div className="grid grid-cols-3 gap-2">
-          {kpis.map((k) => (
-            <div
-              key={k.label}
-              className="rounded-md border border-slate-100 bg-slate-50/60 px-3 py-2 flex flex-col gap-0.5"
-            >
-              <div className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-sm" style={{ background: k.color }} />
-                <span className="text-[11px] text-slate-600 truncate">{k.label}</span>
-              </div>
-              <div className="text-[18px] font-semibold tabular-nums text-slate-900 leading-tight">
-                {k.value.toFixed(2)}
-                <span className="text-[11px] text-slate-500 font-normal ml-1">{unit}</span>
-              </div>
-            </div>
-          ))}
-        </div>
-
+      <div className="px-5 py-4 flex-1 flex flex-col min-w-0">
         {/* 堆叠柱：在建在售货值按取证未售货龄分布 */}
         <div className="flex-1 flex flex-col min-h-0">
-          <div className="flex items-center justify-between mb-1">
-            <div className="text-[12px] text-slate-600">
-              在建在售货值 · 取证未售货龄分布
-              <span className="text-slate-400 ml-2">合计 <span className="tabular-nums text-slate-700">{onSale.toFixed(2)}</span> {unit}</span>
-            </div>
+          <div className="flex items-center justify-center mb-2">
             <div className="flex items-center gap-3 text-[11px] text-slate-500">
-              <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm" style={{ background: "#FB923C" }} />在建达售未取证</span>
-              <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm" style={{ background: "#FDBA74" }} />在建取证未售</span>
+              <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm" style={{ background: colors[0] }} />{firstLabel}</span>
+              <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm" style={{ background: colors[1] }} />{secondLabel}</span>
             </div>
           </div>
           <div className="flex-1 min-h-[180px]">
@@ -1140,17 +1143,18 @@ function InBuildStructureCard({
                   tickLine={false}
                 />
                 <RTooltip
+                  cursor={{ fill: "rgba(91,141,239,0.06)" }}
                   contentStyle={TOOLTIP_STYLE}
                   formatter={(v: number, n) => [`${Number(v).toFixed(2)} ${unit}`, n as string]}
                 />
-                <Bar dataKey="达售未取证" stackId="a" fill="#FB923C" radius={[0, 0, 0, 0]} maxBarSize={44} />
-                <Bar dataKey="取证未售" stackId="a" fill="#FDBA74" radius={[4, 4, 0, 0]} maxBarSize={44}>
+                <Bar dataKey={firstLabel} stackId="a" fill={colors[0]} radius={[0, 0, 0, 0]} maxBarSize={44} />
+                <Bar dataKey={secondLabel} stackId="a" fill={colors[1]} radius={[4, 4, 0, 0]} maxBarSize={44}>
                   <LabelList
                     position="top"
                     formatter={(_v: any, _n: any, entry: any) => {
                       const p = entry?.payload;
                       if (!p) return "";
-                      const sum = (p["达售未取证"] || 0) + (p["取证未售"] || 0);
+                      const sum = (p[firstLabel] || 0) + (p[secondLabel] || 0);
                       return sum > 0 ? sum.toFixed(2) : "";
                     }}
                     style={{ fill: "#334155", fontSize: 11, fontWeight: 600 }}
@@ -1393,7 +1397,7 @@ function HomePage() {
             <button
               key={c}
               onClick={() => setMetricMode(c)}
-              className={`px-4 text-sm rounded-[5px] transition-colors ${
+              className={`px-4 text-sm rounded-[5px] transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-brand)] disabled:opacity-50 disabled:cursor-not-allowed ${
                 metricMode === c
                   ? "bg-white text-[var(--color-brand)] font-medium shadow-sm"
                   : "text-muted-foreground hover:text-foreground"
@@ -1408,7 +1412,7 @@ function HomePage() {
       {/* Page content */}
       <main className="px-6 py-5 space-y-4">
         {/* Core metrics — 首屏视觉重点 */}
-        <section className="grid grid-cols-[28fr_44fr_28fr] gap-4 pb-1">
+        <section className="grid grid-cols-[28fr_44fr_28fr] gap-4">
           {/* Card 1: 总货值及供货 — 蓝色系 */}
           <ModuleBadge moduleId="total-value-kpi" className="h-full">
             <KpiCard accent={KPI_ACCENTS.blue}>
@@ -1654,10 +1658,14 @@ function HomePage() {
                 const baseSum = TYPE_DISTRIBUTION.reduce((s, d) => s + d.value, 0);
                 const scale = baseSum > 0 ? headerTotal / baseSum : 1;
                 const data = TYPE_DISTRIBUTION.map((d) => ({ ...d, displayValue: d.value * scale }));
+                const hasTypeData = headerTotal > 0 && data.some((d) => d.displayValue > 0);
                 const centerLabel = `总货值`;
                 const centerValue = headerTotal;
                 const gridCols =
                   "grid-cols-[10px_minmax(0,28fr)_minmax(0,26fr)_minmax(0,22fr)_minmax(0,26fr)] gap-x-3";
+                if (!hasTypeData) {
+                  return <EmptyState title="暂无业态数据" description="当前筛选条件下暂无可展示的业态分布" />;
+                }
                 return (
                   <div className="flex items-center gap-2 flex-1 min-w-0 min-h-0">
                     <div className="relative w-[104px] h-[104px] shrink-0 [&_.recharts-sector]:outline-none [&_.recharts-sector:focus]:outline-none [&_.recharts-wrapper]:outline-none [&_svg]:outline-none">
@@ -1970,25 +1978,31 @@ function HomePage() {
         {/* Row 2b: 在建货值结构分析 / 竣工货值结构分析 */}
         <div className="grid grid-cols-12 gap-4">
           <ModuleBadge moduleId="in-build-structure" className="col-span-6 h-full block">
-            <InBuildStructureCard
+            <AgeStackStructureCard
               title="在建货值结构分析"
               icon={<Building2 className="w-3.5 h-3.5" />}
               factor={factor}
               unit={unit}
               accentBg="#FFF4E6"
               accentFg="#C2410C"
+              buckets={IN_BUILD_AGE_BUCKETS}
+              firstLabel="在建达售未取证"
+              secondLabel="在建取证未售"
+              colors={["#1677FF", "#F97316"]}
             />
           </ModuleBadge>
           <ModuleBadge moduleId="done-structure" className="col-span-6 h-full block">
-            <StructurePieCard
+            <AgeStackStructureCard
               title="竣工货值结构分析"
               icon={<PackageCheck className="w-3.5 h-3.5" />}
-              data={DONE_STRUCTURE}
-              colors={DONE_COLORS}
               factor={factor}
               unit={unit}
               accentBg="#DBEAFE"
               accentFg="#1D4ED8"
+              buckets={DONE_AGE_BUCKETS}
+              firstLabel="竣工达售未取证"
+              secondLabel="竣工取证未售"
+              colors={["#2DBDA8", "#F4B042"]}
             />
           </ModuleBadge>
         </div>
@@ -2570,6 +2584,10 @@ function CityRankCard({
 
   const nameColLabel = mode === "project" ? "项目" : "公司";
   const titleText = mode === "project" ? `${org}·项目排名` : "城市公司排名";
+  const rankGridCols = isRisk
+    ? "grid-cols-[22px_minmax(64px,1fr)_minmax(72px,96px)_48px_14px]"
+    : "grid-cols-[22px_minmax(64px,1fr)_48px_minmax(44px,76px)_52px_48px]";
+  const rankGridClass = `grid ${rankGridCols} items-center gap-2`;
 
   return (
     <>
@@ -2585,7 +2603,7 @@ function CityRankCard({
         </div>
         <button
           onClick={() => setDetailOpen(true)}
-          className="text-xs text-[var(--color-brand)] hover:underline inline-flex items-center gap-0.5 shrink-0"
+          className="text-xs text-[var(--color-brand)] hover:underline inline-flex items-center gap-0.5 shrink-0 rounded-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-brand)] disabled:opacity-50 disabled:cursor-not-allowed"
         >
           查看更多 <ChevronRight className="w-3.5 h-3.5" />
         </button>
@@ -2602,7 +2620,7 @@ function CityRankCard({
               <button
                 key={k}
                 onClick={() => setTab(k)}
-                className={`px-2.5 rounded-[4px] transition-colors ${
+                className={`px-2.5 rounded-[4px] transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-brand)] disabled:opacity-50 disabled:cursor-not-allowed ${
                   active
                     ? riskActive
                       ? "bg-[#FFE5DA] text-[#E0581F] font-medium"
@@ -2621,15 +2639,15 @@ function CityRankCard({
       {/* Header + 列表 */}
       <div className="mt-1.5 flex-1 min-h-0 flex flex-col">
         <div className="px-4 shrink-0">
-          <div className="flex items-center gap-2 px-2 h-8 border-b border-[#EEF1F6] text-[11px] font-medium text-[#64748B] leading-[16px] whitespace-nowrap">
+          <div className={`${rankGridClass} px-2 h-8 border-b border-[#EEF1F6] text-[11px] font-medium text-[#64748B] leading-[16px] whitespace-nowrap`}>
             {isRisk ? (
               <>
-                <span className="w-5 shrink-0" />
-                <span className="flex-1 min-w-0">{nameColLabel}</span>
+                <span />
+                <span className="min-w-0">{nameColLabel}</span>
                 <button
                   type="button"
                   onClick={() => toggleRiskSort("value")}
-                  className={`flex-1 text-right inline-flex items-center justify-end gap-0.5 hover:text-foreground ${
+                  className={`min-w-0 text-right inline-flex items-center justify-end gap-0.5 hover:text-foreground rounded-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#E0581F] ${
                     riskSortKey === "value" ? "text-[#E0581F]" : ""
                   }`}
                   title="点击切换升/降序"
@@ -2640,7 +2658,7 @@ function CityRankCard({
                 <button
                   type="button"
                   onClick={() => toggleRiskSort("pct")}
-                  className={`w-20 text-right shrink-0 inline-flex items-center justify-end hover:text-foreground ${
+                  className={`text-right inline-flex items-center justify-end hover:text-foreground rounded-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#E0581F] ${
                     riskSortKey === "pct" ? "text-[#E0581F]" : ""
                   }`}
                   title="点击切换升/降序"
@@ -2660,14 +2678,14 @@ function CityRankCard({
               </>
             ) : (
               <>
-                <span className="w-5 shrink-0" />
-                <span className="flex-1 min-w-0">{nameColLabel}</span>
-                <span className="w-14 text-right shrink-0">目标({unit})</span>
-                <span className="flex-1 min-w-[40px] max-w-[90px]" />
+                <span />
+                <span className="min-w-0">{nameColLabel}</span>
+                <span className="text-right">目标({unit})</span>
+                <span />
                 <button
                   type="button"
                   onClick={() => toggleSort("value")}
-                  className={`w-14 text-right shrink-0 inline-flex items-center justify-end gap-0.5 hover:text-foreground ${
+                  className={`text-right inline-flex items-center justify-end gap-0.5 hover:text-foreground rounded-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-brand)] ${
                     sortKey === "value" ? "text-[var(--color-brand)]" : ""
                   }`}
                   title="点击切换升/降序"
@@ -2678,7 +2696,7 @@ function CityRankCard({
                 <button
                   type="button"
                   onClick={() => toggleSort("rate")}
-                  className={`w-14 text-right shrink-0 inline-flex items-center justify-end gap-0.5 hover:text-foreground ${
+                  className={`text-right inline-flex items-center justify-end gap-0.5 hover:text-foreground rounded-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-brand)] ${
                     sortKey === "rate" ? "text-[var(--color-brand)]" : ""
                   }`}
                   title="点击切换升/降序"
@@ -2692,6 +2710,14 @@ function CityRankCard({
         </div>
 
         <div className="px-4 pb-3 mt-0.5 overflow-y-auto flex-1 min-h-0 rank-scroll">
+        {sorted.length === 0 ? (
+          <EmptyState
+            title="暂无排名数据"
+            description="当前筛选条件下暂无可展示的公司或项目排名"
+            className="min-h-[190px]"
+          />
+        ) : (
+        <>
         {(() => {
           const n = sorted.length || 1;
           const avgValue = +(sorted.reduce((s, x) => s + x.value, 0) / n).toFixed(2);
@@ -2701,28 +2727,28 @@ function CityRankCard({
           const avgPct = +((avgValue / (totalSum || 1)) * 100).toFixed(2);
           return (
             <div
-              className="sticky top-0 z-[1] flex items-center gap-2 px-2 h-9 rounded-md whitespace-nowrap bg-[#F8FAFC] border-b border-[#E2E8F0]"
+              className={`sticky top-0 z-[1] ${rankGridClass} px-2 h-9 rounded-md whitespace-nowrap bg-[#F8FAFC] border-b border-[#E2E8F0]`}
               title="基于当前筛选范围的均值"
             >
-              <span className="w-5 h-5 flex items-center justify-center shrink-0">
+              <span className="w-5 h-5 flex items-center justify-center">
                 <span className="px-1 h-[15px] inline-flex items-center rounded text-[9px] font-medium bg-[#E6EEFB] text-[var(--color-brand)] leading-none">均值</span>
               </span>
-              <span className="flex-1 min-w-0 text-[11px] leading-[16px] text-[#475569] truncate font-medium">全部平均</span>
+              <span className="min-w-0 text-[11px] leading-[16px] text-[#475569] truncate font-medium">全部平均</span>
               {isRisk ? (
                 <>
-                  <div className="flex-1 flex items-center justify-end gap-1.5">
-                    <div className="w-[70px] shrink-0" />
+                  <div className="flex items-center justify-end gap-1.5 min-w-0">
+                    <div className="min-w-[38px] flex-1 h-1.5" />
                     <span className="text-[11px] leading-[16px] tabular-nums shrink-0 text-right text-[#1E293B] font-semibold">{avgValue.toFixed(2)}</span>
                   </div>
-                  <span className="w-20 text-right text-[11px] leading-[16px] tabular-nums shrink-0 text-[#1E293B] font-semibold">{avgPct.toFixed(2)}%</span>
-                  <span className="w-3 shrink-0" />
+                  <span className="text-right text-[11px] leading-[16px] tabular-nums text-[#1E293B] font-semibold">{avgPct.toFixed(2)}%</span>
+                  <span />
                 </>
               ) : (
                 <>
-                  <span className="w-14 text-right text-[11px] leading-[16px] tabular-nums shrink-0 text-[#475569] font-semibold">{avgTarget.toFixed(2)}</span>
-                  <div className="flex-1 min-w-[40px] max-w-[90px]" />
-                  <span className="w-14 text-right text-[11px] leading-[16px] tabular-nums shrink-0 text-[#1E293B] font-semibold">{avgValue.toFixed(2)}</span>
-                  <span className="w-14 text-right text-[11px] leading-[16px] tabular-nums shrink-0 text-[#475569] font-semibold">{avgRate.toFixed(1)}%</span>
+                  <span className="text-right text-[11px] leading-[16px] tabular-nums text-[#475569] font-semibold">{avgTarget.toFixed(2)}</span>
+                  <div />
+                  <span className="text-right text-[11px] leading-[16px] tabular-nums text-[#1E293B] font-semibold">{avgValue.toFixed(2)}</span>
+                  <span className="text-right text-[11px] leading-[16px] tabular-nums text-[#475569] font-semibold">{avgRate.toFixed(1)}%</span>
                 </>
               )}
             </div>
@@ -2738,11 +2764,11 @@ function CityRankCard({
           return (
             <div
               key={c.name}
-              className={`flex items-center gap-2 px-2 h-9 rounded-md whitespace-nowrap ${
+              className={`${rankGridClass} px-2 h-9 rounded-md whitespace-nowrap ${
                 isRisk && top3 ? "hover:bg-[#FFF7F2]" : "hover:bg-[#F8FAFC]"
               }`}
             >
-              <span className="w-5 h-5 flex items-center justify-center shrink-0">
+              <span className="w-5 h-5 flex items-center justify-center">
                 {isRisk && top3 ? (
                   <AlertTriangle
                     className="w-4 h-4"
@@ -2765,11 +2791,11 @@ function CityRankCard({
                   </span>
                 )}
               </span>
-              <span className="flex-1 min-w-0 text-[11px] leading-[16px] text-[#1E293B] truncate" title={c.name}>{c.name}</span>
+              <span className="min-w-0 text-[11px] leading-[16px] text-[#1E293B] truncate" title={c.name}>{c.name}</span>
               {isRisk ? (
                 <>
-                  <div className="flex-1 flex items-center justify-end gap-1.5">
-                    <div className="w-[70px] shrink-0 h-1.5 rounded-full bg-[#F1F5F9] overflow-hidden">
+                  <div className="flex items-center justify-end gap-1.5 min-w-0">
+                    <div className="min-w-[38px] flex-1 h-1.5 rounded-full bg-[#F1F5F9] overflow-hidden">
                       <div
                         className="h-full rounded-full"
                         style={{
@@ -2790,21 +2816,21 @@ function CityRankCard({
                     </span>
                   </div>
                   <span
-                    className={`w-20 text-right text-[11px] leading-[16px] tabular-nums shrink-0 ${
+                    className={`text-right text-[11px] leading-[16px] tabular-nums ${
                       top3 ? "font-semibold" : "text-[#1E293B]"
                     }`}
                     style={top3 ? { color: riskColor } : undefined}
                   >
                     {pctOfTotal.toFixed(2)}%
                   </span>
-                  <span className="w-3 shrink-0" />
+                  <span />
                 </>
               ) : (
                 <>
-                  <span className="w-14 text-right text-[11px] leading-[16px] tabular-nums text-[#475569] shrink-0">
+                  <span className="text-right text-[11px] leading-[16px] tabular-nums text-[#475569]">
                     {c.target.toFixed(2)}
                   </span>
-                  <div className="relative flex-1 min-w-[40px] max-w-[90px] h-1.5 rounded-full bg-[#F1F5F9] overflow-hidden">
+                  <div className="relative min-w-0 h-1.5 rounded-full bg-[#F1F5F9] overflow-hidden">
                     <div
                       className="h-full rounded-full"
                       style={{
@@ -2817,10 +2843,10 @@ function CityRankCard({
                       }}
                     />
                   </div>
-                  <span className={`w-14 text-right text-[11px] leading-[16px] tabular-nums shrink-0 text-[#1E293B] ${top3 ? "font-semibold" : ""}`}>
+                  <span className={`text-right text-[11px] leading-[16px] tabular-nums text-[#1E293B] ${top3 ? "font-semibold" : ""}`}>
                     {c.value.toFixed(2)}
                   </span>
-                  <span className="w-14 text-right text-[11px] leading-[16px] tabular-nums shrink-0 text-[#475569]">
+                  <span className="text-right text-[11px] leading-[16px] tabular-nums text-[#475569]">
                     {rate.toFixed(1)}%
                   </span>
                 </>
@@ -2828,6 +2854,8 @@ function CityRankCard({
             </div>
           );
         })}
+        </>
+        )}
         </div>
       </div>
     </Card>

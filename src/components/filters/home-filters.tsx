@@ -22,18 +22,47 @@ export const CALIBER_OPTIONS: { key: Caliber; label: string; factor: number; tip
   { key: "full", label: "全口径", factor: 1 },
 ];
 
-export function CaliberPicker({ value, onChange }: { value: Caliber; onChange: (v: Caliber) => void }) {
+type PickerStateProps = {
+  disabled?: boolean;
+  loading?: boolean;
+};
+
+function LoadingDot() {
+  return (
+    <span
+      className="h-3.5 w-3.5 shrink-0 animate-spin rounded-full border-2 border-current border-t-transparent opacity-70"
+      aria-hidden
+    />
+  );
+}
+
+const triggerStateClass =
+  "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-brand)] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-[var(--color-brand-soft)]";
+
+export function CaliberPicker({
+  value,
+  onChange,
+  disabled = false,
+  loading = false,
+}: { value: Caliber; onChange: (v: Caliber) => void } & PickerStateProps) {
   const [open, setOpen] = useState(false);
   const current = CALIBER_OPTIONS.find((c) => c.key === value)!;
+  const inactive = disabled || loading;
   return (
     <div className="relative">
       <button
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => {
+          if (inactive) return;
+          setOpen((v) => !v);
+        }}
         onBlur={() => setTimeout(() => setOpen(false), 180)}
-        className="h-9 px-3 rounded-md border border-[var(--color-brand)] bg-[var(--color-brand-soft)] text-[var(--color-brand)] text-sm font-medium flex items-center gap-2 min-w-[110px] hover:bg-white transition-colors"
+        disabled={inactive}
+        aria-expanded={open}
+        aria-busy={loading || undefined}
+        className={`h-9 px-3 rounded-md border border-[var(--color-brand)] bg-[var(--color-brand-soft)] text-[var(--color-brand)] text-sm font-medium flex items-center gap-2 min-w-[110px] hover:bg-white transition-colors ${triggerStateClass}`}
       >
-        <span className="flex-1 text-left">{current.label}</span>
-        <ChevronDown className="w-4 h-4" />
+        <span className="flex-1 text-left">{loading ? "加载中" : current.label}</span>
+        {loading ? <LoadingDot /> : <ChevronDown className="w-4 h-4" />}
       </button>
       {open && (
         <div className="absolute left-0 top-full mt-1 w-[200px] rounded-md border border-[#E2E8F0] bg-white shadow-xl z-30 py-1">
@@ -85,21 +114,34 @@ export const ORG_TREE: { name: string; children?: { name: string; children?: str
   ],
 };
 
-export function OrgPicker({ value, onChange, leafOnly = false }: { value: string; onChange: (v: string) => void; leafOnly?: boolean }) {
+export function OrgPicker({
+  value,
+  onChange,
+  leafOnly = false,
+  disabled = false,
+  loading = false,
+}: { value: string; onChange: (v: string) => void; leafOnly?: boolean } & PickerStateProps) {
   const [open, setOpen] = useState(false);
   const [expanded, setExpanded] = useState<string[]>(["南部城市群"]);
+  const inactive = disabled || loading;
   const toggle = (n: string) =>
     setExpanded((a) => (a.includes(n) ? a.filter((x) => x !== n) : [...a, n]));
   return (
     <div className="relative">
       <button
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => {
+          if (inactive) return;
+          setOpen((v) => !v);
+        }}
         onBlur={() => setTimeout(() => setOpen(false), 180)}
-        className="h-9 px-3 rounded-md border border-[var(--color-brand)] bg-[var(--color-brand-soft)] text-[var(--color-brand)] text-sm font-medium flex items-center gap-2 min-w-[140px] hover:bg-white transition-colors"
+        disabled={inactive}
+        aria-expanded={open}
+        aria-busy={loading || undefined}
+        className={`h-9 px-3 rounded-md border border-[var(--color-brand)] bg-[var(--color-brand-soft)] text-[var(--color-brand)] text-sm font-medium flex items-center gap-2 min-w-[140px] hover:bg-white transition-colors ${triggerStateClass}`}
       >
         <Building className="w-3.5 h-3.5" />
-        <span className="flex-1 text-left truncate">{value}</span>
-        <ChevronDown className="w-4 h-4" />
+        <span className="flex-1 text-left truncate">{loading ? "加载中" : value}</span>
+        {loading ? <LoadingDot /> : <ChevronDown className="w-4 h-4" />}
       </button>
       {open && (
         <div className="absolute left-0 top-full mt-1 w-[260px] rounded-md border border-[#E2E8F0] bg-white shadow-xl z-30 py-1 max-h-[420px] overflow-auto">
@@ -188,12 +230,14 @@ export function OrgMultiPicker({
   value,
   onChange,
   allowedLeaves,
+  disabled = false,
+  loading = false,
 }: {
   value: string[];
   onChange: (v: string[]) => void;
   /** 可选：仅在此白名单内的城市公司显示；默认展示全部叶子 */
   allowedLeaves?: string[];
-}) {
+} & PickerStateProps) {
   const [open, setOpen] = useState(false);
   const [expanded, setExpanded] = useState<string[]>(
     ORG_TREE.children?.map((g) => g.name) ?? [],
@@ -258,22 +302,29 @@ export function OrgMultiPicker({
 
   const rootState: "none" | "some" | "all" =
     selectedCount === 0 ? "none" : selectedCount === totalCount ? "all" : "some";
+  const inactive = disabled || loading;
 
   return (
     <div className="relative">
       <button
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => {
+          if (inactive) return;
+          setOpen((v) => !v);
+        }}
         onBlur={() => setTimeout(() => setOpen(false), 200)}
-        className="h-9 px-3 rounded-md border border-[var(--color-brand)] bg-[var(--color-brand-soft)] text-[var(--color-brand)] text-sm font-medium flex items-center gap-2 min-w-[180px] hover:bg-white transition-colors"
+        disabled={inactive}
+        aria-expanded={open}
+        aria-busy={loading || undefined}
+        className={`h-9 px-3 rounded-md border border-[var(--color-brand)] bg-[var(--color-brand-soft)] text-[var(--color-brand)] text-sm font-medium flex items-center gap-2 min-w-[180px] hover:bg-white transition-colors ${triggerStateClass}`}
       >
         <Building className="w-3.5 h-3.5" />
-        <span className="flex-1 text-left truncate">{label}</span>
+        <span className="flex-1 text-left truncate">{loading ? "加载中" : label}</span>
         {selectedCount > 0 && selectedCount !== totalCount && (
           <span className="tabular-nums text-[11px] px-1.5 py-[1px] rounded bg-[var(--color-brand)] text-white">
             {selectedCount}
           </span>
         )}
-        <ChevronDown className="w-4 h-4" />
+        {loading ? <LoadingDot /> : <ChevronDown className="w-4 h-4" />}
       </button>
       {open && (
         <div className="absolute left-0 top-full mt-1 w-[280px] rounded-md border border-[#E2E8F0] bg-white shadow-xl z-30 flex flex-col max-h-[460px]">
@@ -385,20 +436,32 @@ function TriCheckbox({ state }: { state: "none" | "some" | "all" }) {
 
 
 
-export function MonthPicker({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+export function MonthPicker({
+  value,
+  onChange,
+  disabled = false,
+  loading = false,
+}: { value: string; onChange: (v: string) => void } & PickerStateProps) {
   const [open, setOpen] = useState(false);
   const [y, m] = value.split("-").map((x) => parseInt(x, 10));
   const [viewYear, setViewYear] = useState(y);
   const today = new Date();
+  const inactive = disabled || loading;
   return (
     <div className="relative">
       <button
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => {
+          if (inactive) return;
+          setOpen((v) => !v);
+        }}
         onBlur={() => setTimeout(() => setOpen(false), 180)}
-        className="h-9 px-3 rounded-md border border-[var(--color-brand)] bg-[var(--color-brand-soft)] text-[var(--color-brand)] text-sm font-medium flex items-center gap-2 min-w-[110px] hover:bg-white transition-colors"
+        disabled={inactive}
+        aria-expanded={open}
+        aria-busy={loading || undefined}
+        className={`h-9 px-3 rounded-md border border-[var(--color-brand)] bg-[var(--color-brand-soft)] text-[var(--color-brand)] text-sm font-medium flex items-center gap-2 min-w-[110px] hover:bg-white transition-colors ${triggerStateClass}`}
       >
-        <span className="flex-1 text-left tabular-nums">{value}</span>
-        <ChevronDown className="w-4 h-4" />
+        <span className="flex-1 text-left tabular-nums">{loading ? "加载中" : value}</span>
+        {loading ? <LoadingDot /> : <ChevronDown className="w-4 h-4" />}
       </button>
       {open && (
         <div className="absolute left-0 top-full mt-1 w-[300px] rounded-md border border-[#E2E8F0] bg-white shadow-xl z-30 p-3">
@@ -468,11 +531,13 @@ export function DayPicker({
   value,
   onChange,
   portal = false,
+  disabled = false,
+  loading = false,
 }: {
   value: string;
   onChange: (v: string) => void;
   portal?: boolean;
-}) {
+} & PickerStateProps) {
   const [open, setOpen] = useState(false);
   const [y, m, d] = value.split("-").map((x) => parseInt(x, 10));
   const [viewYear, setViewYear] = useState(y);
@@ -482,6 +547,7 @@ export function DayPicker({
   const triggerRef = useRef<HTMLButtonElement>(null);
   const popRef = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState<{ left: number; top: number } | null>(null);
+  const inactive = disabled || loading;
 
   const firstDow = new Date(viewYear, viewMonth - 1, 1).getDay(); // 0=Sun
   const daysInMonth = new Date(viewYear, viewMonth, 0).getDate();
@@ -615,13 +681,19 @@ export function DayPicker({
     <div className="relative">
       <button
         ref={triggerRef}
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => {
+          if (inactive) return;
+          setOpen((v) => !v);
+        }}
         onBlur={portal ? undefined : () => setTimeout(() => setOpen(false), 180)}
-        className="h-9 px-3 rounded-md border border-[var(--color-brand)] bg-[var(--color-brand-soft)] text-[var(--color-brand)] text-sm font-medium flex items-center gap-2 min-w-[140px] hover:bg-white transition-colors"
+        disabled={inactive}
+        aria-expanded={open}
+        aria-busy={loading || undefined}
+        className={`h-9 px-3 rounded-md border border-[var(--color-brand)] bg-[var(--color-brand-soft)] text-[var(--color-brand)] text-sm font-medium flex items-center gap-2 min-w-[140px] hover:bg-white transition-colors ${triggerStateClass}`}
       >
         <CalendarIcon className="w-3.5 h-3.5" />
-        <span className="flex-1 text-left tabular-nums">{value}</span>
-        <ChevronDown className="w-4 h-4" />
+        <span className="flex-1 text-left tabular-nums">{loading ? "加载中" : value}</span>
+        {loading ? <LoadingDot /> : <ChevronDown className="w-4 h-4" />}
       </button>
       {open && (
         portal
