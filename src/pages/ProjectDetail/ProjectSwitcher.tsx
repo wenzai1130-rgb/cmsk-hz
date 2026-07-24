@@ -85,6 +85,11 @@ export function ProjectSwitcher({
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   const popRef = useRef<HTMLDivElement | null>(null);
   const [pos, setPos] = useState<{ left: number; top: number } | null>(null);
+  const [portalContainer, setPortalContainer] = useState<HTMLElement | null>(null);
+
+  useEffect(() => {
+    setPortalContainer(document.body);
+  }, []);
 
   // 组织树叶子白名单：与项目列表一致
   const allowedCityCompanies = useMemo(() => {
@@ -98,7 +103,10 @@ export function ProjectSwitcher({
     if (!open || !triggerRef.current) return;
     const update = () => {
       const r = triggerRef.current!.getBoundingClientRect();
-      setPos({ left: r.left, top: r.bottom + 6 });
+      const width = 680;
+      const gutter = 16;
+      const left = Math.min(Math.max(r.left, gutter), window.innerWidth - width - gutter);
+      setPos({ left, top: r.bottom + 6 });
     };
     update();
     window.addEventListener("scroll", update, true);
@@ -176,11 +184,12 @@ export function ProjectSwitcher({
         </button>
       )}
 
-      {open && pos &&
+      {open && pos && portalContainer &&
         createPortal(
           <div
             ref={popRef}
-            style={{ position: "fixed", left: pos.left, top: pos.top, zIndex: 1000 }}
+            data-project-switcher-popover
+            style={{ position: "fixed", left: pos.left, top: pos.top, zIndex: 2147483647 }}
             className="w-[680px] max-h-[450px] bg-white rounded-lg border border-[#E2E8F0] shadow-[0_16px_40px_-10px_rgba(15,23,42,0.22)] flex flex-col overflow-hidden"
           >
             {/* 顶部筛选栏 */}
@@ -299,7 +308,7 @@ export function ProjectSwitcher({
               )}
             </div>
           </div>,
-          document.body,
+          portalContainer,
         )}
     </>
   );
