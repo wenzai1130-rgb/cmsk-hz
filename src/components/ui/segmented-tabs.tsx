@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
  *   - size="sm"  h-7   text-[11px]   用于卡片内 / 表格头 / 侧栏
  *   - size="md"  h-8   text-[12px]   用于模块标题右侧、模块内主要切换
  *
- * 视觉：浅灰底 + 选中白底 brand 色文字 + 轻阴影。
+ * 视觉：浅灰底 + 选中白底 brand 色文字 + 轻阴影，不加粗。
  */
 export type SegmentedTabItem<T extends string = string> = {
   value: T;
@@ -58,7 +58,7 @@ export function SegmentedTabs<T extends string>({
             className={cn(
               "px-2.5 h-full inline-flex items-center rounded-[4px] whitespace-nowrap transition-colors",
               active
-                ? "bg-[#E6EEFB] text-[var(--color-brand)] font-medium"
+                ? "bg-white text-[var(--color-brand)] shadow-sm"
                 : "text-muted-foreground hover:text-foreground",
             )}
           >

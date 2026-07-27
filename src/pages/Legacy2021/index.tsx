@@ -44,7 +44,7 @@ import {
 import { toast } from "sonner";
 import { HeaderNav } from "@/components/layout/HeaderNav";
 import { OrgPicker, DayPicker, CaliberPicker, CALIBER_OPTIONS, ORG_TREE, type Caliber } from "@/components/filters/home-filters";
-import { ACCENT as TOKEN_ACCENT, PROJECT_CATEGORY_COLOR } from "@/lib/tokens";
+import { ACCENT as TOKEN_ACCENT, DONUT_PALETTE as TOKEN_DONUT_PALETTE, PROJECT_CATEGORY_COLOR } from "@/lib/tokens";
 import { CityDistAllDialog, CITY_DIST_ALL, type CityDistRow } from "@/pages/Legacy2021/components/CityDistAllDialog";
 import { usePageRequirements, ModuleBadge } from "@/components/requirements";
 
@@ -561,12 +561,12 @@ const CITY_DIST = [
   { name: "天津公司", 综合型大盘: 38.1, 正常持销: 10.8, 公商办: 8.4, 滞销项目: 6.2, 车位尾盘: 2.6, 未分类: 2.2, total: 68.3, period: 26.8 },
 ];
 const CITY_COLORS: Record<string, string> = {
-  综合型大盘: "#2F7BF6",
-  正常持销: "#38C2B0",
-  公商办: "#8A63F6",
-  滞销项目: "#F59E0B",
-  车位尾盘: "#94A3B8",
-  未分类: "#CBD5E1",
+  综合型大盘: TOKEN_DONUT_PALETTE[0],
+  正常持销: TOKEN_DONUT_PALETTE[1],
+  公商办: TOKEN_DONUT_PALETTE[2],
+  滞销项目: TOKEN_DONUT_PALETTE[3],
+  车位尾盘: TOKEN_DONUT_PALETTE[4],
+  未分类: TOKEN_DONUT_PALETTE[5],
 };
 
 // 滚动12个月：以传入的(年,月)为最后一个月
@@ -1449,14 +1449,14 @@ function LegacyPage() {
                           key={d.name}
                           className="grid grid-cols-[40px_80px_1fr_112px_112px] items-center gap-3 group relative rounded-md hover:bg-[#F8FAFD] py-1.5 -mx-1 px-1 transition-colors"
                         >
-                          <span className="text-[12px] font-semibold text-[#2F7BF6] tabular-nums">TOP{idx + 1}</span>
+                          <span className="text-[12px] font-semibold tabular-nums" style={{ color: TOKEN_DONUT_PALETTE[0] }}>TOP{idx + 1}</span>
                           <span className="text-[13px] font-medium text-[#1E293B] truncate">{d.name}</span>
                         <div className="relative">
                           <div className="h-3 rounded-[3px] bg-[#E9EEF5] overflow-hidden">
                             {isCompanyLvl ? (
                               <div
                                 className="h-full rounded-[3px]"
-                                style={{ width: `${rowPct}%`, background: "#2F7BF6" }}
+                                style={{ width: `${rowPct}%`, background: TOKEN_DONUT_PALETTE[0] }}
                               />
                             ) : (
                               <div className="h-full flex" style={{ width: `${rowPct}%` }}>

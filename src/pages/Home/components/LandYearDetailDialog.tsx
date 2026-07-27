@@ -16,15 +16,16 @@ import {
   LabelList,
 } from "recharts";
 import { toast } from "sonner";
+import { DONUT_PALETTE as TOKEN_DONUT_PALETTE } from "@/lib/tokens";
 
 // 拿地年份统一配色（产品级图表色板）
 const LAND_YEAR_COLORS: Record<string, string> = {
-  "2021及之前拿地": "#3B82F6",
-  "2022拿地": "#14B8A6",
-  "2023拿地": "#8B5CF6",
-  "2024拿地": "#F59E0B",
-  "2025拿地": "#22C55E",
-  "2026拿地": "#94A3B8",
+  "2021及之前拿地": TOKEN_DONUT_PALETTE[0],
+  "2022拿地": TOKEN_DONUT_PALETTE[1],
+  "2023拿地": TOKEN_DONUT_PALETTE[2],
+  "2024拿地": TOKEN_DONUT_PALETTE[3],
+  "2025拿地": TOKEN_DONUT_PALETTE[4],
+  "2026拿地": TOKEN_DONUT_PALETTE[5],
 };
 const LAND_YEAR_KEYS = ["2021及之前拿地", "2022拿地", "2023拿地", "2024拿地", "2025拿地", "2026拿地"];
 const PCT_2021_KEY = "__pct2021";
@@ -66,7 +67,7 @@ function TipShell({ title, children }: { title: string; children: React.ReactNod
         color: "#1E293B",
       }}
     >
-      <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8, color: "#1E293B" }}>{title}</div>
+      <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 8, color: "#1E293B" }}>{title}</div>
       {children}
     </div>
   );
@@ -75,11 +76,11 @@ function TipShell({ title, children }: { title: string; children: React.ReactNod
 function TipRow({ color, name, value }: { color: string; name: string; value: string }) {
   return (
     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 24, lineHeight: "22px" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "#475569" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: "#475569" }}>
         <span style={{ width: 8, height: 8, borderRadius: 2, background: color, display: "inline-block" }} />
         {name}
       </div>
-      <div style={{ fontSize: 13, fontWeight: 500, color: "#1E293B", fontVariantNumeric: "tabular-nums" }}>{value}</div>
+      <div style={{ fontSize: 12, fontWeight: 500, color: "#1E293B", fontVariantNumeric: "tabular-nums" }}>{value}</div>
     </div>
   );
 }
@@ -160,8 +161,6 @@ type SortKey =
   | "sold" | "rate" | "remain" | "remainPct";
 
 const SALE_COLS: { key: SortKey; label: string }[] = [
-  { key: "s2021", label: "2021年销售" },
-  { key: "s2022", label: "2022年销售" },
   { key: "s2023", label: "2023年销售" },
   { key: "s2024", label: "2024年销售" },
   { key: "s2025", label: "2025年销售" },
@@ -195,14 +194,8 @@ export function LandYearDetailDialog({
   date?: string;
 }) {
   const [hiddenSeries, setHiddenSeries] = useState<Record<string, boolean>>({});
-  // Block2 图例显隐独立维护：默认仅"2021及之前拿地"和占比折线可见
-  const [hiddenSeries2, setHiddenSeries2] = useState<Record<string, boolean>>(() => {
-    const init: Record<string, boolean> = {};
-    LAND_YEAR_KEYS.forEach((k) => {
-      if (k !== "2021及之前拿地") init[k] = true;
-    });
-    return init;
-  });
+  // Block2 图例显隐独立维护：默认展示全部拿地年份，形成月度堆积图
+  const [hiddenSeries2, setHiddenSeries2] = useState<Record<string, boolean>>({});
   const hoverKey: string | null = null;
   const [sortKey, setSortKey] = useState<SortKey | null>("year");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
@@ -482,7 +475,7 @@ export function LandYearDetailDialog({
             <span className="w-7 h-7 rounded-md bg-[var(--color-brand-soft)] text-[var(--color-brand)] flex items-center justify-center">
               <CalendarRange className="w-4 h-4" />
             </span>
-            <span className="text-[20px] font-semibold text-[#1E293B]">
+            <span className="t-dialog-title">
               按拿地年份货值及去化趋势分析
             </span>
           </div>
@@ -496,30 +489,30 @@ export function LandYearDetailDialog({
         </div>
 
         {/* Body */}
-        <div className="flex-1 min-h-0 overflow-y-auto p-6 space-y-6 bg-[#FAFBFD]">
+        <div className="flex-1 min-h-0 overflow-y-auto p-5 space-y-4 bg-[#FAFBFD]">
           {/* Block 1: 5Y trend */}
           <ModuleBadge moduleId="land-year-5y-trend">
-            <section className="bg-white rounded-xl border border-[#E2E8F0] shadow-[0_1px_2px_rgba(15,23,42,0.04)] p-6">
+            <section className="bg-white rounded-xl border border-[#E2E8F0] shadow-[0_1px_2px_rgba(15,23,42,0.04)] p-4">
             <div className="flex items-start justify-between mb-1">
               <div className="flex items-center gap-2">
                 <span className="w-1 h-4 rounded bg-[var(--color-brand)]" />
-                <span className="text-[18px] font-semibold text-[#1E293B] leading-tight">
+                <span className="t-section-title leading-tight">
                   近5年未售{metricMode === "area" ? "面积" : "货值"}趋势
                 </span>
               </div>
-              <span className="text-[12px] text-[#64748B] max-w-[60%] text-right leading-relaxed">
+              <span className="t-caption max-w-[60%] text-right leading-relaxed">
                 * 横轴为统计年份，颜色图例为拿地年份；点击图例可切换显隐对应拿地批次；折线为「21年及之前」占比。
               </span>
             </div>
-            <div className="text-[13px] text-[#64748B] mb-4">单位：{unit} ｜ 占比（%）</div>
+            <div className="t-caption mb-3">单位：{unit} ｜ 占比（%）</div>
             <div style={{ height: 240 }}>
               <ResponsiveContainer width="100%" height="100%">
                 <ComposedChart data={trend5Y} margin={{ top: 20, right: 16, left: 0, bottom: 8 }}>
                   {GRADIENT_DEFS}
                   <CartesianGrid stroke="#EEF1F6" strokeDasharray="3 3" vertical={false} />
-                  <XAxis dataKey="stat" tick={{ fontSize: 12, fill: "#64748B" }} axisLine={{ stroke: "#E5E7EB" }} tickLine={false} />
-                  <YAxis yAxisId="left" tick={{ fontSize: 12, fill: "#64748B" }} axisLine={false} tickLine={false} />
-                  <YAxis yAxisId="right" orientation="right" domain={[0, 100]} unit="%" tick={{ fontSize: 12, fill: "#64748B" }} axisLine={false} tickLine={false} />
+                  <XAxis dataKey="stat" tick={{ fontSize: 11, fill: "#64748B" }} axisLine={{ stroke: "#E5E7EB" }} tickLine={false} />
+                  <YAxis yAxisId="left" tick={{ fontSize: 11, fill: "#64748B" }} axisLine={false} tickLine={false} />
+                  <YAxis yAxisId="right" orientation="right" domain={[0, 100]} unit="%" tick={{ fontSize: 11, fill: "#64748B" }} axisLine={false} tickLine={false} />
                   <RTooltip
                     cursor={{ fill: "rgba(22,119,255,0.05)" }}
                     content={({ active, payload, label }: any) => {
@@ -555,11 +548,11 @@ export function LandYearDetailDialog({
                                     opacity: hoverKey && hoverKey !== p.dataKey ? 0.45 : 1,
                                   }}
                                 >
-                                  <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "#475569" }}>
+                                  <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: "#475569" }}>
                                     <span style={{ width: 8, height: 8, borderRadius: 2, background: LAND_YEAR_COLORS[p.dataKey], display: "inline-block" }} />
                                     {p.dataKey}
                                   </div>
-                                  <div style={{ fontSize: 13, color: "#1E293B", fontVariantNumeric: "tabular-nums" }}>
+                                  <div style={{ fontSize: 12, color: "#1E293B", fontVariantNumeric: "tabular-nums" }}>
                                     <span style={{ fontWeight: 500 }}>{(+p.value).toFixed(2)}{unit}</span>
                                     <span style={{ marginLeft: 8, color: "#94A3B8", fontWeight: 400 }}>{fmtPct(pct)}</span>
                                   </div>
@@ -568,7 +561,7 @@ export function LandYearDetailDialog({
                             })}
                           </div>
                           <div style={{ height: 1, background: "#EEF1F6", margin: "8px 0 6px" }} />
-                          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}>
                             <span style={{ color: "#64748B" }}>合计</span>
                             <span style={{ fontWeight: 600, color: "#1E293B", fontVariantNumeric: "tabular-nums" }}>{totalYear.toFixed(2)}{unit}</span>
                           </div>
@@ -585,7 +578,7 @@ export function LandYearDetailDialog({
                   <Legend
                     iconType="circle"
                     iconSize={8}
-                    wrapperStyle={{ fontSize: 12, paddingTop: 12, color: "#64748B" }}
+                    wrapperStyle={{ fontSize: 11, paddingTop: 10, color: "#64748B" }}
                     formatter={legendFormatter}
                     onClick={(e: any) => onLegendClick(e, trendLegendKeys)}
                   />
@@ -639,12 +632,12 @@ export function LandYearDetailDialog({
 
           {/* Block 2: Monthly 2026 stacked by land year */}
           <ModuleBadge moduleId="land-year-monthly-trend">
-          <section className="bg-white rounded-xl border border-[#E2E8F0] shadow-[0_1px_2px_rgba(15,23,42,0.04)] p-6">
+          <section className="bg-white rounded-xl border border-[#E2E8F0] shadow-[0_1px_2px_rgba(15,23,42,0.04)] p-4">
             <div className="flex items-center gap-2 mb-1">
               <span className="w-1 h-4 rounded bg-[var(--color-brand)]" />
-              <span className="text-[18px] font-semibold text-[#1E293B] leading-tight">{currentYear}年月度未售{metricMode === "area" ? "面积" : "货值"}趋势</span>
+              <span className="t-section-title leading-tight">{currentYear}年月度未售{metricMode === "area" ? "面积" : "货值"}趋势</span>
             </div>
-            <div className="text-[13px] text-[#64748B] mb-4">
+            <div className="t-caption mb-3">
               单位：{unit} ｜ 占比（%）
             </div>
             <div style={{ height: 240 }}>
@@ -654,12 +647,12 @@ export function LandYearDetailDialog({
                   <CartesianGrid stroke="#EEF1F6" strokeDasharray="3 3" vertical={false} />
                   <XAxis
                     dataKey="m"
-                    tick={{ fontSize: 12, fill: "#64748B" }}
+                    tick={{ fontSize: 11, fill: "#64748B" }}
                     axisLine={{ stroke: "#E5E7EB" }}
                     tickLine={false}
                   />
-                  <YAxis yAxisId="left" tick={{ fontSize: 12, fill: "#64748B" }} axisLine={false} tickLine={false} />
-                  <YAxis yAxisId="right" orientation="right" domain={[0, 100]} unit="%" tick={{ fontSize: 12, fill: "#64748B" }} axisLine={false} tickLine={false} />
+                  <YAxis yAxisId="left" tick={{ fontSize: 11, fill: "#64748B" }} axisLine={false} tickLine={false} />
+                  <YAxis yAxisId="right" orientation="right" domain={[0, 100]} unit="%" tick={{ fontSize: 11, fill: "#64748B" }} axisLine={false} tickLine={false} />
                   <RTooltip
                     cursor={{ fill: "rgba(22,119,255,0.04)" }}
                     content={({ active, payload, label }: any) => {
@@ -685,7 +678,7 @@ export function LandYearDetailDialog({
                             ))}
                           </div>
                           <div style={{ height: 1, background: "#EEF1F6", margin: "8px 0 6px" }} />
-                          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}>
                             <span style={{ color: "#64748B" }}>合计</span>
                             <span style={{ fontWeight: 600, color: "#1E293B", fontVariantNumeric: "tabular-nums" }}>{visTotal.toFixed(2)}{unit}</span>
                           </div>
@@ -702,7 +695,7 @@ export function LandYearDetailDialog({
                   <Legend
                     iconType="circle"
                     iconSize={8}
-                    wrapperStyle={{ fontSize: 12, paddingTop: 12, color: "#64748B" }}
+                    wrapperStyle={{ fontSize: 11, paddingTop: 10, color: "#64748B" }}
                     formatter={legendFormatter2}
                     onClick={(e: any) => onLegendClick2(e, monthlyLegendKeys)}
                     payload={[
@@ -789,50 +782,50 @@ export function LandYearDetailDialog({
 
           {/* Block 3: 权益货值结构明细表 */}
           <ModuleBadge moduleId="land-year-equity-table">
-          <section className="bg-white rounded-xl border border-[#E2E8F0] shadow-[0_1px_2px_rgba(15,23,42,0.04)] p-6">
+          <section className="bg-white rounded-xl border border-[#E2E8F0] shadow-[0_1px_2px_rgba(15,23,42,0.04)] p-4">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
                 <span className="w-1 h-4 rounded bg-[var(--color-brand)]" />
-                <span className="text-[18px] font-semibold text-[#1E293B] leading-tight">权益货值结构明细表</span>
+                <span className="t-section-title leading-tight">权益货值结构明细表</span>
               </div>
               <ExportButton onClick={handleExport} />
             </div>
 
             <div className="overflow-auto rounded-lg border border-[#EEF1F6]" style={{ maxHeight: 360 }}>
-              <table className="min-w-full text-[13px] border-collapse">
+              <table className="min-w-full text-[12px] border-collapse">
                 <thead className="sticky top-0 z-10">
                   <tr className="bg-[#F1F5F9] text-[#1E293B]">
-                    <th rowSpan={2} className="sticky left-0 z-20 bg-[#F1F5F9] text-left px-3 py-2 font-semibold whitespace-nowrap border-b border-r border-[#E2E8F0] min-w-[120px]">
+                    <th rowSpan={2} className="sticky left-0 z-20 bg-[#F1F5F9] text-left px-2.5 py-2 font-semibold whitespace-nowrap border-b border-r border-[#E2E8F0] min-w-[120px]">
                       <button onClick={() => toggleSort("year")} className="inline-flex items-center gap-1">
                         拿地年份 <SortIcon k="year" />
                       </button>
                     </th>
-                    <th rowSpan={2} className="text-right px-3 py-2 font-semibold whitespace-nowrap border-b border-r border-[#E2E8F0] min-w-[120px]">
+                    <th rowSpan={2} className="text-right px-2.5 py-2 font-semibold whitespace-nowrap border-b border-r border-[#E2E8F0] min-w-[120px]">
                       <button onClick={() => toggleSort("total")} className="inline-flex items-center gap-1">
                         总{metricMode === "area" ? "面积" : "货值"}（{unit}） <SortIcon k="total" />
                       </button>
                     </th>
-                    <th rowSpan={2} className="text-right px-3 py-2 font-semibold whitespace-nowrap border-b border-r border-[#E2E8F0] min-w-[130px]">
+                    <th rowSpan={2} className="text-right px-2.5 py-2 font-semibold whitespace-nowrap border-b border-r border-[#E2E8F0] min-w-[130px]">
                       <button onClick={() => toggleSort("sold")} className="inline-flex items-center gap-1">
                         已售{metricMode === "area" ? "面积" : "货值"}（{unit}） <SortIcon k="sold" />
                       </button>
                     </th>
-                    <th rowSpan={2} className="text-right px-3 py-2 font-semibold whitespace-nowrap border-b border-r border-[#E2E8F0] min-w-[100px]">
+                    <th rowSpan={2} className="text-right px-2.5 py-2 font-semibold whitespace-nowrap border-b border-r border-[#E2E8F0] min-w-[100px]">
                       <button onClick={() => toggleSort("rate")} className="inline-flex items-center gap-1">
                         累计去化率 <SortIcon k="rate" />
                       </button>
                     </th>
-                    <th rowSpan={2} className="text-right px-3 py-2 font-semibold whitespace-nowrap border-b border-r border-[#E2E8F0] min-w-[150px]">
+                    <th rowSpan={2} className="text-right px-2.5 py-2 font-semibold whitespace-nowrap border-b border-r border-[#E2E8F0] min-w-[150px]">
                       <button onClick={() => toggleSort("remain")} className="inline-flex items-center gap-1">
                         剩余未售{metricMode === "area" ? "面积" : "货值"}（{unit}） <SortIcon k="remain" />
                       </button>
                     </th>
-                    <th rowSpan={2} className="text-right px-3 py-2 font-semibold whitespace-nowrap border-b border-r border-[#E2E8F0] min-w-[100px]">
+                    <th rowSpan={2} className="text-right px-2.5 py-2 font-semibold whitespace-nowrap border-b border-r border-[#E2E8F0] min-w-[100px]">
                       <button onClick={() => toggleSort("remainPct")} className="inline-flex items-center gap-1">
                         未售占比 <SortIcon k="remainPct" />
                       </button>
                     </th>
-                    <th colSpan={visibleSaleCols.length} className="text-center px-3 py-2 font-semibold whitespace-nowrap border-b border-[#E2E8F0] bg-[#F1F5F9] text-[#1E293B]">
+                    <th colSpan={visibleSaleCols.length} className="text-center px-2.5 py-2 font-semibold whitespace-nowrap border-b border-[#E2E8F0] bg-[#F1F5F9] text-[#1E293B]">
                       已售权益{metricMode === "area" ? "面积" : "货值"}（{unit}）
                     </th>
                   </tr>
@@ -840,7 +833,7 @@ export function LandYearDetailDialog({
                     {visibleSaleCols.map((c) => (
                       <th
                         key={c.key}
-                        className="text-right px-3 py-2 font-medium whitespace-nowrap border-b border-[#E2E8F0] min-w-[110px]"
+                        className="text-right px-2.5 py-2 font-medium whitespace-nowrap border-b border-[#E2E8F0] min-w-[110px]"
                       >
                         <button onClick={() => toggleSort(c.key)} className="inline-flex items-center gap-1">
                           {c.label} <SortIcon k={c.key} />
@@ -856,20 +849,20 @@ export function LandYearDetailDialog({
                       : idx % 2 === 0 ? "bg-white" : "bg-[#FAFBFD]";
                     return (
                       <tr key={r.year} className={`${baseBg} hover:bg-[#F5F9FF] transition-colors`}>
-                        <td className={`sticky left-0 z-[1] ${baseBg} px-3 py-2.5 text-left whitespace-nowrap border-b border-r border-[#EEF1F6] text-[#1E293B]`}>
+                        <td className={`sticky left-0 z-[1] ${baseBg} px-2.5 py-2 text-left whitespace-nowrap border-b border-r border-[#EEF1F6] text-[#1E293B]`}>
                           {r.year}
                         </td>
-                        <td className="px-3 py-2.5 text-right tabular-nums whitespace-nowrap border-b border-r border-[#EEF1F6] text-[#1E293B]">{fmtNum(r.total == null ? null : r.total * factor)}</td>
-                        <td className="px-3 py-2.5 text-right tabular-nums whitespace-nowrap border-b border-r border-[#EEF1F6] text-[#1E293B]">{fmtNum(r.sold == null ? null : r.sold * factor)}</td>
-                        <td className="px-3 py-2.5 text-right tabular-nums whitespace-nowrap border-b border-r border-[#EEF1F6] text-[#1E293B] font-medium">{r.rate.toFixed(2)}%</td>
-                        <td className="px-3 py-2.5 text-right tabular-nums whitespace-nowrap border-b border-r border-[#EEF1F6] text-[#1E293B]">{fmtNum(r.remain == null ? null : r.remain * factor)}</td>
-                        <td className="px-3 py-2.5 text-right tabular-nums whitespace-nowrap border-b border-r border-[#EEF1F6] text-[#1E293B]">{r.remainPct.toFixed(2)}%</td>
+                        <td className="px-2.5 py-2 text-right tabular-nums whitespace-nowrap border-b border-r border-[#EEF1F6] text-[#1E293B]">{fmtNum(r.total == null ? null : r.total * factor)}</td>
+                        <td className="px-2.5 py-2 text-right tabular-nums whitespace-nowrap border-b border-r border-[#EEF1F6] text-[#1E293B]">{fmtNum(r.sold == null ? null : r.sold * factor)}</td>
+                        <td className="px-2.5 py-2 text-right tabular-nums whitespace-nowrap border-b border-r border-[#EEF1F6] text-[#1E293B] font-medium">{r.rate.toFixed(2)}%</td>
+                        <td className="px-2.5 py-2 text-right tabular-nums whitespace-nowrap border-b border-r border-[#EEF1F6] text-[#1E293B]">{fmtNum(r.remain == null ? null : r.remain * factor)}</td>
+                        <td className="px-2.5 py-2 text-right tabular-nums whitespace-nowrap border-b border-r border-[#EEF1F6] text-[#1E293B]">{r.remainPct.toFixed(2)}%</td>
                         {visibleSaleCols.map((c) => {
                           const raw = (r as any)[c.key] as number | null;
                           return (
                             <td
                               key={c.key}
-                              className={`px-3 py-2.5 text-right tabular-nums whitespace-nowrap border-b border-[#EEF1F6] ${raw == null ? "text-[#94A3B8]" : "text-[#1E293B]"}`}
+                              className={`px-2.5 py-2 text-right tabular-nums whitespace-nowrap border-b border-[#EEF1F6] ${raw == null ? "text-[#94A3B8]" : "text-[#1E293B]"}`}
                             >
                               {fmtNum(raw == null ? null : raw * factor)}
                             </td>

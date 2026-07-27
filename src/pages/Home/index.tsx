@@ -53,6 +53,7 @@ import { formatNumber, formatPercent } from "@/lib/format";
 import { LandYearDetailDialog } from "@/pages/Home/components/LandYearDetailDialog";
 import { CityRankDetailDialog } from "@/pages/Home/components/CityRankDetailDialog";
 import { RateDetailDialog } from "@/pages/Home/components/RateDetailDialog";
+import { DoneUnsoldDetailDialog } from "@/pages/Home/components/DoneUnsoldDetailDialog";
 import { KpiTrendPopover, type KpiTrendMetric } from "@/pages/Home/components/KpiTrendDialog";
 
 
@@ -62,10 +63,13 @@ import { usePageRequirements, ModuleBadge, useRegisterModuleOpener } from "@/com
 import { HeaderNav } from "@/components/layout/HeaderNav";
 import {
   CHART_PALETTE as TOKEN_CHART_PALETTE,
+  DONUT_PALETTE as TOKEN_DONUT_PALETTE,
   BIZ_COLOR as TOKEN_BIZ_COLOR,
   colorOfBiz as tokenColorOfBiz,
   ACCENT as TOKEN_ACCENT,
+  BRAND as TOKEN_BRAND,
   STATUS as TOKEN_STATUS,
+  TREND as TOKEN_TREND,
   TOOLTIP_STYLE as TOKEN_TOOLTIP_STYLE,
 } from "@/lib/tokens";
 
@@ -78,9 +82,17 @@ const BI_PALETTE = TOKEN_CHART_PALETTE as readonly string[];
 // 业态 → 颜色 固定映射（跨页面保持一致）
 const TYPE_COLOR: Record<string, string> = TOKEN_BIZ_COLOR;
 const colorOf = (name: string, idx: number) => tokenColorOfBiz(name, idx);
+const SUMMARY_COLOR = TOKEN_BRAND.primary;
 const COLORS = BI_PALETTE;
 // 统一 tooltip 样式（来自 token）
 const TOOLTIP_STYLE = TOKEN_TOOLTIP_STYLE;
+const CHART_TOOLTIP_STYLE = {
+  ...TOOLTIP_STYLE,
+  padding: "10px 12px",
+  minWidth: 168,
+} as const;
+const chartTooltipTitleClass = "text-[12px] font-semibold mb-2 text-[#111827]";
+const chartTooltipRowClass = "flex items-center justify-between gap-6 text-[12px] leading-[22px]";
 
 // ====== mock data ======
 const TYPE_DISTRIBUTION = [
@@ -283,6 +295,35 @@ const DONE_AGE_BUCKETS = [
   { age: "6-12个月", 达售未取证: 22.6, 取证未售: 6.4 },
   { age: "6个月以内", 达售未取证: 15.8, 取证未售: 4.3 },
 ];
+
+const DONE_UNSOLD_BIZ = [
+  { name: "住宅", value: 7.6, pct: 35 },
+  { name: "商业", value: 2.39, pct: 11 },
+  { name: "公寓", value: 4.35, pct: 20 },
+  { name: "写字楼", value: 4.35, pct: 20 },
+  { name: "车位", value: 1.82, pct: 8.4 },
+  { name: "配套及其他", value: 1.22, pct: 5.6 },
+];
+
+const DONE_UNSOLD_AGE_BY_BIZ: Record<string, number[]> = {
+  全部业态: [6.27, 5.0, 7.6, 2.86],
+  住宅: [2.18, 1.75, 2.66, 1.01],
+  商业: [0.68, 0.55, 0.83, 0.33],
+  公寓: [1.25, 1.0, 1.52, 0.58],
+  写字楼: [1.25, 1.0, 1.52, 0.58],
+  车位: [0.55, 0.42, 0.64, 0.21],
+  配套及其他: [0.36, 0.28, 0.43, 0.15],
+};
+
+const DONE_UNSOLD_YEAR_BY_BIZ: Record<string, number[]> = {
+  全部业态: [3.04, 3.48, 4.13, 4.78, 4.56, 1.74],
+  住宅: [1.06, 1.22, 1.45, 1.67, 1.6, 0.6],
+  商业: [0.33, 0.38, 0.45, 0.53, 0.5, 0.2],
+  公寓: [0.61, 0.7, 0.83, 0.96, 0.91, 0.34],
+  写字楼: [0.61, 0.7, 0.83, 0.96, 0.91, 0.34],
+  车位: [0.26, 0.29, 0.34, 0.4, 0.38, 0.15],
+  配套及其他: [0.17, 0.19, 0.23, 0.26, 0.26, 0.11],
+};
 
 
 // ====== reusable UI bits ======
@@ -524,7 +565,7 @@ function StageDistributionCard({
           opacity: 0.9,
         }}
       />
-      <div className="relative flex items-center justify-between px-4 pt-3 mb-1">
+      <div className="relative flex items-center justify-between px-6 pt-5 mb-2">
         <div className="flex items-center gap-2">
           <span
             className="w-7 h-7 rounded-lg flex items-center justify-center"
@@ -543,12 +584,12 @@ function StageDistributionCard({
           const innerPad = "px-[clamp(0.75rem,2vw,2rem)]";
           return (
             <div key={s.idx} className="relative flex" style={{ width: basis, flex: `0 0 ${basis}` }}>
-              <div className={`flex-1 ${innerPad} py-2.5 flex flex-col justify-start min-w-0`}>
+              <div className={`flex-1 ${innerPad} py-2 flex flex-col justify-start min-w-0`}>
                 <KpiTrendPopover metric={s.title as KpiTrendMetric}>
                   <div
                     role="button"
                     tabIndex={0}
-                    className="flex items-center gap-1.5 mb-1 cursor-pointer group outline-none"
+                    className="h-5 flex items-center gap-1.5 mb-1 cursor-pointer group outline-none"
                     title="点击查看近 12 个月趋势"
                   >
                     <span
@@ -570,11 +611,11 @@ function StageDistributionCard({
 
 
 
-                <div className="flex items-baseline gap-1 mb-1.5">
-                  <span className="text-[18px] font-semibold leading-none tabular-nums tracking-tight text-slate-900">
+                <div className="h-7 flex items-baseline gap-1 mb-1.5">
+                  <span className="text-[20px] font-semibold leading-none tabular-nums tracking-tight text-slate-900">
                     {s.total.toFixed(2)}
                   </span>
-                  <span className="text-[11px] text-muted-foreground">{unit}</span>
+                  <span className="text-[12px] text-muted-foreground">{unit}</span>
                 </div>
                 <div className="flex flex-col gap-1">
 
@@ -783,14 +824,14 @@ function OnSaleWaterfallCard({
       <CardHead title="在售货值变动" icon={<BarChart3 className="w-3.5 h-3.5" />} />
       <div className="px-4 pt-3 pb-3 flex-1 flex flex-col">
         <div className="flex items-center justify-between mb-2">
-          <div className="inline-flex h-7 rounded-md bg-[#F1F5F9] p-0.5 text-[11px]">
+          <div className="inline-flex h-8 rounded-md bg-[#F1F5F9] p-0.5 text-[12px]">
             {(["取证", "达售"] as const).map((k) => (
               <button
                 key={k}
                 onClick={() => setMode(k)}
                 className={`px-3 rounded-[4px] transition-colors ${
                   mode === k
-                    ? "bg-[#E6EEFB] text-[var(--color-brand)] font-medium"
+                    ? "bg-white text-[var(--color-brand)] shadow-sm"
                     : "text-muted-foreground hover:text-foreground"
                 }`}
               >
@@ -822,25 +863,25 @@ function OnSaleWaterfallCard({
                   if (!active || !payload?.length) return null;
                   const r: any = payload[0].payload;
                   const d = r.delta as number;
-                  const color = r.type === "add" ? "#DC2626" : r.type === "sub" ? "#059669" : "#334155";
+                  const color = r.type === "add" ? TOKEN_TREND.up : r.type === "sub" ? TOKEN_TREND.down : "#334155";
                   const isEnd = r.type === "end";
                   const netDiff: number = r.netDiff ?? 0;
                   return (
-                    <div style={{ ...TOOLTIP_STYLE, padding: "8px 10px" }}>
-                      <div className="text-[12px] font-medium mb-1 text-foreground">{r.name}</div>
+                    <div style={CHART_TOOLTIP_STYLE}>
+                      <div className={chartTooltipTitleClass}>{r.name}</div>
                       {isEnd ? (
                         <>
-                          <div className="flex justify-between gap-4 text-[12px]">
-                            <span className="text-muted-foreground">当前剩余在售</span>
+                          <div className={chartTooltipRowClass}>
+                            <span className="text-[#475569]">当前剩余在售</span>
                             <span className="tabular-nums font-medium text-foreground">
                               {r.delta.toFixed(2)} {unit}
                             </span>
                           </div>
-                          <div className="flex justify-between gap-4 text-[12px] mt-0.5">
-                            <span className="text-muted-foreground">较年初净增</span>
+                          <div className={chartTooltipRowClass}>
+                            <span className="text-[#475569]">较年初净增</span>
                             <span
                               className="tabular-nums font-medium"
-                              style={{ color: netDiff >= 0 ? "#DC2626" : "#059669" }}
+                              style={{ color: netDiff >= 0 ? TOKEN_TREND.up : TOKEN_TREND.down }}
                             >
                               {netDiff >= 0 ? "+" : ""}
                               {netDiff.toFixed(2)} {unit}
@@ -848,8 +889,8 @@ function OnSaleWaterfallCard({
                           </div>
                         </>
                       ) : (
-                        <div className="flex justify-between gap-4 text-[12px]">
-                          <span className="text-muted-foreground">变动金额</span>
+                        <div className={chartTooltipRowClass}>
+                          <span className="text-[#475569]">变动金额</span>
                           <span className="tabular-nums font-medium" style={{ color }}>
                             {d >= 0 && r.type === "add" ? "+" : ""}
                             {d.toFixed(2)} {unit}
@@ -896,9 +937,9 @@ function OnSaleWaterfallCard({
                         : `${val.toFixed(2)} ${unit}`;
                     const color =
                       r.type === "add"
-                        ? "#DC2626"
+                        ? TOKEN_TREND.up
                         : r.type === "sub"
-                          ? "#059669"
+                          ? TOKEN_TREND.down
                           : "#334155";
                     return (
                       <text
@@ -928,7 +969,7 @@ function OnSaleWaterfallCard({
                     const r = rows[index];
                     if (!r || r.type !== "end") return null;
                     const netDiff: number = (r as any).netDiff ?? 0;
-                    const tagColor = netDiff >= 0 ? "#DC2626" : "#059669";
+                    const tagColor = netDiff >= 0 ? TOKEN_TREND.up : TOKEN_TREND.down;
                     const tagBg = netDiff >= 0 ? "#FEF2F2" : "#ECFDF5";
 
                     const tagText = `${netDiff >= 0 ? "+" : ""}${netDiff.toFixed(2)} ${unit}`;
@@ -1130,6 +1171,16 @@ function AgeStackStructureCard({
           <div className="flex-1 min-h-[180px]">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={bars} margin={{ top: 12, right: 8, left: -12, bottom: 4 }}>
+                <defs>
+                  <linearGradient id="age-stack-first-gradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor={colors[0]} stopOpacity={0.82} />
+                    <stop offset="100%" stopColor={colors[0]} stopOpacity={1} />
+                  </linearGradient>
+                  <linearGradient id="age-stack-second-gradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor={colors[1]} stopOpacity={0.82} />
+                    <stop offset="100%" stopColor={colors[1]} stopOpacity={1} />
+                  </linearGradient>
+                </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="#EEF2F7" vertical={false} />
                 <XAxis
                   dataKey="age"
@@ -1144,11 +1195,31 @@ function AgeStackStructureCard({
                 />
                 <RTooltip
                   cursor={{ fill: "rgba(91,141,239,0.06)" }}
-                  contentStyle={TOOLTIP_STYLE}
-                  formatter={(v: number, n) => [`${Number(v).toFixed(2)} ${unit}`, n as string]}
+                  content={({ active, payload, label }) => {
+                    if (!active || !payload?.length) return null;
+                    return (
+                      <div style={CHART_TOOLTIP_STYLE}>
+                        <div className={chartTooltipTitleClass}>{label}</div>
+                        {payload.map((item) => (
+                          <div key={String(item.dataKey)} className={chartTooltipRowClass}>
+                            <span className="inline-flex items-center gap-1.5 text-[#475569]">
+                              <span
+                                className="w-2 h-2 rounded-sm"
+                                style={{ background: item.dataKey === firstLabel ? colors[0] : colors[1] }}
+                              />
+                              {String(item.name)}
+                            </span>
+                            <span className="tabular-nums font-medium text-[#111827]">
+                              {Number(item.value ?? 0).toFixed(2)} {unit}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  }}
                 />
-                <Bar dataKey={firstLabel} stackId="a" fill={colors[0]} radius={[0, 0, 0, 0]} maxBarSize={44} />
-                <Bar dataKey={secondLabel} stackId="a" fill={colors[1]} radius={[4, 4, 0, 0]} maxBarSize={44}>
+                <Bar dataKey={firstLabel} stackId="a" fill="url(#age-stack-first-gradient)" radius={[0, 0, 0, 0]} maxBarSize={30} />
+                <Bar dataKey={secondLabel} stackId="a" fill="url(#age-stack-second-gradient)" radius={[3, 3, 0, 0]} maxBarSize={30}>
                   <LabelList
                     position="top"
                     formatter={(_v: any, _n: any, entry: any) => {
@@ -1157,6 +1228,230 @@ function AgeStackStructureCard({
                       const sum = (p[firstLabel] || 0) + (p[secondLabel] || 0);
                       return sum > 0 ? sum.toFixed(2) : "";
                     }}
+                    style={{ fill: "#334155", fontSize: 11, fontWeight: 600 }}
+                  />
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+function DoneUnsoldDistributionCard({
+  factor,
+  unit,
+  onDetail,
+}: {
+  factor: number;
+  unit: string;
+  onDetail?: () => void;
+}) {
+  const [activeBiz, setActiveBiz] = useState("全部业态");
+  const [chartMode, setChartMode] = useState<"age" | "year">("age");
+  const scaledBiz = DONE_UNSOLD_BIZ.map((d) => ({ ...d, value: +(d.value * factor).toFixed(2) }));
+  const total = +scaledBiz.reduce((s, d) => s + d.value, 0).toFixed(2);
+  const activeBizData = activeBiz === "全部业态" ? null : scaledBiz.find((d) => d.name === activeBiz);
+  const selectedColor = activeBiz === "全部业态"
+    ? SUMMARY_COLOR
+    : colorOf(activeBiz, DONE_UNSOLD_BIZ.findIndex((d) => d.name === activeBiz));
+  const selectedValues = chartMode === "age"
+    ? DONE_UNSOLD_AGE_BY_BIZ[activeBiz] ?? DONE_UNSOLD_AGE_BY_BIZ["全部业态"]
+    : DONE_UNSOLD_YEAR_BY_BIZ[activeBiz] ?? DONE_UNSOLD_YEAR_BY_BIZ["全部业态"];
+  const chartLabels = chartMode === "age"
+    ? ["12个月以内", "12-18个月", "18-24个月", "24个月以上"]
+    : ["2021及之前", "2022", "2023", "2024", "2025", "2026"];
+  const barData = chartLabels.map((name, i) => ({
+    name,
+    value: +((selectedValues[i] ?? 0) * factor).toFixed(2),
+  }));
+
+  const listRows = [
+    { name: "全部业态", value: total, pct: 100, color: SUMMARY_COLOR },
+    ...scaledBiz.map((d, i) => ({ ...d, color: colorOf(d.name, i) })),
+  ];
+
+  return (
+    <Card className="flex flex-col h-full overflow-hidden">
+      <div className="h-12 shrink-0 px-5 flex items-center justify-between border-b border-[#EEF1F6]">
+        <div className="flex items-center gap-2">
+          <span className="w-6 h-6 rounded-md bg-[#DBEAFE] text-[var(--color-brand)] flex items-center justify-center">
+            <PackageCheck className="w-3.5 h-3.5" />
+          </span>
+          <span className="text-[15px] font-semibold text-foreground">已竣未售分布</span>
+        </div>
+        <button
+          type="button"
+          onClick={onDetail}
+          className="text-xs text-[var(--color-brand)] hover:underline inline-flex items-center gap-0.5 rounded-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-brand)]"
+        >
+          查看详情 <ChevronRight className="w-3.5 h-3.5" />
+        </button>
+      </div>
+
+      <div className="px-5 pt-3 text-[12px] text-[#64748B]">
+        * 点击业态项，可联动切换分布
+      </div>
+
+      <div className="px-5 pb-4 pt-3 flex-1 grid grid-cols-[minmax(360px,0.9fr)_minmax(0,1.6fr)] gap-4 min-h-0">
+        <div className="flex items-center gap-3 min-w-0 overflow-hidden">
+          <div className="relative w-[144px] h-[144px] shrink-0 [&_.recharts-sector]:outline-none [&_.recharts-sector:focus]:outline-none [&_svg]:outline-none [&_svg_*]:outline-none">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={scaledBiz}
+                  dataKey="value"
+                  innerRadius={48}
+                  outerRadius={66}
+                  paddingAngle={2}
+                  stroke="#fff"
+                  strokeWidth={2}
+                  isAnimationActive={false}
+                >
+                  {scaledBiz.map((d, i) => (
+                    <Cell
+                      key={d.name}
+                      fill={colorOf(d.name, i)}
+                      opacity={activeBiz === "全部业态" || activeBiz === d.name ? 1 : 0.35}
+                      style={{ cursor: "pointer", transition: "opacity 160ms", outline: "none" }}
+                      onClick={() => setActiveBiz(d.name)}
+                    />
+                  ))}
+                </Pie>
+              </PieChart>
+            </ResponsiveContainer>
+            <div className="absolute left-1/2 top-1/2 flex h-[88px] w-[88px] -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center rounded-full text-center pointer-events-none">
+              <div className="text-[12px] text-[#64748B] max-w-[92px] truncate">
+                {activeBizData?.name ?? "全部业态"}
+              </div>
+              <div className="mt-0.5 flex items-baseline justify-center gap-0.5 leading-tight">
+                <span className="text-[17px] font-semibold tabular-nums text-[#111827]">
+                  {(activeBizData?.value ?? total).toFixed(2)}
+                </span>
+                <span className="text-[11px] text-[#64748B]">{unit}</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex-1 min-w-0 flex flex-col gap-1">
+            {listRows.map((row) => {
+              const active = activeBiz === row.name;
+              return (
+                <button
+                  type="button"
+                  key={row.name}
+                  onClick={() => setActiveBiz(row.name)}
+                  className={`grid grid-cols-[10px_minmax(58px,1fr)_56px_54px_10px] items-center gap-1.5 h-8 rounded-md px-1.5 text-left transition-colors focus:outline-none ${
+                    active
+                      ? "bg-[#EFF6FF] border border-[#BFDBFE]"
+                      : "border border-transparent hover:bg-[#F8FAFC]"
+                  }`}
+                >
+                  <span className="w-2 h-2 rounded-sm" style={{ background: row.color }} />
+                  <span
+                    className={`text-[11.5px] truncate ${active ? "font-semibold" : "text-[#111827]"}`}
+                    style={active ? { color: selectedColor } : undefined}
+                  >
+                    {row.name}
+                  </span>
+                  <span
+                    className={`text-[11.5px] tabular-nums text-right ${active ? "font-semibold" : "text-[#111827]"}`}
+                    style={active ? { color: selectedColor } : undefined}
+                  >
+                    {row.value.toFixed(2)}{unit}
+                  </span>
+                  <span className="text-[11.5px] tabular-nums text-right text-[#64748B]">
+                    {row.pct.toFixed(2)}%
+                  </span>
+                  <ChevronRight className="w-3 h-3" style={{ color: active ? selectedColor : "transparent" }} />
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="flex flex-col min-w-0 min-h-0">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2 text-[12px] text-[#64748B]">
+              <span className="w-1 h-4 rounded" style={{ background: selectedColor }} />
+              <span className="font-semibold text-[#1E293B]">已竣未售 - {activeBiz}</span>
+              <span>单位：{unit}</span>
+            </div>
+            <div className="inline-flex h-8 rounded-md bg-[#F1F5F9] p-0.5 text-[12px]">
+              <button
+                type="button"
+                onClick={() => setChartMode("age")}
+                className={`px-3 rounded-[4px] transition-colors ${
+                  chartMode === "age"
+                    ? "bg-white text-[var(--color-brand)] shadow-sm"
+                    : "text-[#64748B] hover:text-[#334155]"
+                }`}
+              >
+                按货龄
+              </button>
+              <button
+                type="button"
+                onClick={() => setChartMode("year")}
+                className={`px-3 rounded-[4px] transition-colors ${
+                  chartMode === "year"
+                    ? "bg-white text-[var(--color-brand)] shadow-sm"
+                    : "text-[#64748B] hover:text-[#334155]"
+                }`}
+              >
+                按形成年份
+              </button>
+            </div>
+          </div>
+
+          <div className="flex-1 min-h-[220px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={barData} margin={{ top: 20, right: 8, left: -10, bottom: 4 }}>
+                <defs>
+                  <linearGradient id="done-unsold-bar-gradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor={selectedColor} stopOpacity={0.82} />
+                    <stop offset="100%" stopColor={selectedColor} stopOpacity={1} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#E8EEF7" vertical={false} />
+                <XAxis
+                  dataKey="name"
+                  tick={{ fontSize: 11, fill: "#64748B" }}
+                  axisLine={{ stroke: "#E2E8F0" }}
+                  tickLine={false}
+                />
+                <YAxis
+                  tick={{ fontSize: 11, fill: "#64748B" }}
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <RTooltip
+                  cursor={{ fill: "rgba(91,141,239,0.06)" }}
+                  content={({ active, payload, label }) => {
+                    if (!active || !payload?.length) return null;
+                    const value = Number(payload[0]?.value ?? 0);
+                    return (
+                      <div style={CHART_TOOLTIP_STYLE}>
+                        <div className={chartTooltipTitleClass}>{label}</div>
+                        <div className={chartTooltipRowClass}>
+                          <span className="inline-flex items-center gap-1.5 text-[#475569]">
+                            <span className="w-2 h-2 rounded-sm" style={{ background: selectedColor }} />
+                            已竣未售-{activeBiz}
+                          </span>
+                          <span className="tabular-nums font-medium text-[#111827]">
+                            {value.toFixed(2)} {unit}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  }}
+                />
+                <Bar dataKey="value" fill="url(#done-unsold-bar-gradient)" radius={[4, 4, 0, 0]} maxBarSize={28}>
+                  <LabelList
+                    dataKey="value"
+                    position="top"
+                    formatter={(v: any) => Number(v).toFixed(2)}
                     style={{ fill: "#334155", fontSize: 11, fontWeight: 600 }}
                   />
                 </Bar>
@@ -1188,7 +1483,7 @@ function HomePage() {
       title: "总货值",
       desc: [
         '【展示内容】卡片展示总未售货值、新拿地货值两大核心指标；每个指标名称右侧内嵌小趋势图标（ChartSpline），点击可查看近 12 个月走势浮窗；下方展示环比年初变化金额与新拿地项目平均权益比。',
-        '【交互规则】点击"总未售货值"或"新拿地货值"指标名称/趋势图标（含键盘 Enter / Space），以 Popover 形式在锚点下方弹出趋势浮窗，展示该指标近 12 个月折线趋势（X 轴为月份，末月标注"当前"，当前点带光晕）；浮窗颜色跟随所属卡片主色——总货值卡片指标使用蓝色（#1677FF）；Tooltip 同时展示当期、去年同月与同比变化。新拿地项目平均权益比右侧提供 info 图标 Hover 提示，展示计算公式。',
+        '【交互规则】点击"总未售货值"或"新拿地货值"指标名称/趋势图标（含键盘 Enter / Space），以 Popover 形式在锚点下方弹出趋势浮窗，展示该指标近 12 个月折线趋势（X 轴为月份，末月标注"当前"，当前点带光晕）；浮窗颜色跟随所属卡片主色——总货值卡片指标使用品牌蓝（#1677FF）；Tooltip 同时展示当期、去年同月与同比变化。新拿地项目平均权益比右侧提供 info 图标 Hover 提示，展示计算公式。',
         '【数据规则】总未售货值跟随顶部口径（全口径 / 权益）与指标（金额 / 面积）联动；新拿地项目平均权益比固定在全口径口径下展示，不受口径切换影响；金额单位统一为"亿"，面积单位为"万㎡"。趋势浮窗默认按"金额-亿"展示近 12 个月月末值，末月为当前时点值。',
         '【边界处理】新拿地项目个数为 0 时，平均权益比展示"--"；数值统一保留 2 位小数；趋势浮窗中某月无数据时，该点缺失，前后点自然连接（或断开），Tooltip 展示"--"。',
       ].join("\n"),
@@ -1201,7 +1496,7 @@ function HomePage() {
       title: "总货值阶段分布",
       desc: [
         '【展示内容】三列布局展示土储、在建、竣工三大阶段；每列顶部展示阶段序号、名称与趋势入口图标（ChartSpline，点击查看近 12 个月走势浮窗），阶段合计货值位于名称下方；有子级的阶段（在建、竣工）以胶囊标签展示子级名称、货值及占总未售货值占比；阶段之间以带右箭头的圆形分隔符连接，形成漏斗流向感。',
-        '【交互规则】点击任一阶段（土储 / 在建 / 竣工）的名称行或其趋势图标（含键盘 Enter / Space），以 Popover 形式在锚点下方弹出趋势浮窗，展示该阶段近 12 个月折线趋势（X 轴为月份，末月标注"当前"，当前点带光晕）；浮窗颜色统一使用阶段分布卡片主色——橙色（#F97316）；Tooltip 同时展示当期、去年同月与同比变化。',
+        '【交互规则】点击任一阶段（土储 / 在建 / 竣工）的名称行或其趋势图标（含键盘 Enter / Space），以 Popover 形式在锚点下方弹出趋势浮窗，展示该阶段近 12 个月折线趋势（X 轴为月份，末月标注"当前"，当前点带光晕）；浮窗颜色统一使用阶段分布卡片主色——警告橙（#F59E0B）；Tooltip 同时展示当期、去年同月与同比变化。',
         '【数据规则】阶段合计货值与子级货值之和保持一致；子级占比 = 子级货值 / 总未售货值基准，统一保留 2 位小数；金额单位为"亿"，面积单位为"万㎡"；模块跟随顶部"金额/面积"切换联动：切换为面积时，标题变为"总面积阶段分布"，占比保持不变。趋势浮窗默认按"金额-亿"展示近 12 个月月末值。',
         '【边界处理】某阶段无子级时（如土储），仅展示阶段合计，不展示子级区域；子级货值为 0 时，胶囊标签仍可展示但数值置灰；所有阶段合计为 0 时，整个模块展示空状态提示"暂无阶段数据"；趋势浮窗中某月无数据时，该点缺失，Tooltip 展示"--"。',
       ].join("\n"),
@@ -1213,10 +1508,10 @@ function HomePage() {
       moduleId: "land-year",
       title: "按拿地时间",
       desc: [
-        '【展示内容】左侧环形图按拿地年份（2026年、2025年、2024年、2023年、2022年、2021年及之前）展示未售货值分布；中心显示当前聚焦年份的"未售货值"金额与单位，未聚焦时显示"总未售货值"；环形图下方列表展示各年份、货值、占比；中间区域展示选中年份的核心指标（已售+未售、已售货值、累计去化率、剩余未售、未售货值占比）；右侧展示已售货值按销售年份的分解明细。',
+        '【展示内容】左侧环形图按拿地年份（2026年、2025年、2024年、2023年、2022年、2021年及之前）展示未售货值分布；中心显示当前聚焦年份的"未售货值"金额与单位，未聚焦时显示"总未售货值"；环形图下方列表展示各年份、货值、占比；中间区域展示选中年份的核心指标（已售+未售、已售货值、累计去化率、剩余未售、未售货值占比）；右侧展示已售货值按销售年份的分解明细，仅展示 2023 年及之后销售年份。',
         "【交互规则】点击或悬停环形图扇区、或点击列表项，可聚焦该拿地年份：对应扇区高亮、其他扇区降透明度，中心数值切换为该年份未售货值，中间指标区同步更新为选中年份数据；移出悬停后恢复选中态展示。右上角提供'查看趋势'入口，可打开按拿地时间详情弹窗。指标行带 info 图标，Hover 展示公式说明。",
         '【数据规则】各年份未售货值跟随顶部口径（全口径 / 权益）与指标（金额 / 面积）联动；面积模式下所有数值展示面积数据，单位为"万㎡"；各年份未售货值按全局总未售货值基准同比例缩放，确保环形图合计与顶部总货值一致；累计去化率 = 已售货值 /（已售+未售）；未售货值占比 = 该拿地年份未售货值 / 全部拿地年份未售货值合计。',
-        '【边界处理】当前筛选条件下无拿地年份数据时，模块展示空状态提示"暂无拿地时间数据"；某销售年份已售货值缺失时展示"--"；数值统一保留 2 位小数，占比保留 2 位小数；极小值处理：数值低于当前展示精度时，图例展示为"<0.01"；列表与表格过长时容器内可滚动，不撑破卡片高度。',
+        '【边界处理】当前筛选条件下无拿地年份数据时，模块展示空状态提示"暂无拿地时间数据"；某销售年份已售货值缺失时展示"--"；主卡右侧分解列表不展示 2021 年销售和 2022 年销售；数值统一保留 2 位小数，占比保留 2 位小数；极小值处理：数值低于当前展示精度时，图例展示为"<0.01"；列表与表格过长时容器内可滚动，不撑破卡片高度。',
       ].join("\n"),
     },
     {
@@ -1247,9 +1542,9 @@ function HomePage() {
       moduleId: "land-year-equity-table",
       title: "权益货值结构明细表",
       desc: [
-        '【展示内容】明细表按拿地年份展示总货值/面积、已售货值/面积、累计去化率、剩余未售货值/面积、未售占比、以及按销售年份拆分的已售权益货值/面积；底部"合计"行汇总展示各列总量。',
+        '【展示内容】明细表按拿地年份展示总货值/面积、已售货值/面积、累计去化率、剩余未售货值/面积、未售占比、以及按销售年份拆分的已售权益货值/面积；销售年份列仅展示 2023 年及之后；底部"合计"行汇总展示各列总量。',
         '【交互规则】所有表头列均支持点击排序（升/降切换）；默认按"拿地年份"升序排列；支持导出为 Excel（文件名：模块名称_组织_口径_日期_时分秒.xlsx）；表格区域支持横/纵向滚动。',
-        '【数据规则】跟随外层弹窗的口径（全口径/权益）与指标（金额/面积）联动；累计去化率 = 已售货值 / 总货值；未售占比 = 剩余未售货值 / 总货值；已售权益按销售年份分列（如 2021年销售/2022年销售…）。',
+        '【数据规则】跟随外层弹窗的口径（全口径/权益）与指标（金额/面积）联动；累计去化率 = 已售货值 / 总货值；未售占比 = 剩余未售货值 / 总货值；已售权益按销售年份分列，当前展示 2023年销售、2024年销售、2025年销售、2026年销售。',
         '【边界处理】销售年份早于拿地年份时该单元格展示为"--"且文字降级为浅灰色；数值统一保留 2 位小数，占比保留 2 位小数。',
       ].join("\n"),
     },
@@ -1314,10 +1609,10 @@ function HomePage() {
       moduleId: "done-structure",
       title: "竣工货值结构分析",
       desc: [
-        '【展示内容】环形结构图展示已竣未售货值按业态（住宅 / 商业 / 公寓 / 写字楼 / 车位 / 配套及其他）的构成；中心展示"竣工未售货值"合计金额与单位；右侧列表展示各业态、货值、占比。',
-        '【交互规则】鼠标悬停某扇区：对应扇区高亮、其他扇区降透明度，中心数值切换为该业态货值，对应列表行高亮；移出恢复合计展示；右上角"查看详情"打开已竣未售明细弹窗。',
-        '【数据规则】跟随顶部口径（全口径/权益）与指标（金额/面积）联动；占比 = 该业态货值 / 竣工未售货值合计 ×100%；金额单位"亿"、面积单位"万㎡"，数值与占比统一保留 2 位小数。',
-        '【边界处理】某业态货值为 0 时环形不展示色块，列表可保留并置灰；合计为 0 时中心展示"--"并给出空状态提示；极小值处理：数值低于展示精度时图例展示为"<0.01"，Tooltip 展示精确值。',
+        '【展示内容】模块标题为"已竣未售分布"；左侧环形图展示已竣未售货值按业态（住宅 / 商业 / 公寓 / 写字楼 / 车位配套）的构成，中心展示合计金额与单位；右侧列表展示"全部业态"及各业态的货值、占比；右侧柱状图默认按货龄展示，支持切换为按形成年份展示，形成年份 X 轴依次为 2021及之前、2022、2023、2024、2025、2026。',
+        '【交互规则】点击环形图扇区或左侧业态列表项后，当前业态高亮，右侧柱状图切换为该业态对应数据，柱体颜色同步使用该业态在系统中的固定业态色；点击"全部业态"恢复汇总数据；点击"按货龄 / 按形成年份"分段按钮切换右侧柱状图维度；右上角"查看详情"打开已竣未售明细弹窗。',
+        '【数据规则】跟随顶部口径（全口径/权益）与指标（金额/面积）联动；占比 = 该业态货值 / 竣工未售货值合计 ×100%；按货龄维度依次展示 12个月以内、12-18个月、18-24个月、24个月以上；按形成年份维度依次展示 2021及之前、2022、2023、2024、2025、2026；金额单位"亿"、面积单位"万㎡"，数值与占比统一保留 2 位小数。',
+        '【边界处理】某业态货值为 0 时环形不展示色块，列表可保留并置灰；合计为 0 时中心展示"--"并给出空状态提示；极小值处理：数值低于展示精度时图例展示为"<0.01"，Tooltip 展示精确值；点击环形图不展示浏览器默认焦点框。',
       ].join("\n"),
     },
     {
@@ -1354,9 +1649,11 @@ function HomePage() {
   const longUnit = metricMode === "amount" ? "亿元" : "万㎡";
 
   const [rateDetailOpen, setRateDetailOpen] = useState(false);
+  const [doneUnsoldDetailOpen, setDoneUnsoldDetailOpen] = useState(false);
 
   const onDetail = (name: string) => {
     if (name === "取证去化率") { setRateDetailOpen(true); return; }
+    if (name === "已竣未售分布") { setDoneUnsoldDetailOpen(true); return; }
     toast.info(`即将跳转：${name}（mock）`);
   };
 
@@ -1397,9 +1694,9 @@ function HomePage() {
             <button
               key={c}
               onClick={() => setMetricMode(c)}
-              className={`px-4 text-sm rounded-[5px] transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-brand)] disabled:opacity-50 disabled:cursor-not-allowed ${
+              className={`px-4 text-[12px] rounded-[5px] transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-brand)] disabled:opacity-50 disabled:cursor-not-allowed ${
                 metricMode === c
-                  ? "bg-white text-[var(--color-brand)] font-medium shadow-sm"
+                  ? "bg-white text-[var(--color-brand)] shadow-sm"
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
@@ -1434,7 +1731,7 @@ function HomePage() {
                     <div
                       role="button"
                       tabIndex={0}
-                      className="text-xs text-muted-foreground mb-1.5 flex items-center cursor-pointer hover:text-[color:var(--_c)] transition-colors outline-none"
+                      className="h-5 text-xs text-muted-foreground mb-1.5 flex items-center cursor-pointer hover:text-[color:var(--_c)] transition-colors outline-none"
                       style={{ ["--_c" as any]: KPI_ACCENTS.blue.from }}
                       title="点击查看近 12 个月趋势"
                     >
@@ -1445,14 +1742,14 @@ function HomePage() {
 
 
 
-                  <div className="flex items-baseline gap-1">
+                  <div className="h-9 flex items-baseline gap-1">
                     <span
-                      className="text-[30px] font-semibold leading-none tabular-nums tracking-tight"
+                      className="text-[28px] font-semibold leading-none tabular-nums tracking-tight"
                       style={{ color: KPI_ACCENTS.blue.from }}
                     >
                       {fmt(UNSOLD_TOTAL_BY_CALIBER[caliber] * (metricMode === "amount" ? 1 : 0.62))}
                     </span>
-                    <span className="text-xs text-muted-foreground">{unit}</span>
+                    <span className="text-[12px] text-muted-foreground">{unit}</span>
                   </div>
                   <div className="mt-auto pt-4 min-h-[46px] flex items-center gap-1.5">
                     <span className="text-[11px] text-muted-foreground">环比年初变化金额</span>
@@ -1464,7 +1761,7 @@ function HomePage() {
                     <div
                       role="button"
                       tabIndex={0}
-                      className="text-xs text-muted-foreground mb-1.5 flex items-center cursor-pointer hover:text-[color:var(--_c)] transition-colors outline-none"
+                      className="h-5 text-xs text-muted-foreground mb-1.5 flex items-center cursor-pointer hover:text-[color:var(--_c)] transition-colors outline-none"
                       style={{ ["--_c" as any]: KPI_ACCENTS.blue.from }}
                       title="点击查看近 12 个月趋势"
                     >
@@ -1475,11 +1772,11 @@ function HomePage() {
 
 
 
-                  <div className="flex items-baseline gap-1">
+                  <div className="h-9 flex items-baseline gap-1">
                     <span className="text-[22px] font-semibold leading-none tabular-nums text-foreground">
                       {fmt(86.42)}
                     </span>
-                    <span className="text-xs text-muted-foreground">{unit}</span>
+                    <span className="text-[12px] text-muted-foreground">{unit}</span>
                   </div>
                   <div className="mt-auto pt-4 min-h-[46px] flex items-center">
                     {(() => {
@@ -1544,7 +1841,7 @@ function HomePage() {
                   <div
                     role="button"
                     tabIndex={0}
-                    className="text-xs text-muted-foreground mb-1.5 flex items-center cursor-pointer hover:text-[color:var(--_c)] transition-colors outline-none"
+                    className="h-5 text-xs text-muted-foreground mb-1.5 flex items-center cursor-pointer hover:text-[color:var(--_c)] transition-colors outline-none"
                     style={{ ["--_c" as any]: KPI_ACCENTS.violet.from }}
                     title="点击查看近 12 个月趋势"
                   >
@@ -1555,14 +1852,14 @@ function HomePage() {
 
 
 
-                <div className="flex items-baseline gap-1">
+                <div className="h-9 flex items-baseline gap-1">
                   <span
-                    className="text-[30px] font-semibold leading-none tabular-nums tracking-tight"
+                    className="text-[28px] font-semibold leading-none tabular-nums tracking-tight"
                     style={{ color: KPI_ACCENTS.violet.from }}
                   >
                     {fmt(ytdSigned)}
                   </span>
-                  <span className="text-xs text-muted-foreground">{unit}</span>
+                  <span className="text-[12px] text-muted-foreground">{unit}</span>
                 </div>
                 <div className="mt-auto pt-4 min-h-[46px]">
                   <div className="text-[11px] flex items-center justify-between">
@@ -1581,7 +1878,7 @@ function HomePage() {
                   <div
                     role="button"
                     tabIndex={0}
-                    className="text-xs text-muted-foreground mb-1.5 flex items-center cursor-pointer hover:text-[color:var(--_c)] transition-colors outline-none"
+                    className="h-5 text-xs text-muted-foreground mb-1.5 flex items-center cursor-pointer hover:text-[color:var(--_c)] transition-colors outline-none"
                     style={{ ["--_c" as any]: KPI_ACCENTS.violet.from }}
                     title="点击查看近 12 个月趋势"
                   >
@@ -1592,11 +1889,11 @@ function HomePage() {
 
 
 
-                <div className="flex items-baseline gap-1">
+                <div className="h-9 flex items-baseline gap-1">
                   <span className="text-[22px] font-semibold leading-none tabular-nums text-foreground">
                     {fmt(monthSigned)}
                   </span>
-                  <span className="text-xs text-muted-foreground">{unit}</span>
+                  <span className="text-[12px] text-muted-foreground">{unit}</span>
                 </div>
                 <div className="mt-auto pt-4 min-h-[46px]">
                   <div className="text-[11px] flex items-center justify-between">
@@ -1617,8 +1914,8 @@ function HomePage() {
 
 
         {/* Row 1: 业态 / 拿地 / 城市公司 */}
-        <div className="grid grid-cols-12 grid-rows-[320px] gap-4 h-[320px] overflow-hidden">
-          <ModuleBadge moduleId="type-distribution" className="col-span-3 flex">
+        <div className="grid grid-cols-12 gap-4">
+          <ModuleBadge moduleId="type-distribution" className="col-span-12 xl:col-span-3 flex h-[320px]">
           <Card className="flex-1 flex flex-col overflow-hidden">
 
             <CardHead title="总货值业态分布" icon={<PieIcon className="w-3.5 h-3.5" />} />
@@ -1662,20 +1959,20 @@ function HomePage() {
                 const centerLabel = `总货值`;
                 const centerValue = headerTotal;
                 const gridCols =
-                  "grid-cols-[10px_minmax(0,28fr)_minmax(0,26fr)_minmax(0,22fr)_minmax(0,26fr)] gap-x-3";
+                  "grid-cols-[8px_minmax(44px,0.9fr)_minmax(52px,0.6fr)_minmax(34px,0.42fr)_minmax(58px,0.62fr)] gap-x-1";
                 if (!hasTypeData) {
                   return <EmptyState title="暂无业态数据" description="当前筛选条件下暂无可展示的业态分布" />;
                 }
                 return (
-                  <div className="flex items-center gap-2 flex-1 min-w-0 min-h-0">
-                    <div className="relative w-[104px] h-[104px] shrink-0 [&_.recharts-sector]:outline-none [&_.recharts-sector:focus]:outline-none [&_.recharts-wrapper]:outline-none [&_svg]:outline-none">
+                  <div className="flex items-center gap-2 flex-1 min-w-0 min-h-0 overflow-hidden">
+                    <div className="relative w-[96px] h-[96px] sm:w-[104px] sm:h-[104px] shrink-0 [&_.recharts-sector]:outline-none [&_.recharts-sector:focus]:outline-none [&_.recharts-wrapper]:outline-none [&_svg]:outline-none">
                       <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
                           <Pie
                             data={data}
                             dataKey="displayValue"
-                            innerRadius={34}
-                            outerRadius={50}
+                            innerRadius="64%"
+                            outerRadius="92%"
                             paddingAngle={2}
                             stroke="#fff"
                             strokeWidth={1.5}
@@ -1710,8 +2007,8 @@ function HomePage() {
                           const value = hovered ? hovered.displayValue : centerValue;
                           return (
                             <>
-                              <div className="text-[11px] text-[#64748B] leading-tight max-w-[88px] truncate text-center">{label}</div>
-                              <div className="text-[15px] font-bold tabular-nums leading-tight text-[#1E293B] mt-0.5">
+                              <div className="text-[11px] text-[#64748B] leading-tight max-w-[82px] truncate text-center">{label}</div>
+                              <div className="text-[14px] sm:text-[15px] font-bold tabular-nums leading-tight text-[#1E293B] mt-0.5">
                                 {fmt(value)}
                               </div>
                               <div className="text-[10px] text-[#64748B] leading-tight">{unit}</div>
@@ -1720,8 +2017,9 @@ function HomePage() {
                         })()}
                       </div>
                     </div>
-                    <div className="flex-1 min-w-0 min-h-0 overflow-y-auto">
-                      <div className={`grid ${gridCols} items-center px-1.5 h-8 mb-1 border-b border-[#EEF1F6] text-[11px] font-medium text-[#64748B] leading-[16px] whitespace-nowrap`}>
+                    <div className="flex-1 min-w-0 min-h-0 overflow-x-auto overflow-y-auto">
+                      <div className="min-w-[252px]">
+                      <div className={`grid ${gridCols} items-center px-1 h-8 mb-1 border-b border-[#EEF1F6] text-[11px] font-medium text-[#64748B] leading-[16px] whitespace-nowrap`}>
                         <span />
                         <span>业态</span>
                         <span className="text-right">{metricMode === "amount" ? "货值（亿）" : "面积（万㎡）"}</span>
@@ -1736,7 +2034,7 @@ function HomePage() {
                             key={t.name}
                             onMouseEnter={() => setActiveType(t.name)}
                             onMouseLeave={() => setActiveType(null)}
-                            className={`grid ${gridCols} items-center px-1.5 h-9 rounded transition-colors text-[11px] leading-[16px] whitespace-nowrap text-[#1E293B] ${
+                            className={`grid ${gridCols} items-center px-1 h-9 rounded transition-colors text-[11px] leading-[16px] whitespace-nowrap text-[#1E293B] ${
                               isActive
                                 ? "bg-[#EFF6FF] ring-1 ring-inset ring-[#BFDBFE]"
                                 : "hover:bg-[#F1F5F9]"
@@ -1759,6 +2057,7 @@ function HomePage() {
                           </div>
                         );
                       })}
+                      </div>
                     </div>
                   </div>
                 );
@@ -1770,11 +2069,11 @@ function HomePage() {
 
 
 
-          <ModuleBadge moduleId="land-year" className="col-span-6 h-full block">
+          <ModuleBadge moduleId="land-year" className="col-span-12 lg:col-span-8 xl:col-span-6 h-[320px] block">
             <LandYearCard factor={factor} unit={unit} caliber={caliber} metricMode={metricMode} currentYear={parseInt((date || "").slice(0, 4), 10) || new Date().getFullYear()} org={org} date={date} onDetail={() => onDetail("按拿地时间")} />
           </ModuleBadge>
 
-          <ModuleBadge moduleId="city-rank" className="col-span-3 h-full block">
+          <ModuleBadge moduleId="city-rank" className="col-span-12 lg:col-span-4 xl:col-span-3 h-[320px] block">
             <CityRankCard factor={factor} unit={unit} org={org} caliber={caliber} date={date} onDetail={() => onDetail("城市公司排名")} />
           </ModuleBadge>
         </div>
@@ -1797,14 +2096,14 @@ function HomePage() {
             <div className="px-4 pt-3 pb-3 flex-1 flex flex-col">
               {/* 筛选切换 */}
               <div className="flex items-center justify-between mb-3">
-                <div className="inline-flex h-7 rounded-md bg-[#F1F5F9] p-0.5 text-[11px]">
+                <div className="inline-flex h-8 rounded-md bg-[#F1F5F9] p-0.5 text-[12px]">
                   {(["取证", "达售"] as const).map((k) => (
                     <button
                       key={k}
                       onClick={() => setRateMode(k)}
                       className={`px-3 rounded-[4px] transition-colors ${
                         rateMode === k
-                          ? "bg-[#E6EEFB] text-[var(--color-brand)] font-medium"
+                          ? "bg-white text-[var(--color-brand)] shadow-sm"
                           : "text-muted-foreground hover:text-foreground"
                       }`}
                     >
@@ -1812,14 +2111,14 @@ function HomePage() {
                     </button>
                   ))}
                 </div>
-                <div className="inline-flex h-7 rounded-md bg-[#F1F5F9] p-0.5 text-[11px]">
+                <div className="inline-flex h-8 rounded-md bg-[#F1F5F9] p-0.5 text-[12px]">
                   {(["月度", "年度"] as const).map((k) => (
                     <button
                       key={k}
                       onClick={() => setRatePeriod(k)}
                       className={`px-3 rounded-[4px] transition-colors ${
                         ratePeriod === k
-                          ? "bg-[#E6EEFB] text-[var(--color-brand)] font-medium"
+                          ? "bg-white text-[var(--color-brand)] shadow-sm"
                           : "text-muted-foreground hover:text-foreground"
                       }`}
                     >
@@ -1910,32 +2209,22 @@ function HomePage() {
                         const [yr, m] = (label as string).split("-");
                         const diff = a - y;
                         return (
-                          <div
-                            style={{
-                              background: "#fff",
-                              border: "1px solid #E2E8F0",
-                              borderRadius: 8,
-                              boxShadow: "0 4px 12px rgba(15,23,42,0.08)",
-                              padding: "8px 10px",
-                              fontSize: 12,
-                              minWidth: 160,
-                            }}
-                          >
-                            <div className="text-[12px] font-medium mb-1 text-foreground">
+                          <div style={CHART_TOOLTIP_STYLE}>
+                            <div className={chartTooltipTitleClass}>
                               {m ? `${yr}年${Number(m)}月` : `${yr}年`}
                             </div>
-                            <div className="flex justify-between text-muted-foreground">
-                              <span>当期{rateMode}去化率</span>
+                            <div className={chartTooltipRowClass}>
+                              <span className="text-[#475569]">当期{rateMode}去化率</span>
                               <span className="text-[var(--color-brand)] tabular-nums">
                                 {a.toFixed(2)}%
                               </span>
                             </div>
-                            <div className="flex justify-between text-muted-foreground">
-                              <span>同比{rateMode}去化率</span>
+                            <div className={chartTooltipRowClass}>
+                              <span className="text-[#475569]">同比{rateMode}去化率</span>
                               <span className="text-teal-500 tabular-nums">{y.toFixed(2)}%</span>
                             </div>
-                            <div className="flex justify-between text-muted-foreground">
-                              <span>同比差额</span>
+                            <div className={chartTooltipRowClass}>
+                              <span className="text-[#475569]">同比差额</span>
                               <span
                                 className={`tabular-nums ${diff > 0 ? "text-rose-600" : diff < 0 ? "text-emerald-600" : "text-slate-500"}`}
                               >
@@ -1952,9 +2241,9 @@ function HomePage() {
                       type="monotone"
                       dataKey="actual"
                       name={`${rateMode}去化率`}
-                      stroke="#5B8DEF"
+                      stroke={TOKEN_BRAND.primary}
                       strokeWidth={2}
-                      dot={{ r: 3, fill: "#5B8DEF", strokeWidth: 0 }}
+                      dot={{ r: 3, fill: TOKEN_BRAND.primary, strokeWidth: 0 }}
                       activeDot={{ r: 5 }}
                     />
                     <Line
@@ -1977,7 +2266,7 @@ function HomePage() {
 
         {/* Row 2b: 在建货值结构分析 / 竣工货值结构分析 */}
         <div className="grid grid-cols-12 gap-4">
-          <ModuleBadge moduleId="in-build-structure" className="col-span-6 h-full block">
+          <ModuleBadge moduleId="in-build-structure" className="col-span-4 h-full block">
             <AgeStackStructureCard
               title="在建货值结构分析"
               icon={<Building2 className="w-3.5 h-3.5" />}
@@ -1988,22 +2277,11 @@ function HomePage() {
               buckets={IN_BUILD_AGE_BUCKETS}
               firstLabel="在建达售未取证"
               secondLabel="在建取证未售"
-              colors={["#1677FF", "#F97316"]}
+              colors={[TOKEN_BRAND.primary, TOKEN_STATUS.warning.fg]}
             />
           </ModuleBadge>
-          <ModuleBadge moduleId="done-structure" className="col-span-6 h-full block">
-            <AgeStackStructureCard
-              title="竣工货值结构分析"
-              icon={<PackageCheck className="w-3.5 h-3.5" />}
-              factor={factor}
-              unit={unit}
-              accentBg="#DBEAFE"
-              accentFg="#1D4ED8"
-              buckets={DONE_AGE_BUCKETS}
-              firstLabel="竣工达售未取证"
-              secondLabel="竣工取证未售"
-              colors={["#2DBDA8", "#F4B042"]}
-            />
+          <ModuleBadge moduleId="done-structure" className="col-span-8 h-full block">
+            <DoneUnsoldDistributionCard factor={factor} unit={unit} onDetail={() => onDetail("已竣未售分布")} />
           </ModuleBadge>
         </div>
 
@@ -2021,6 +2299,10 @@ function HomePage() {
         org={org}
         caliberLabel={CALIBER_OPTIONS.find((c) => c.key === caliber)!.label}
         date={date}
+      />
+      <DoneUnsoldDetailDialog
+        open={doneUnsoldDetailOpen}
+        onOpenChange={setDoneUnsoldDetailOpen}
       />
 
 
@@ -2074,7 +2356,7 @@ function UnsoldCard({
           </span>
           <span className="text-[16px] font-semibold text-foreground">总未售货值</span>
         </div>
-        <div className="inline-flex h-6 rounded-md bg-[#FFF4E6] p-0.5 text-[11px] mr-6">
+        <div className="inline-flex h-8 rounded-md bg-[#F1F5F9] p-0.5 text-[12px] mr-6">
           {([
             ["project", "按工程"],
             ["sales", "按销售"],
@@ -2084,8 +2366,8 @@ function UnsoldCard({
               onClick={() => setTab(k)}
               className={`px-2 rounded-[4px] transition-colors ${
                 tab === k
-                  ? "bg-[#F59E0B] text-white font-medium shadow-sm"
-                  : "text-[#B45309] hover:text-[#92400E]"
+                  ? "bg-white text-[#B45309] shadow-sm"
+                  : "text-muted-foreground hover:text-[#B45309]"
               }`}
             >
               {l}
@@ -2139,11 +2421,12 @@ function UnsoldCard({
 }
 
 // ====== 按拿地时间 ======
-// 拿地年份配色（蓝-青-紫-橙-红-灰蓝，与首页统一）
-const LAND_COLORS = ["#3B82F6", "#14B8A6", "#8B5CF6", "#F59E0B", "#EF4444", "#94A3B8"];
+// 拿地年份配色复用统一环形图色板，确保首页环形图视觉一致
+const LAND_COLORS = TOKEN_DONUT_PALETTE.slice(0, 6);
 const LAND_YEAR_LABELS = ["2026年", "2025年", "2024年", "2023年", "2022年", "2021年及之前"];
 const LAND_YEAR_KEYS = ["2026", "2025", "2024", "2023", "2022", "2021及以前"];
 const SALE_YEAR_KEYS = ["2021年销售", "2022年销售", "2023年销售", "2024年销售", "2025年销售", "2026年销售"];
+const DISPLAY_SALE_YEAR_KEYS = SALE_YEAR_KEYS.filter((k) => !k.startsWith("2021") && !k.startsWith("2022"));
 
 function LandYearCard({
   factor,
@@ -2193,6 +2476,10 @@ function LandYearCard({
 
   // 销售年份也要截断：不允许超过顶部 currentYear
   const visibleSaleKeys = SALE_YEAR_KEYS.filter((k) => {
+    const yr = parseInt(k, 10);
+    return yr <= currentYear;
+  });
+  const displaySaleKeys = DISPLAY_SALE_YEAR_KEYS.filter((k) => {
     const yr = parseInt(k, 10);
     return yr <= currentYear;
   });
@@ -2355,16 +2642,17 @@ function LandYearCard({
 
         {/* Middle: 选中年份指标 */}
         <div className="col-span-4 flex flex-col min-h-0 min-w-0">
-          <div className="mb-1 pl-1 border-l-2 border-[var(--color-brand)] whitespace-nowrap">
-            <span className="ml-1.5 text-[13px] font-semibold text-foreground">{selectedLabel}拿地指标</span>
+          <div className="mb-1 flex items-center gap-2 whitespace-nowrap">
+            <span className="w-1 h-4 rounded bg-[var(--color-brand)]" />
+            <span className="text-[13px] font-semibold text-foreground">{selectedLabel}拿地指标</span>
           </div>
           <div className="mb-2 pl-2.5 text-[11px] text-[#64748B] truncate">
             当前选中拿地年份的核心指标
           </div>
-          <div className="rounded-md border border-[#EEF1F6] overflow-hidden text-[13px] flex flex-col">
-            <div className="grid grid-cols-[1fr_72px] bg-[#F1F5F9]">
-              <div className="px-2 py-1.5 text-[12px] font-semibold text-foreground border-r border-[#EEF1F6] ">指标</div>
-              <div className="px-2 py-1.5 text-[12px] font-semibold text-foreground text-right ">数值</div>
+          <div className="rounded-md border border-[#EEF1F6] overflow-hidden text-[12px] flex flex-col">
+            <div className="grid grid-cols-[1fr_76px] bg-[#F1F5F9]">
+              <div className="px-2.5 py-1.5 font-semibold text-foreground border-r border-[#EEF1F6]">指标</div>
+              <div className="px-2.5 py-1.5 font-semibold text-foreground text-right">数值</div>
             </div>
 
             {[
@@ -2384,9 +2672,9 @@ function LandYearCard({
             ].map((row, i) => (
               <div
                 key={row.label}
-                className={`grid grid-cols-[1fr_72px] ${i % 2 === 0 ? "bg-white" : "bg-[#F8FAFC]"}`}
+                className={`grid grid-cols-[1fr_76px] ${i % 2 === 0 ? "bg-white" : "bg-[#F8FAFC]"}`}
               >
-                <div className="px-2 py-1.5 text-muted-foreground border-r border-[#EEF1F6] flex items-center gap-1 min-w-0">
+                <div className="px-2.5 py-1.5 text-muted-foreground border-r border-[#EEF1F6] flex items-center gap-1 min-w-0">
                   <span className="truncate">{row.label}</span>
                   {row.tip && (
                     <TooltipProvider delayDuration={100}>
@@ -2401,7 +2689,7 @@ function LandYearCard({
                     </TooltipProvider>
                   )}
                 </div>
-                <div className="px-2 py-1.5 text-right tabular-nums text-foreground">
+                <div className="px-2.5 py-1.5 text-right tabular-nums text-foreground">
                   {row.value}
                 </div>
               </div>
@@ -2412,34 +2700,35 @@ function LandYearCard({
 
         {/* Right: 已售货值分解（按销售年份） */}
         <div className="col-span-4 flex flex-col min-h-0 min-w-0">
-          <div className="mb-1 pl-1 border-l-2 border-[var(--color-brand)] ">
-            <span className="ml-1.5 text-[13px] font-semibold text-foreground">已售货值分解</span>
+          <div className="mb-1 flex items-center gap-2">
+            <span className="w-1 h-4 rounded bg-[var(--color-brand)]" />
+            <span className="text-[13px] font-semibold text-foreground">已售货值分解</span>
           </div>
           <div className="mb-2 pl-2.5 text-[12px] text-[#64748B] ">
             对应当前拿地年份的销售年份拆分
           </div>
-          <div className="rounded-md border border-[#EEF1F6] overflow-hidden text-[13px] shrink-0">
-            <div className="grid grid-cols-[1fr_72px] bg-[#F1F5F9]">
-              <div className="px-2 py-1 text-[12px] font-semibold text-foreground border-r border-[#EEF1F6] ">销售年份</div>
-              <div className="px-2 py-1 text-[12px] font-semibold text-foreground text-right whitespace-nowrap">已售（{unit}）</div>
+          <div className="rounded-md border border-[#EEF1F6] overflow-hidden text-[12px] shrink-0">
+            <div className="grid grid-cols-[1fr_76px] bg-[#F1F5F9]">
+              <div className="px-2.5 py-1.5 font-semibold text-foreground border-r border-[#EEF1F6]">销售年份</div>
+              <div className="px-2.5 py-1.5 font-semibold text-foreground text-right whitespace-nowrap">已售（{unit}）</div>
             </div>
-            {visibleSaleKeys.map((k, i) => {
+            {displaySaleKeys.map((k, i) => {
               const v = sales?.[k];
               const year = k.replace("销售", "");
               return (
-                <div key={k} className={`grid grid-cols-[1fr_72px] ${i % 2 === 0 ? "bg-white" : "bg-[#F8FAFC]"}`}>
-                  <div className="px-2 py-1 text-muted-foreground border-r border-[#EEF1F6] ">{year}</div>
-                  <div className="px-2 py-1 text-right tabular-nums  text-foreground">
+                <div key={k} className={`grid grid-cols-[1fr_76px] ${i % 2 === 0 ? "bg-white" : "bg-[#F8FAFC]"}`}>
+                  <div className="px-2.5 py-1.5 text-muted-foreground border-r border-[#EEF1F6]">{year}</div>
+                  <div className="px-2.5 py-1.5 text-right tabular-nums text-foreground">
                     {v == null ? <span className="text-muted-foreground">--</span> : (v * factor).toFixed(2)}
                   </div>
                 </div>
               );
             })}
-            <div className="grid grid-cols-[1fr_72px] bg-[#F1F5F9] border-t border-[#EEF1F6]">
-              <div className="px-2 py-1 text-[12px] font-semibold text-foreground border-r border-[#EEF1F6] ">合计</div>
-              <div className="px-2 py-1 text-right tabular-nums  text-foreground font-semibold">
+            <div className="grid grid-cols-[1fr_76px] bg-[#F1F5F9] border-t border-[#EEF1F6]">
+              <div className="px-2.5 py-1.5 font-semibold text-foreground border-r border-[#EEF1F6]">合计</div>
+              <div className="px-2.5 py-1.5 text-right tabular-nums text-foreground font-semibold">
                 {(() => {
-                  const sum = visibleSaleKeys.reduce((s, k) => s + (sales?.[k] ?? 0), 0);
+                  const sum = displaySaleKeys.reduce((s, k) => s + (sales?.[k] ?? 0), 0);
                   return (sum * factor).toFixed(2);
                 })()}
               </div>
@@ -2611,7 +2900,7 @@ function CityRankCard({
 
       {/* Tabs */}
       <div className="px-4 pt-2 shrink-0">
-        <div className="inline-flex h-7 rounded-md bg-[#F1F5F9] p-0.5 text-[11px]">
+        <div className="inline-flex h-8 rounded-md bg-[#F1F5F9] p-0.5 text-[12px]">
           {(["年度签约", "月度签约", "未售货值金额"] as RankTab[]).map((k) => {
             const active = tab === k;
             const riskActive = active && k === "未售货值金额";
@@ -2623,8 +2912,8 @@ function CityRankCard({
                 className={`px-2.5 rounded-[4px] transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-brand)] disabled:opacity-50 disabled:cursor-not-allowed ${
                   active
                     ? riskActive
-                      ? "bg-[#FFE5DA] text-[#E0581F] font-medium"
-                      : "bg-[#E6EEFB] text-[var(--color-brand)] font-medium"
+                      ? "bg-white text-[#E0581F] shadow-sm"
+                      : "bg-white text-[var(--color-brand)] shadow-sm"
                     : "text-muted-foreground hover:text-foreground"
                 }`}
               >
@@ -3071,7 +3360,7 @@ function buildTab6Data(biz: BizType) {
 
 
 const C = {
-  blue: "#3B82F6",
+  blue: "#1677FF",
   cyan: "#06B6D4",
   yellow: "#F59E0B",
   purple: "#8B5CF6",
@@ -3492,8 +3781,8 @@ function ValueAnalysisCard({
               <button
                 key={t}
                 onClick={() => setTab(t)}
-                className={`relative px-3 h-8 rounded-t-md text-[13px] whitespace-nowrap transition-colors ${
-                  active ? "font-semibold" : "text-[#475569] hover:bg-[#F8FAFC]"
+                className={`relative px-3 h-8 rounded-t-md text-[12px] whitespace-nowrap transition-colors ${
+                  active ? "" : "text-[#475569] hover:bg-[#F8FAFC]"
                 }`}
                 style={{
                   color: active ? grad.text : undefined,
@@ -3513,14 +3802,14 @@ function ValueAnalysisCard({
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
-          <div className="inline-flex h-7 rounded-md bg-[#F1F5F9] p-0.5 text-[11px]">
+          <div className="inline-flex h-8 rounded-md bg-[#F1F5F9] p-0.5 text-[12px]">
             {(["chart", "table"] as const).map((v) => (
               <button
                 key={v}
                 onClick={() => setView(v)}
                 className={`px-3 rounded-[4px] transition-colors ${
                   view === v
-                    ? "bg-white text-[var(--color-brand)] shadow-sm font-semibold"
+                    ? "bg-white text-[var(--color-brand)] shadow-sm"
                     : "text-[#64748B] hover:text-[var(--color-brand)]"
                 }`}
               >

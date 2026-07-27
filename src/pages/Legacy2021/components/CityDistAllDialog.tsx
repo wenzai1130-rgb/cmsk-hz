@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/select";
 import { Search, ChevronLeft, ChevronRight, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
 import { getOrgLevel, buildProjectsForCompany } from "@/pages/Legacy2021/index";
+import { DONUT_PALETTE as TOKEN_DONUT_PALETTE } from "@/lib/tokens";
 
 export type CityDistRow = {
   name: string;
@@ -48,12 +49,12 @@ export const CITY_DIST_ALL: CityDistRow[] = [
 ];
 
 const COLORS: Record<string, string> = {
-  综合型大盘: "#2F7BF6",
-  正常持销: "#38C2B0",
-  公商办: "#8A63F6",
-  滞销项目: "#F59E0B",
-  车位尾盘: "#94A3B8",
-  未分类: "#CBD5E1",
+  综合型大盘: TOKEN_DONUT_PALETTE[0],
+  正常持销: TOKEN_DONUT_PALETTE[1],
+  公商办: TOKEN_DONUT_PALETTE[2],
+  滞销项目: TOKEN_DONUT_PALETTE[3],
+  车位尾盘: TOKEN_DONUT_PALETTE[4],
+  未分类: TOKEN_DONUT_PALETTE[5],
 };
 
 const GROUPS = ["全部城市群", "南部城市群", "北部城市群", "东部城市群", "西部城市群", "中部城市群"];
@@ -231,7 +232,7 @@ export function CityDistAllDialog({
                     key={d.name}
                     className="group grid grid-cols-[60px_160px_140px_1fr_120px_120px] items-center gap-3 px-6 min-h-[46px] border-b border-[#F1F5F9] hover:bg-[#F8FAFD] transition-colors"
                   >
-                    <span className="text-[12px] font-semibold text-[#2F7BF6] tabular-nums">
+                    <span className="text-[12px] font-semibold tabular-nums" style={{ color: TOKEN_DONUT_PALETTE[0] }}>
                       TOP{rank}
                     </span>
                     <span className="text-[13px] font-medium text-[#1E293B] truncate">{d.name}</span>
@@ -241,7 +242,7 @@ export function CityDistAllDialog({
                         {isCompany ? (
                           <div
                             className="h-full rounded-[3px]"
-                            style={{ width: `${rowPct}%`, background: "#2F7BF6" }}
+                            style={{ width: `${rowPct}%`, background: TOKEN_DONUT_PALETTE[0] }}
                           />
                         ) : (
                           <div className="h-full flex" style={{ width: `${rowPct}%` }}>

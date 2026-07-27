@@ -17,7 +17,7 @@ export const BRAND = {
 
 // ============ 文本 / 背景 / 边框 ============
 export const TEXT = {
-  primary: "#1E293B",
+  primary: "#111827",
   secondary: "#475569",
   tertiary: "#64748B",
   disabled: "#94A3B8",
@@ -33,16 +33,16 @@ export const SURFACE = {
 
 // ============ 状态色（仅用于状态判断，不可与业务分类色混用） ============
 export const STATUS = {
-  good:    { fg: "#059669", bg: "#ECFDF5" },
+  good:    { fg: "#10B981", bg: "#ECFDF5" },
   normal:  { fg: "#1677FF", bg: "#EFF6FF" },
-  warning: { fg: "#D97706", bg: "#FFF4E6" },
-  danger:  { fg: "#DC2626", bg: "#FEF2F2" },
+  warning: { fg: "#F59E0B", bg: "#FFFBEB" },
+  danger:  { fg: "#EF4444", bg: "#FEF2F2" },
 } as const;
 
 // 红增绿减（独立管理，不与业态/年份色混用）
 export const TREND = {
-  up: "#DC2626",
-  down: "#059669",
+  up: "#EF4444",
+  down: "#10B981",
 } as const;
 
 // ============ 通用 KPI 强调色（卡片渐变） ============
@@ -50,29 +50,42 @@ export type Accent = { from: string; to: string; soft: string; bar: string };
 export const ACCENT: Record<"blue" | "violet" | "orange" | "indigo" | "rose" | "amber" | "teal" | "cyan" | "slate", Accent> = {
   blue:   { from: "#1677FF", to: "#60A5FA", soft: "#EFF6FF", bar: "#1677FF" },
   violet: { from: "#7C3AED", to: "#A78BFA", soft: "#F3F0FF", bar: "#7C3AED" },
-  orange: { from: "#F59E0B", to: "#FBBF24", soft: "#FFF4E6", bar: "#F59E0B" },
+  orange: { from: "#F59E0B", to: "#FBBF24", soft: "#FFFBEB", bar: "#F59E0B" },
   indigo: { from: "#6366F1", to: "#8B93F2", soft: "#EEF2FF", bar: "#6366F1" },
-  rose:   { from: "#E11D48", to: "#F43F5E", soft: "#FFF1F2", bar: "#E11D48" },
+  rose:   { from: "#EF4444", to: "#F87171", soft: "#FEF2F2", bar: "#EF4444" },
   amber:  { from: "#F59E0B", to: "#FBBF24", soft: "#FFFBEB", bar: "#F59E0B" },
-  teal:   { from: "#0E9C8F", to: "#5BC2B6", soft: "#ECFAF7", bar: "#0E9C8F" },
+  teal:   { from: "#10B981", to: "#34D399", soft: "#ECFDF5", bar: "#10B981" },
   cyan:   { from: "#0E84B8", to: "#3FB6E0", soft: "#EAF6FB", bar: "#0E84B8" },
   slate:  { from: "#64748B", to: "#94A3B8", soft: "#F1F5F9", bar: "#64748B" },
 };
 
 // ============ 业务分类色 —— 业态 ============
 // 同一业态在所有图表 / 表格 / tooltip / legend 中必须使用同一颜色
+export const DONUT_PALETTE = [
+  "#24A1FF",
+  "#5ACD7A",
+  "#F8C541",
+  "#4CC3F7",
+  "#FF7874",
+  "#CBABE5",
+  "#02BFB2",
+  "#FF7875",
+  "#9CD023",
+  "#70C1CA",
+] as const;
+
 export const BIZ_COLOR: Record<string, string> = {
-  住宅:    "#5B8DEF", // 蓝
-  公寓:    "#2DBDA8", // 青
-  车位:    "#F08A8A", // 浅红
-  车位配套: "#F08A8A",
-  商业:    "#F4B042", // 橙
-  写字楼:  "#A78BFA", // 紫
-  其他:    "#94A3B8", // 灰蓝
+  住宅:    DONUT_PALETTE[0],
+  公寓:    DONUT_PALETTE[1],
+  车位:    DONUT_PALETTE[6],
+  车位配套: DONUT_PALETTE[6],
+  商业:    DONUT_PALETTE[2],
+  写字楼:  DONUT_PALETTE[7],
+  其他:    DONUT_PALETTE[9],
 };
 
 // 通用图表色板（按 index 取色，与业态色同源）
-export const CHART_PALETTE = ["#5B8DEF", "#2DBDA8", "#A78BFA", "#F4B042", "#F08A8A", "#94A3B8"] as const;
+export const CHART_PALETTE = DONUT_PALETTE;
 
 export const colorOfBiz = (name: string, idx = 0): string =>
   BIZ_COLOR[name] ?? CHART_PALETTE[idx % CHART_PALETTE.length];
@@ -81,10 +94,10 @@ export const colorOfBiz = (name: string, idx = 0): string =>
 export const YEAR_COLOR: Record<string, string> = {
   "21年及之前": "#94A3B8",
   "2022":      "#0E84B8",
-  "2023":      "#2DBDA8",
+  "2023":      "#10B981",
   "2024":      "#A78BFA",
   "2025":      "#1677FF",
-  "2026":      "#F4B042",
+  "2026":      "#F59E0B",
 };
 
 // ============ 业务分类色 —— 项目类别 ============

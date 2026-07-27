@@ -23,24 +23,24 @@
  *  5. 未来月份不显示柱体 / 折线点，仅保留 X 轴刻度；hover 提示 "该月份尚未发生，暂无数据"。
  */
 
-import { SURFACE, TEXT } from "@/lib/tokens";
+import { BRAND, STATUS, SURFACE, TEXT } from "@/lib/tokens";
 
 // ============ 语义色（九宫格 / 分类结论统一使用） ============
 // 中国财务惯例：红=增/优势，绿=减/关注。此处沿用页面既有 advantage=绿 的语义。
 // 使用时优先引用 SEMANTIC.advantage / .watch / .concern，避免各组件散落硬编码。
 export const SEMANTIC = {
-  advantage: { fg: "#10B981", bg: "#ECFDF5", label: "优势区" },
-  watch:     { fg: "#EAB308", bg: "#FEFCE8", label: "观察区" },
-  concern:   { fg: "#F43F5E", bg: "#FEF2F2", label: "关注区" },
+  advantage: { fg: STATUS.good.fg, bg: STATUS.good.bg, label: "优势区" },
+  watch:     { fg: STATUS.warning.fg, bg: STATUS.warning.bg, label: "观察区" },
+  concern:   { fg: STATUS.danger.fg, bg: STATUS.danger.bg, label: "关注区" },
 } as const;
 
 // ============ 分位档位色（30/70 分位判定）============
 // 用于 tooltip 中「在前30分位 / 中间40分位 / 在后30分位」文案配色。
 // 与既有 UI 保持一致：优/劣分别沿用 #10B981 与 #DC2626，中间态取品牌蓝。
 export const TIER_COLOR = {
-  advantage: "#10B981",
-  concern:   "#DC2626",
-  normal:    "#1677FF",
+  advantage: STATUS.good.fg,
+  concern:   STATUS.danger.fg,
+  normal:    BRAND.primary,
 } as const;
 
 export type TierInfo = { text: string; color: string };

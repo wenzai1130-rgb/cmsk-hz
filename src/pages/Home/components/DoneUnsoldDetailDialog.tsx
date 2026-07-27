@@ -1,4 +1,6 @@
 import { ExportButton } from "@/components/ui/export-button";
+import { Input } from "@/components/ui/input";
+import { SegmentedTabs } from "@/components/ui/segmented-tabs";
 import { useEffect, useMemo, useState } from "react";
 import {
   X,
@@ -9,6 +11,7 @@ import {
   ArrowUp,
   ArrowDown,
   PackageCheck,
+  Search,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -20,19 +23,20 @@ import {
   CartesianGrid,
   Tooltip as RTooltip,
   Legend,
+  LabelList,
 } from "recharts";
 
-type YeType = "住宅" | "公寓" | "车位" | "商业" | "写字楼" | "其他";
-const YE_TYPES: YeType[] = ["住宅", "公寓", "车位", "商业", "写字楼", "其他"];
+type YeType = "住宅" | "商业" | "公寓" | "写字楼" | "车位" | "配套及其他";
+const YE_TYPES: YeType[] = ["住宅", "商业", "公寓", "写字楼", "车位", "配套及其他"];
 
 // Unified soft enterprise palette (aligned with LandYear dialog system)
 const COLOR: Record<YeType, string> = {
   住宅: "#3B82F6",   // brand blue
-  公寓: "#14B8A6",   // teal
-  车位: "#8B5CF6",   // purple
   商业: "#F59E0B",   // amber
+  公寓: "#14B8A6",   // teal
   写字楼: "#EF4444", // red-orange
-  其他: "#94A3B8",   // slate
+  车位: "#8B5CF6",   // purple
+  配套及其他: "#94A3B8",   // slate
 };
 
 // Shared SVG gradients for soft bar fills (must be inlined inside BarChart)
@@ -56,30 +60,30 @@ const pct2 = (n: number | null | undefined) => formatPercent(n);
 
 // --- Mock data ---
 const YEARLY = [
-  { x: "2022", 住宅: 380.25, 公寓: 92.40, 车位: 56.18, 商业: 48.30, 写字楼: 32.10, 其他: 18.60 },
-  { x: "2023", 住宅: 412.80, 公寓: 88.65, 车位: 61.20, 商业: 52.45, 写字楼: 30.80, 其他: 21.10 },
-  { x: "2024", 住宅: 396.50, 公寓: 95.20, 车位: 64.55, 商业: 49.10, 写字楼: 28.95, 其他: 19.85 },
-  { x: "2025", 住宅: 358.40, 公寓: 90.10, 车位: 60.40, 商业: 50.25, 写字楼: 32.50, 其他: 22.30 },
-  { x: "2026", 住宅: 368.50, 公寓: 86.40, 车位: 58.20, 商业: 49.00, 写字楼: 31.20, 其他: 19.59 },
+  { x: "2022", 住宅: 380.25, 商业: 48.30, 公寓: 92.40, 写字楼: 32.10, 车位: 56.18, 配套及其他: 18.60 },
+  { x: "2023", 住宅: 412.80, 商业: 52.45, 公寓: 88.65, 写字楼: 30.80, 车位: 61.20, 配套及其他: 21.10 },
+  { x: "2024", 住宅: 396.50, 商业: 49.10, 公寓: 95.20, 写字楼: 28.95, 车位: 64.55, 配套及其他: 19.85 },
+  { x: "2025", 住宅: 358.40, 商业: 50.25, 公寓: 90.10, 写字楼: 32.50, 车位: 60.40, 配套及其他: 22.30 },
+  { x: "2026", 住宅: 368.50, 商业: 49.00, 公寓: 86.40, 写字楼: 31.20, 车位: 58.20, 配套及其他: 19.59 },
 ];
 
 // Monthly 2026 — driven by current statistical month; future months render empty
-const CURRENT_MONTH_2026 = 3;
+const CURRENT_MONTH_2026 = 6;
 const MONTHLY_RAW: Array<Record<string, any>> = [
-  { x: "01", 住宅: 30.60, 公寓: 7.10, 车位: 4.80, 商业: 4.50, 写字楼: 2.60, 其他: 1.20 },
-  { x: "02", 住宅: 28.40, 公寓: 6.90, 车位: 4.30, 商业: 4.10, 写字楼: 2.30, 其他: 1.10 },
-  { x: "03", 住宅: 32.40, 公寓: 7.80, 车位: 5.00, 商业: 4.70, 写字楼: 2.80, 其他: 1.30 },
-  { x: "04", 住宅: 29.80, 公寓: 7.40, 车位: 4.60, 商业: 4.30, 写字楼: 2.50, 其他: 1.15 },
-  { x: "05", 住宅: 33.20, 公寓: 8.10, 车位: 5.20, 商业: 4.90, 写字楼: 2.95, 其他: 1.35 },
-  { x: "06", 住宅: 31.10, 公寓: 7.60, 车位: 4.90, 商业: 4.60, 写字楼: 2.70, 其他: 1.25 },
-  { x: "07", 住宅: 32.80, 公寓: 7.95, 车位: 5.10, 商业: 4.80, 写字楼: 2.85, 其他: 1.30 },
-  { x: "08", 住宅: 30.20, 公寓: 7.30, 车位: 4.70, 商业: 4.40, 写字楼: 2.55, 其他: 1.18 },
-  { x: "09", 住宅: 33.60, 公寓: 8.20, 车位: 5.30, 商业: 4.95, 写字楼: 3.00, 其他: 1.38 },
-  { x: "10", 住宅: 34.10, 公寓: 8.40, 车位: 5.40, 商业: 5.05, 写字楼: 3.10, 其他: 1.42 },
-  { x: "11", 住宅: 32.20, 公寓: 7.85, 车位: 5.05, 商业: 4.75, 写字楼: 2.80, 其他: 1.28 },
-  { x: "12", 住宅: 35.40, 公寓: 8.70, 车位: 5.55, 商业: 5.20, 写字楼: 3.20, 其他: 1.48 },
+  { x: "01", 住宅: 30.60, 商业: 4.50, 公寓: 7.10, 写字楼: 2.60, 车位: 4.80, 配套及其他: 1.20 },
+  { x: "02", 住宅: 28.40, 商业: 4.10, 公寓: 6.90, 写字楼: 2.30, 车位: 4.30, 配套及其他: 1.10 },
+  { x: "03", 住宅: 32.40, 商业: 4.70, 公寓: 7.80, 写字楼: 2.80, 车位: 5.00, 配套及其他: 1.30 },
+  { x: "04", 住宅: 29.80, 商业: 4.30, 公寓: 7.40, 写字楼: 2.50, 车位: 4.60, 配套及其他: 1.15 },
+  { x: "05", 住宅: 33.20, 商业: 4.90, 公寓: 8.10, 写字楼: 2.95, 车位: 5.20, 配套及其他: 1.35 },
+  { x: "06", 住宅: 31.10, 商业: 4.60, 公寓: 7.60, 写字楼: 2.70, 车位: 4.90, 配套及其他: 1.25 },
+  { x: "07", 住宅: 32.80, 商业: 4.80, 公寓: 7.95, 写字楼: 2.85, 车位: 5.10, 配套及其他: 1.30 },
+  { x: "08", 住宅: 30.20, 商业: 4.40, 公寓: 7.30, 写字楼: 2.55, 车位: 4.70, 配套及其他: 1.18 },
+  { x: "09", 住宅: 33.60, 商业: 4.95, 公寓: 8.20, 写字楼: 3.00, 车位: 5.30, 配套及其他: 1.38 },
+  { x: "10", 住宅: 34.10, 商业: 5.05, 公寓: 8.40, 写字楼: 3.10, 车位: 5.40, 配套及其他: 1.42 },
+  { x: "11", 住宅: 32.20, 商业: 4.75, 公寓: 7.85, 写字楼: 2.80, 车位: 5.05, 配套及其他: 1.28 },
+  { x: "12", 住宅: 35.40, 商业: 5.20, 公寓: 8.70, 写字楼: 3.20, 车位: 5.55, 配套及其他: 1.48 },
 ];
-const YE_KEYS = ["住宅", "公寓", "车位", "商业", "写字楼", "其他"] as const;
+const YE_KEYS = YE_TYPES;
 const MONTHLY: Array<Record<string, any>> = MONTHLY_RAW.map((row, i) => {
   if (i + 1 <= CURRENT_MONTH_2026) return row;
   const blank: Record<string, any> = { x: row.x, __future: true };
@@ -96,11 +100,11 @@ type SummaryRow = {
 };
 const SUMMARY: SummaryRow[] = [
   { name: "住宅", doneStart: 220.40, doneNew: 148.10, soldStart: 130.20, soldNew: 90.50, rateStart: 59.07, rateNew: 61.11 },
-  { name: "公寓", doneStart: 52.30, doneNew: 34.10, soldStart: 28.40, soldNew: 18.60, rateStart: 54.30, rateNew: 54.55 },
   { name: "商业", doneStart: 28.50, doneNew: 20.50, soldStart: 12.30, soldNew: 8.40, rateStart: 43.16, rateNew: 40.98 },
+  { name: "公寓", doneStart: 52.30, doneNew: 34.10, soldStart: 28.40, soldNew: 18.60, rateStart: 54.30, rateNew: 54.55 },
   { name: "写字楼", doneStart: 18.40, doneNew: 12.80, soldStart: 7.20, soldNew: 4.80, rateStart: 39.13, rateNew: 37.50 },
   { name: "车位", doneStart: 35.20, doneNew: 23.00, soldStart: 16.40, soldNew: 9.80, rateStart: 46.59, rateNew: 42.61 },
-  { name: "其他", doneStart: 11.80, doneNew: 7.79, soldStart: 5.10, soldNew: 3.20, rateStart: 43.22, rateNew: 41.08 },
+  { name: "配套及其他", doneStart: 11.80, doneNew: 7.79, soldStart: 5.10, soldNew: 3.20, rateStart: 43.22, rateNew: 41.08 },
 ];
 const SUMMARY_TOTAL: SummaryRow = (() => {
   const sum = (k: keyof SummaryRow) => SUMMARY.reduce((a, r) => a + (r[k] as number), 0);
@@ -190,9 +194,9 @@ const PROJECTS: Record<YeType, ProjectRow[]> = {
     { name: "深圳招商前海大厦", doneStart: 6.80, doneNew: 4.50, soldStart: 2.70, soldNew: 1.70, rateStart: 39.71, rateNew: 37.78 },
     ...genProjects("写字楼", 5, 8),
   ],
-  其他: [
+  配套及其他: [
     { name: "综合配套-深圳", doneStart: 4.20, doneNew: 2.80, soldStart: 1.80, soldNew: 1.15, rateStart: 42.86, rateNew: 41.07 },
-    ...genProjects("其他", 3, 10),
+    ...genProjects("配套及其他", 3, 10),
   ],
 };
 
@@ -229,7 +233,7 @@ function ChartTooltip({ active, payload, label, hidden }: any) {
         {items.map((p: any) => (
           <div key={p.dataKey} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 24, lineHeight: "20px" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "#475569" }}>
-              <span style={{ width: 8, height: 8, borderRadius: "50%", background: COLOR[p.dataKey as YeType], display: "inline-block" }} />
+              <span style={{ width: 8, height: 8, borderRadius: 2, background: COLOR[p.dataKey as YeType], display: "inline-block" }} />
               {p.dataKey}
             </div>
             <div style={{ fontSize: 13, fontWeight: 500, color: "#1E293B", fontVariantNumeric: "tabular-nums" }}>
@@ -252,6 +256,7 @@ function ChartTooltip({ active, payload, label, hidden }: any) {
 function StackBars({
   data,
   height = 300,
+  variant = "stacked",
   hidden,
   onLegendClick,
   hoverKey,
@@ -259,22 +264,40 @@ function StackBars({
 }: {
   data: any[];
   height?: number;
+  variant?: "stacked" | "grouped";
   hidden: Record<string, boolean>;
   onLegendClick: (e: any) => void;
   hoverKey: string | null;
   setHoverKey: (k: string | null) => void;
 }) {
+  const chartData = useMemo(
+    () =>
+      data.map((row) => {
+        const totalVisible = YE_TYPES.reduce((sum, key) => {
+          if (hidden[key]) return sum;
+          const value = row[key];
+          return value == null ? sum : sum + (+value || 0);
+        }, 0);
+        return {
+          ...row,
+          __totalVisible: row.__future || totalVisible <= 0 ? null : +totalVisible.toFixed(2),
+        };
+      }),
+    [data, hidden],
+  );
+  const topSeries = [...YE_TYPES].reverse().find((key) => !hidden[key]) ?? YE_TYPES[YE_TYPES.length - 1];
+
   return (
     <div style={{ width: "100%", height }}>
       <ResponsiveContainer>
-        <BarChart data={data} margin={{ top: 8, right: 16, left: 0, bottom: 4 }}>
+        <BarChart data={chartData} margin={{ top: 24, right: 16, left: 0, bottom: 4 }}>
           {GRADIENT_DEFS}
           <CartesianGrid stroke="#EEF1F6" strokeDasharray="3 3" vertical={false} />
           <XAxis dataKey="x" tick={{ fontSize: 12, fill: "#64748B" }} axisLine={{ stroke: "#E5E7EB" }} tickLine={false} />
           <YAxis tick={{ fontSize: 12, fill: "#64748B" }} axisLine={false} tickLine={false} />
           <RTooltip cursor={{ fill: "rgba(59,130,246,0.05)" }} content={(props: any) => <ChartTooltip {...props} hidden={hidden} />} />
           <Legend
-            iconType="circle"
+            iconType="rect"
             iconSize={8}
             wrapperStyle={{ fontSize: 12, paddingTop: 12, color: "#64748B" }}
             onClick={onLegendClick}
@@ -285,16 +308,33 @@ function StackBars({
             <Bar
               key={t}
               dataKey={t}
-              stackId="a"
+              stackId={variant === "stacked" ? "a" : undefined}
               fill={`url(#du-g-${t})`}
               stroke={COLOR[t]}
               strokeOpacity={0}
               isAnimationActive={false}
-              radius={i === YE_TYPES.length - 1 ? [4, 4, 0, 0] : [0, 0, 0, 0]}
-              maxBarSize={28}
+              radius={variant === "grouped" ? [3, 3, 0, 0] : i === YE_TYPES.length - 1 ? [4, 4, 0, 0] : [0, 0, 0, 0]}
+              maxBarSize={variant === "grouped" ? 18 : 28}
               hide={!!hidden[t]}
               fillOpacity={hoverKey && hoverKey !== t ? 0.3 : 1}
-            />
+            >
+              {variant === "grouped" && (
+                <LabelList
+                  dataKey={t}
+                  position="top"
+                  formatter={(v: any) => (v == null || +v <= 0 ? "" : (+v).toFixed(2))}
+                  style={{ fill: "#475569", fontSize: 10, fontWeight: 500 }}
+                />
+              )}
+              {variant === "stacked" && t === topSeries && (
+                <LabelList
+                  dataKey="__totalVisible"
+                  position="top"
+                  formatter={(v: any) => (v == null || +v <= 0 ? "" : (+v).toFixed(2))}
+                  style={{ fill: "#334155", fontSize: 10, fontWeight: 600 }}
+                />
+              )}
+            </Bar>
           ))}
         </BarChart>
       </ResponsiveContainer>
@@ -344,6 +384,7 @@ type SortDir = "asc" | "desc" | null;
 type SortKey =
   | "doneStart" | "doneNew" | "doneSub"
   | "soldStart" | "soldNew" | "soldSub"
+  | "remainStart" | "remainNew" | "remainSub"
   | "rateStart" | "rateNew" | "rateSub";
 
 function sortRows<T extends ProjectRow>(rows: T[], key: SortKey | null, dir: SortDir): T[] {
@@ -356,6 +397,9 @@ function sortRows<T extends ProjectRow>(rows: T[], key: SortKey | null, dir: Sor
       case "soldStart": return r.soldStart;
       case "soldNew": return r.soldNew;
       case "soldSub": return r.soldStart + r.soldNew;
+      case "remainStart": return r.doneStart - r.soldStart;
+      case "remainNew": return r.doneNew - r.soldNew;
+      case "remainSub": return (r.doneStart + r.doneNew) - (r.soldStart + r.soldNew);
       case "rateStart": return r.rateStart;
       case "rateNew": return r.rateNew;
       case "rateSub": {
@@ -423,6 +467,7 @@ function GroupedTable({
             </th>
             <th colSpan={3} className="bg-[#F1F5F9] px-3 py-2 text-center font-semibold border-b border-r border-[#E2E8F0]">已竣未售</th>
             <th colSpan={3} className="bg-[#F1F5F9] px-3 py-2 text-center font-semibold border-b border-r border-[#E2E8F0]">本年已售</th>
+            <th colSpan={3} className="bg-[#F1F5F9] px-3 py-2 text-center font-semibold border-b border-r border-[#E2E8F0]">剩余已竣未售</th>
             <th colSpan={3} className="bg-[#E8F1FF] text-[#3B82F6] px-3 py-2 text-center font-semibold border-b border-[#E2E8F0]">去化率</th>
           </tr>
           <tr className="bg-[#F1F5F9] text-[#475569]">
@@ -432,6 +477,9 @@ function GroupedTable({
             <Th k="soldStart" leftBorder>年初库存</Th>
             <Th k="soldNew">本年新增</Th>
             <Th k="soldSub">小计</Th>
+            <Th k="remainStart" leftBorder>年初库存</Th>
+            <Th k="remainNew">本年新增</Th>
+            <Th k="remainSub">小计</Th>
             <Th k="rateStart" leftBorder>年初库存</Th>
             <Th k="rateNew">本年新增</Th>
             <Th k="rateSub">小计</Th>
@@ -441,6 +489,9 @@ function GroupedTable({
           {rows.map((r, i) => {
             const doneSub = r.doneStart + r.doneNew;
             const soldSub = r.soldStart + r.soldNew;
+            const remainStart = r.doneStart - r.soldStart;
+            const remainNew = r.doneNew - r.soldNew;
+            const remainSub = doneSub - soldSub;
             const rateSub = doneSub > 0 ? soldSub / doneSub * 100 : 0;
             const baseBg = i % 2 === 0 ? "bg-white" : "bg-[#FAFBFD]";
             return (
@@ -457,6 +508,9 @@ function GroupedTable({
                 <td className="px-3 py-2.5 text-right tabular-nums border-b border-[#EEF1F6] text-[#1E293B]">{fmt2(r.soldStart)}</td>
                 <td className="px-3 py-2.5 text-right tabular-nums border-b border-[#EEF1F6] text-[#1E293B]">{fmt2(r.soldNew)}</td>
                 <td className="px-3 py-2.5 text-right tabular-nums border-b border-r border-[#EEF1F6] text-[#1E293B] font-medium">{fmt2(soldSub)}</td>
+                <td className="px-3 py-2.5 text-right tabular-nums border-b border-l border-[#EEF1F6] text-[#1E293B]">{fmt2(remainStart)}</td>
+                <td className="px-3 py-2.5 text-right tabular-nums border-b border-[#EEF1F6] text-[#1E293B]">{fmt2(remainNew)}</td>
+                <td className="px-3 py-2.5 text-right tabular-nums border-b border-r border-[#EEF1F6] text-[#1E293B] font-medium">{fmt2(remainSub)}</td>
                 <td className="px-3 py-2.5 text-right tabular-nums border-b border-[#EEF1F6] text-[#1E293B]">{pct2(r.rateStart)}</td>
                 <td className="px-3 py-2.5 text-right tabular-nums border-b border-[#EEF1F6] text-[#1E293B]">{pct2(r.rateNew)}</td>
                 <td className="px-3 py-2.5 text-right tabular-nums border-b border-[#EEF1F6] text-[#3B82F6] font-medium">{pct2(rateSub)}</td>
@@ -467,6 +521,9 @@ function GroupedTable({
             const r = totalRow;
             const doneSub = r.doneStart + r.doneNew;
             const soldSub = r.soldStart + r.soldNew;
+            const remainStart = r.doneStart - r.soldStart;
+            const remainNew = r.doneNew - r.soldNew;
+            const remainSub = doneSub - soldSub;
             const rateSub = doneSub > 0 ? soldSub / doneSub * 100 : 0;
             return (
               <tr className="bg-[#EAF2FF] text-[#1E293B] font-semibold">
@@ -478,6 +535,9 @@ function GroupedTable({
                 <td className="px-3 py-2.5 text-right tabular-nums">{fmt2(r.soldStart)}</td>
                 <td className="px-3 py-2.5 text-right tabular-nums">{fmt2(r.soldNew)}</td>
                 <td className="px-3 py-2.5 text-right tabular-nums border-r border-[#DCE7F5]">{fmt2(soldSub)}</td>
+                <td className="px-3 py-2.5 text-right tabular-nums border-l border-[#DCE7F5]">{fmt2(remainStart)}</td>
+                <td className="px-3 py-2.5 text-right tabular-nums">{fmt2(remainNew)}</td>
+                <td className="px-3 py-2.5 text-right tabular-nums border-r border-[#DCE7F5]">{fmt2(remainSub)}</td>
                 <td className="px-3 py-2.5 text-right tabular-nums text-[#3B82F6]">{pct2(r.rateStart)}</td>
                 <td className="px-3 py-2.5 text-right tabular-nums text-[#3B82F6]">{pct2(r.rateNew)}</td>
                 <td className="px-3 py-2.5 text-right tabular-nums text-[#3B82F6]">{pct2(rateSub)}</td>
@@ -539,9 +599,10 @@ export function DoneUnsoldDetailDialog({ open, onOpenChange }: { open: boolean; 
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [sortKey, setSortKey] = useState<SortKey | null>("rateSub");
-  const [sortDir, setSortDir] = useState<SortDir>("asc");
+  const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [sumSortKey, setSumSortKey] = useState<SortKey | null>("rateSub");
-  const [sumSortDir, setSumSortDir] = useState<SortDir>("asc");
+  const [sumSortDir, setSumSortDir] = useState<SortDir>("desc");
+  const [projectKeyword, setProjectKeyword] = useState("");
 
   // independent legend / hover state per chart
   const [yHidden, setYHidden] = useState<Record<string, boolean>>({});
@@ -558,11 +619,17 @@ export function DoneUnsoldDetailDialog({ open, onOpenChange }: { open: boolean; 
 
   useEffect(() => {
     setPage(1);
-    // 切换业态 tab 时恢复默认排序：去化率小计 升序
+    // 切换业态 tab 时恢复默认排序：去化率小计降序
     setSortKey("rateSub");
-    setSortDir("asc");
+    setSortDir("desc");
   }, [activeYe]);
-  useEffect(() => { setPage(1); }, [pageSize]);
+  useEffect(() => { setPage(1); }, [pageSize, projectKeyword]);
+
+  const projectsAll = useMemo(() => {
+    const keyword = projectKeyword.trim().toLowerCase();
+    if (!keyword) return PROJECTS[activeYe];
+    return PROJECTS[activeYe].filter((row) => row.name.toLowerCase().includes(keyword));
+  }, [activeYe, projectKeyword]);
 
   if (!open) return null;
 
@@ -579,7 +646,6 @@ export function DoneUnsoldDetailDialog({ open, onOpenChange }: { open: boolean; 
     else setSumSortDir("desc");
   };
 
-  const projectsAll = PROJECTS[activeYe];
   const sorted = sortRows(projectsAll, sortKey, sortDir);
   const total = sorted.length;
   const pageCount = Math.max(1, Math.ceil(total / pageSize));
@@ -621,6 +687,7 @@ export function DoneUnsoldDetailDialog({ open, onOpenChange }: { open: boolean; 
               <StackBars
                 data={YEARLY}
                 height={280}
+                variant="grouped"
                 hidden={yHidden}
                 onLegendClick={(e: any) => {
                   const k = e?.dataKey ?? e?.value;
@@ -672,32 +739,27 @@ export function DoneUnsoldDetailDialog({ open, onOpenChange }: { open: boolean; 
           {/* 4. 各业态项目明细表 */}
           <SectionCard
             title="各业态项目明细表"
-            right={<ExportBtn onClick={() => toast.success("各业态项目明细已导出")} />}
+            right={
+              <div className="flex items-center gap-2">
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#94A3B8] pointer-events-none" />
+                  <Input
+                    value={projectKeyword}
+                    onChange={(event) => setProjectKeyword(event.target.value)}
+                    placeholder="搜索项目"
+                    className="h-8 w-[220px] pl-8 pr-3 rounded-md border border-[#E2E8F0] bg-white text-[12px] text-[#1E293B] shadow-none placeholder:text-[#94A3B8] focus-visible:ring-1 focus-visible:ring-[#1677FF]/30 focus-visible:border-[#1677FF]"
+                  />
+                </div>
+                <SegmentedTabs
+                  value={activeYe}
+                  onChange={setActiveYe}
+                  items={YE_TYPES}
+                  size="md"
+                />
+                <ExportBtn onClick={() => toast.success("各业态项目明细已导出")} />
+              </div>
+            }
           >
-            {/* refined pill tabs */}
-            <div className="inline-flex items-center gap-1 p-1 bg-[#F1F5F9] rounded-lg mb-4">
-              {YE_TYPES.map((t) => {
-                const active = t === activeYe;
-                return (
-                  <button
-                    key={t}
-                    onClick={() => setActiveYe(t)}
-                    className={`relative h-8 px-3.5 rounded-md text-[13px] inline-flex items-center gap-1.5 transition-colors ${
-                      active
-                        ? "bg-white text-[#1E293B] font-semibold shadow-[0_1px_2px_rgba(15,23,42,0.06)]"
-                        : "text-[#64748B] hover:text-[#1E293B]"
-                    }`}
-                  >
-                    <span
-                      className="inline-block w-2 h-2 rounded-full"
-                      style={{ background: COLOR[t], opacity: active ? 1 : 0.55 }}
-                    />
-                    {t}
-                  </button>
-                );
-              })}
-            </div>
-
             <GroupedTable
               rows={pageRows}
               withIndex

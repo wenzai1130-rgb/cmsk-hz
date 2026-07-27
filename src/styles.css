@@ -61,9 +61,9 @@
 
   --panel: oklch(1 0 0);
   --panel-border: oklch(0.91 0.02 240);
-  --brand: oklch(0.6 0.2 250);
+  --brand: #1677FF;
   --brand-foreground: oklch(0.99 0 0);
-  --brand-soft: oklch(0.95 0.04 250);
+  --brand-soft: #EFF6FF;
   --header: oklch(1 0 0);
 
   /* ===== 全局颜色 token —— 与 src/lib/tokens.ts 同源 ===== */
@@ -73,7 +73,7 @@
   --token-primary-active: #0E5FD9;
   --token-primary-light: #EFF6FF;
   /* 文本 */
-  --token-text-primary: #1E293B;
+  --token-text-primary: #111827;
   --token-text-secondary: #475569;
   --token-text-tertiary: #64748B;
   --token-text-disabled: #94A3B8;
@@ -84,30 +84,30 @@
   --token-border-default: #E2E8F0;
   --token-border-light: #EEF1F6;
   /* 状态 */
-  --token-status-good: #059669;
+  --token-status-good: #10B981;
   --token-status-good-bg: #ECFDF5;
   --token-status-normal: #1677FF;
   --token-status-normal-bg: #EFF6FF;
-  --token-status-warning: #D97706;
-  --token-status-warning-bg: #FFF4E6;
-  --token-status-danger: #DC2626;
+  --token-status-warning: #F59E0B;
+  --token-status-warning-bg: #FFFBEB;
+  --token-status-danger: #EF4444;
   --token-status-danger-bg: #FEF2F2;
-  --token-trend-up: #DC2626;
-  --token-trend-down: #059669;
+  --token-trend-up: #EF4444;
+  --token-trend-down: #10B981;
   /* 业态色 */
-  --token-biz-residential: #5B8DEF;
-  --token-biz-apartment: #2DBDA8;
-  --token-biz-parking: #F08A8A;
-  --token-biz-commercial: #F4B042;
-  --token-biz-office: #A78BFA;
+  --token-biz-residential: #4E8FF5;
+  --token-biz-apartment: #14B8A6;
+  --token-biz-parking: #64748B;
+  --token-biz-commercial: #F59E0B;
+  --token-biz-office: #8B5CF6;
   --token-biz-other: #94A3B8;
   /* 拿地年份 */
   --token-year-2021-before: #94A3B8;
   --token-year-2022: #0E84B8;
-  --token-year-2023: #2DBDA8;
+  --token-year-2023: #10B981;
   --token-year-2024: #A78BFA;
   --token-year-2025: #1677FF;
-  --token-year-2026: #F4B042;
+  --token-year-2026: #F59E0B;
   /* 项目类别 */
   --token-project-large: #6366F1;
   --token-project-normal: #0E9C8F;
@@ -129,6 +129,7 @@
 
 /* ===== 统一文字层级 token（Tailwind v4 utilities） =====
  * t-page-title    20/600/text-primary
+ * t-dialog-title  16/600/text-primary  弹窗标题
  * t-section-title 14/600/text-primary  卡片/图表/表格模块标题
  * t-metric-value  24/700/text-primary  指标主数值
  * t-metric-label  12/500/text-tertiary 指标辅助
@@ -138,6 +139,7 @@
  * t-tag           11/500/leading-none  标签胶囊
  */
 @utility t-page-title    { font-size: 20px; line-height: 28px; font-weight: 600; color: var(--token-text-primary); }
+@utility t-dialog-title  { font-size: 16px; line-height: 24px; font-weight: 600; color: var(--token-text-primary); }
 @utility t-section-title { font-size: 14px; line-height: 22px; font-weight: 600; color: var(--token-text-primary); }
 @utility t-metric-value  { font-size: 24px; line-height: 32px; font-weight: 700; color: var(--token-text-primary); }
 @utility t-metric-label  { font-size: 12px; line-height: 18px; font-weight: 500; color: var(--token-text-tertiary); }
@@ -328,4 +330,3 @@ body[data-req-open="1"] [data-radix-popper-content-wrapper] {
 body[data-req-open="1"] .fixed.inset-0 {
   right: var(--req-drawer-w, 0px) !important;
 }
-
