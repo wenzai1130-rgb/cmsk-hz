@@ -2,10 +2,10 @@ import { useState } from "react";
 import { Building, MapPin, Check, ChevronDown } from "lucide-react";
 import { CaliberPicker, DayPicker, ORG_TREE, type Caliber } from "@/components/filters/home-filters";
 
-/* 组织筛选：仅城市公司可选，不展示集团；城市群仅作为分组标题（可展开收起） */
+/* 组织筛选：仅城市公司可选，不展示集团；城市群组仅作为分组标题（可展开收起） */
 function GradingOrgPicker({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   const [open, setOpen] = useState(false);
-  const [expanded, setExpanded] = useState<string[]>(["南部城市群"]);
+  const [expanded, setExpanded] = useState<string[]>(["南部城市群组"]);
   const toggle = (n: string) =>
     setExpanded((a) => (a.includes(n) ? a.filter((x) => x !== n) : [...a, n]));
   return (

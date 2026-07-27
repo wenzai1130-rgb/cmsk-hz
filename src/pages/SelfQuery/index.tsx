@@ -61,11 +61,11 @@ import {
 } from "@/lib/metric";
 
 const CITY_GROUPS: { name: string; companies: string[] }[] = [
-  { name: "南部城市群", companies: ["深圳公司", "广州公司", "佛山公司", "东莞公司", "珠海公司", "惠州公司", "中山公司", "江门公司"] },
-  { name: "北部城市群", companies: ["北京公司", "天津公司", "济南公司", "青岛公司"] },
-  { name: "东部城市群", companies: ["上海公司", "杭州公司", "南京公司", "苏州公司"] },
-  { name: "中部城市群", companies: ["武汉公司", "长沙公司", "郑州公司"] },
-  { name: "西部城市群", companies: ["成都公司", "重庆公司", "西安公司"] },
+  { name: "南部城市群组", companies: ["深圳公司", "广州公司", "佛山公司", "东莞公司", "珠海公司", "惠州公司", "中山公司", "江门公司"] },
+  { name: "北部城市群组", companies: ["北京公司", "天津公司", "济南公司", "青岛公司"] },
+  { name: "东部城市群组", companies: ["上海公司", "杭州公司", "南京公司", "苏州公司"] },
+  { name: "中部城市群组", companies: ["武汉公司", "长沙公司", "郑州公司"] },
+  { name: "西部城市群组", companies: ["成都公司", "重庆公司", "西安公司"] },
 ];
 
 const ALL_COMPANIES = CITY_GROUPS.flatMap((g) => g.companies);
@@ -129,7 +129,7 @@ const BIZ_DIM: DisplayDimItem = { key: "ddim_biz_type", name: "业态" };
 
 // 组织归属字段（由「组织范围」承接，不在分析维度选择器中，但表格默认展示，排序也可用）
 const ORG_ATTR_DIMS: DisplayDimItem[] = [
-  { key: "ddim_city_group", name: "城市群" },
+  { key: "ddim_city_group", name: "城市群组" },
   { key: "ddim_city_company", name: "城市公司" },
 ];
 
@@ -139,13 +139,13 @@ const DIM_VALUE_OPTIONS: Record<string, string[]> = {
   ddim_biz_type: ["住宅", "商业", "写字楼", "车位", "其他"],
 };
 
-// 城市群 → 城市公司 → 城市 → 项目 层级数据（用于维度取值筛选的级联）
+// 城市群组 → 城市公司 → 城市 → 项目 层级数据（用于维度取值筛选的级联）
 type CityNode = { name: string; projects: string[] };
 type CompanyNode = { name: string; cities: CityNode[] };
 type GroupNode = { name: string; companies: CompanyNode[] };
 const CITY_HIERARCHY: GroupNode[] = [
   {
-    name: "南部城市群",
+    name: "南部城市群组",
     companies: [
       { name: "深圳公司", cities: [{ name: "深圳", projects: ["深圳湾项目", "前海项目", "光明项目"] }] },
       { name: "广州公司", cities: [
@@ -157,7 +157,7 @@ const CITY_HIERARCHY: GroupNode[] = [
     ],
   },
   {
-    name: "华东城市群",
+    name: "华东城市群组",
     companies: [
       { name: "上海公司", cities: [{ name: "上海", projects: ["上海浦东项目", "上海虹桥项目"] }] },
       { name: "南京公司", cities: [
@@ -168,7 +168,7 @@ const CITY_HIERARCHY: GroupNode[] = [
     ],
   },
   {
-    name: "华北城市群",
+    name: "华北城市群组",
     companies: [
       { name: "北京公司", cities: [{ name: "北京", projects: ["北京通州项目"] }] },
       { name: "天津公司", cities: [{ name: "天津", projects: ["天津滨海项目"] }] },
@@ -328,20 +328,20 @@ const INITIAL_TEMPLATES: TemplateItem[] = [
   {
     id: "tpl001",
     name: "模板001",
-    desc: "南部城市群 · 房间维度货值与签约总览",
+    desc: "南部城市群组 · 房间维度货值与签约总览",
     dataset: "房间维度货值明细表",
     datasetTag: "房间维度",
     dimCount: 4,
     metricCount: 3,
-    scope: "南部城市群 / 本年至今",
+    scope: "南部城市群组 / 本年至今",
     metricsSummary: "总未售货值、月度签约金额、去化周期",
     isDefault: true,
     isRecent: true,
     isFavorite: true,
     detail: {
       数据集: "房间维度货值明细表",
-      组织范围: "南部城市群 / 8个城市公司",
-      维度: "城市群、城市公司、项目、业态",
+      组织范围: "南部城市群组 / 8个城市公司",
+      维度: "城市群组、城市公司、项目、业态",
       指标: "总未售货值、达售未取证、签约金额",
       时间周期: "本年至今",
       过滤条件: "业态 = 住宅 / 取证状态 ≠ 已取证未售",
@@ -356,13 +356,13 @@ const INITIAL_TEMPLATES: TemplateItem[] = [
     datasetTag: "项目维度",
     dimCount: 3,
     metricCount: 4,
-    scope: "全部城市群 / 近12个月",
+    scope: "全部城市群组 / 近12个月",
     metricsSummary: "签约金额、签约面积、回款金额、去化率",
     isRecent: true,
     detail: {
       数据集: "项目维度货值明细表",
-      组织范围: "全部城市群",
-      维度: "城市群、城市公司、项目",
+      组织范围: "全部城市群组",
+      维度: "城市群组、城市公司、项目",
       指标: "签约金额、签约面积、回款金额、去化率",
       时间周期: "近12个月",
       过滤条件: "无",
@@ -382,8 +382,8 @@ const INITIAL_TEMPLATES: TemplateItem[] = [
     isFavorite: true,
     detail: {
       数据集: "楼栋维度货值明细表",
-      组织范围: "南部城市群 + 东部城市群",
-      维度: "城市群、城市公司、项目、楼栋、业态",
+      组织范围: "南部城市群组 + 东部城市群组",
+      维度: "城市群组、城市公司、项目、楼栋、业态",
       指标: "已竣未售、长库龄货值、长库龄占比",
       时间周期: "本月",
       过滤条件: "库龄 ≥ 12 个月",
@@ -454,7 +454,7 @@ const BUSINESS_TEMPLATES: BusinessTemplate[] = [
     name: "招商蛇口存货去化总览",
     role: "",
     desc: "全员通用默认模板，覆盖存货结构、签约表现与风险库存。",
-    dims: "城市群 / 城市公司",
+    dims: "城市群组 / 城市公司",
     metrics: "项目总货值、总未售货值、土地储备货值、开工未达预售货值、在建达售未取证货值、在建已取证未售货值、已竣工未取证货值、已竣工已取证未售货值、签约货值、取证去化率",
     lastUpdate: "2026-05",
     recommended: true,
@@ -466,7 +466,7 @@ const BUSINESS_TEMPLATES: BusinessTemplate[] = [
     name: "区域存货去化跟踪",
     role: "",
     desc: "区域 / 城市公司维度的存货结构、去化进度及风险库存跟踪。",
-    dims: "城市群 / 城市公司",
+    dims: "城市群组 / 城市公司",
     metrics: "项目总货值、总未售货值、签约货值、取证去化率、在建达售未取证货值、已竣工已取证未售货值",
     lastUpdate: "2026-05",
     filtersSummary: "按当前组织权限｜2026年5月｜全口径-权益｜全部业态",
@@ -991,7 +991,7 @@ function Index() {
               name,
               role: "",
               desc: desc || "用户保存的模板",
-              dims: "城市群 / 城市公司",
+              dims: "城市群组 / 城市公司",
               metrics: "总货值、未售货值、当月签约货值",
               lastUpdate: new Date().toISOString().slice(0, 7),
               isDefault,
@@ -3915,7 +3915,7 @@ function OrgTree({
   return (
     <>
       
-      <SearchInput placeholder="搜索城市群 / 城市公司" value={keyword} onChange={setKeyword} />
+      <SearchInput placeholder="搜索城市群组 / 城市公司" value={keyword} onChange={setKeyword} />
       <div className="flex items-center gap-3 mt-2 text-xs">
         <button onClick={selectAll} className="text-[var(--color-brand)] hover:underline">全选</button>
         <span className="text-muted-foreground">·</span>

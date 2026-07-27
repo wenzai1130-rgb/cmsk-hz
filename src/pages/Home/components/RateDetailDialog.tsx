@@ -75,7 +75,7 @@ const PROJECT_OPEN_DATES: Record<string, string> = {
 // ---- Mock data builders ----
 const CLUSTERS: { name: string; companies: { name: string; types: { name: BizType; projects: { name: string; phases: string[] }[] }[] }[] }[] = [
   {
-    name: "南部城市群",
+    name: "南部城市群组",
     companies: [
       { name: "深圳公司", types: [
         { name: "住宅", projects: [
@@ -96,7 +96,7 @@ const CLUSTERS: { name: string; companies: { name: string; types: { name: BizTyp
     ],
   },
   {
-    name: "东部城市群",
+    name: "东部城市群组",
     companies: [
       { name: "上海公司", types: [
         { name: "住宅", projects: [
@@ -115,7 +115,7 @@ const CLUSTERS: { name: string; companies: { name: string; types: { name: BizTyp
     ],
   },
   {
-    name: "北部城市群",
+    name: "北部城市群组",
     companies: [
       { name: "北京公司", types: [
         { name: "住宅", projects: [{ name: "北京雍璟府", phases: ["一期", "二期"] }] },
@@ -127,7 +127,7 @@ const CLUSTERS: { name: string; companies: { name: string; types: { name: BizTyp
     ],
   },
   {
-    name: "中部城市群",
+    name: "中部城市群组",
     companies: [
       { name: "武汉公司", types: [
         { name: "住宅", projects: [{ name: "武汉招商江湾国际", phases: ["一期", "二期"] }] },
@@ -139,7 +139,7 @@ const CLUSTERS: { name: string; companies: { name: string; types: { name: BizTyp
     ],
   },
   {
-    name: "西部城市群",
+    name: "西部城市群组",
     companies: [
       { name: "成都公司", types: [
         { name: "住宅", projects: [{ name: "成都招商大魔方", phases: ["一期", "二期"] }] },

@@ -11,7 +11,7 @@ import type { CSSProperties } from "react";
 import { cn } from "@/lib/utils";
 
 export type HierarchyType =
-  | "cityGroup"     // 城市群
+  | "cityGroup"     // 城市群组
   | "cityCompany"   // 城市公司
   | "city"          // 城市
   | "businessType"  // 业态
@@ -20,7 +20,7 @@ export type HierarchyType =
   | "building";     // 楼栋
 
 const PRESET: Record<HierarchyType, { label: string; bg: string; color: string }> = {
-  cityGroup:    { label: "城市群",   bg: "#EDE9FE", color: "#7C3AED" },
+  cityGroup:    { label: "城市群组",   bg: "#EDE9FE", color: "#7C3AED" },
   cityCompany:  { label: "城市公司", bg: "#F1F5F9", color: "#64748B" },
   city:         { label: "城市",     bg: "#CCFBF1", color: "#0D9488" },
   businessType: { label: "业态",     bg: "#DCFCE7", color: "#16A34A" },
@@ -30,7 +30,7 @@ const PRESET: Record<HierarchyType, { label: string; bg: string; color: string }
 };
 
 const LABEL_TO_TYPE: Record<string, HierarchyType> = {
-  "城市群":   "cityGroup",
+  "城市群组":   "cityGroup",
   "城市公司": "cityCompany",
   "城市":     "city",
   "业态":     "businessType",

@@ -33,6 +33,14 @@ const PCT_2021_LEGEND_NAME = "21年及之前拿地占比";
 const LEGEND_KEY_ALIAS: Record<string, string> = {
   [PCT_2021_LEGEND_NAME]: PCT_2021_KEY,
 };
+const DEFAULT_MONTHLY_HIDDEN_SERIES: Record<string, boolean> = {
+  "2022拿地": true,
+  "2023拿地": true,
+  "2024拿地": true,
+  "2025拿地": true,
+  "2026拿地": true,
+  [PCT_2021_KEY]: true,
+};
 
 const fmtAmt = (n: number) => `${(+n).toFixed(2)}亿`;
 const fmtAmt2 = (n: number) => `${(+n).toFixed(2)}亿`;
@@ -194,8 +202,8 @@ export function LandYearDetailDialog({
   date?: string;
 }) {
   const [hiddenSeries, setHiddenSeries] = useState<Record<string, boolean>>({});
-  // Block2 图例显隐独立维护：默认展示全部拿地年份，形成月度堆积图
-  const [hiddenSeries2, setHiddenSeries2] = useState<Record<string, boolean>>({});
+  // Block2 图例显隐独立维护：默认展示 21 年及之前拿地未售总货值
+  const [hiddenSeries2, setHiddenSeries2] = useState<Record<string, boolean>>(DEFAULT_MONTHLY_HIDDEN_SERIES);
   const hoverKey: string | null = null;
   const [sortKey, setSortKey] = useState<SortKey | null>("year");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
@@ -257,6 +265,7 @@ export function LandYearDetailDialog({
   // ESC + lock body scroll
   useEffect(() => {
     if (!open) return;
+    setHiddenSeries2(DEFAULT_MONTHLY_HIDDEN_SERIES);
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     document.addEventListener("keydown", onKey);
     const prev = document.body.style.overflow;
@@ -576,7 +585,7 @@ export function LandYearDetailDialog({
                     }}
                   />
                   <Legend
-                    iconType="circle"
+                    iconType="rect"
                     iconSize={8}
                     wrapperStyle={{ fontSize: 11, paddingTop: 10, color: "#64748B" }}
                     formatter={legendFormatter}
@@ -693,7 +702,7 @@ export function LandYearDetailDialog({
                     }}
                   />
                   <Legend
-                    iconType="circle"
+                    iconType="rect"
                     iconSize={8}
                     wrapperStyle={{ fontSize: 11, paddingTop: 10, color: "#64748B" }}
                     formatter={legendFormatter2}
@@ -701,7 +710,7 @@ export function LandYearDetailDialog({
                     payload={[
                       ...LAND_YEAR_KEYS.map((k) => ({
                         value: k,
-                        type: "circle" as const,
+                        type: "rect" as const,
                         id: k,
                         color: LAND_YEAR_COLORS[k],
                         dataKey: k,
@@ -726,6 +735,7 @@ export function LandYearDetailDialog({
                       name={k}
                       stackId="m"
                       fill={`url(#g-${k})`}
+                      radius={[3, 3, 0, 0]}
                       maxBarSize={28}
                       hide={!!hiddenSeries2[k]}
                       isAnimationActive={false}

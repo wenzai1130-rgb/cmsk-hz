@@ -1,6 +1,6 @@
 import { ExportButton } from "@/components/ui/export-button";
 import { Link } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   Activity,
   Clock,
@@ -835,7 +835,7 @@ function OnSaleWaterfallCard({
                     : "text-muted-foreground hover:text-foreground"
                 }`}
               >
-                {k}口径
+                {k}
               </button>
             ))}
           </div>
@@ -1555,7 +1555,7 @@ function HomePage() {
       desc: [
         '【展示内容】卡片式排名列表，顶部 Tab 切换"年度签约 / 月度签约 / 未售货值(面积)"三个指标维度；列表每行展示排名序号、公司（或项目）名称、目标、完成进度条、完成额、完成率（签约 Tab）或未售货值/面积、占比（未售 Tab）；顶部固定"全部平均"行。',
         '【交互规则】Tab 切换即时刷新列表与指标列；表头各列（除"占比"外）均可点击排序，双向箭头（▲▼）高亮当前排序方向，签约 Tab 默认按完成额降序，未售 Tab 默认按未售货值降序；"占比"列后置 Info 图标，Hover 提示公式"该公司未售货值 / 全部未售货值合计"；右上角"查看详情"打开排名详情弹窗。',
-        '【数据规则】跟随顶部组织联动：组织选中"招商蛇口"或城市群时展示对应城市公司排名，选中具体城市公司时切换为该公司的项目排名（标题变为"{组织}项目排名"）；跟随顶部"金额/面积"切换联动，金额单位"亿"、面积单位"万㎡"；完成率 = 完成额 / 目标 ×100%，≥100% 进度条转绿色；未售占比 = 该公司未售 / 全部公司未售合计 ×100%；第三个 Tab 标签随单位动态切换为"未售货值"或"未售面积"。',
+        '【数据规则】跟随顶部组织联动：组织选中"招商蛇口"或城市群组时展示对应城市公司排名，选中具体城市公司时切换为该公司的项目排名（标题变为"{组织}项目排名"）；跟随顶部"金额/面积"切换联动，金额单位"亿"、面积单位"万㎡"；完成率 = 完成额 / 目标 ×100%，≥100% 进度条转绿色；未售占比 = 该公司未售 / 全部公司未售合计 ×100%；第三个 Tab 标签随单位动态切换为"未售货值"或"未售面积"。',
         '【边界处理】目标为 0 时完成率显示"--"，进度条置空；数值统一保留 2 位小数，占比保留 2 位小数；列表行数较多时容器内纵向滚动，表头与"全部平均"行保持固定。',
       ].join("\n"),
     },
@@ -1672,6 +1672,15 @@ function HomePage() {
   const supplyRate = (supplyDone / supplyTarget) * 100;
   const supplyKey = supplyStatus(supplyRate);
   const currentMonth = parseInt((date || "2026-04-17").split("-")[1], 10) || 1;
+  const currentYearForDate = parseInt((date || "").slice(0, 4), 10) || new Date().getFullYear();
+  const rateTrendMonthly = useMemo(() => {
+    const currentMonthKey = `${currentYearForDate}-${String(currentMonth).padStart(2, "0")}`;
+    return RATE_TREND.map((item, index) =>
+      index === RATE_TREND.length - 1
+        ? { ...item, m: currentMonthKey, actual: RATE_KPI_BASE[rateMode].rate }
+        : item,
+    );
+  }, [currentMonth, currentYearForDate, rateMode]);
   const timeProgress = (currentMonth / 12) * 100;
   const ytdRate = (ytdSigned / ytdSignedTarget) * 100;
   const signedDiff = ytdRate - timeProgress;
@@ -1751,7 +1760,7 @@ function HomePage() {
                     </span>
                     <span className="text-[12px] text-muted-foreground">{unit}</span>
                   </div>
-                  <div className="mt-auto pt-4 min-h-[46px] flex items-center gap-1.5">
+                  <div className="mt-auto pt-4 min-h-[46px] flex flex-col justify-end gap-1">
                     <span className="text-[11px] text-muted-foreground">环比年初变化金额</span>
                     <span className="text-[12px] font-medium tabular-nums text-rose-500">-23.46 {unit}</span>
                   </div>
@@ -1778,13 +1787,13 @@ function HomePage() {
                     </span>
                     <span className="text-[12px] text-muted-foreground">{unit}</span>
                   </div>
-                  <div className="mt-auto pt-4 min-h-[46px] flex items-center">
+                  <div className="mt-auto pt-4 min-h-[46px] flex flex-col justify-end gap-1">
                     {(() => {
                       const newLandCount = 8;
                       const avgEquity: number | null = newLandCount > 0 ? 72.5 : null;
                       return (
-                        <div className="text-[11px] flex items-center justify-between w-full">
-                          <span className="text-muted-foreground flex items-center gap-1">
+                        <>
+                          <span className="text-[11px] text-muted-foreground flex items-center gap-1">
                             新拿地项目平均权益比
                             <TooltipProvider delayDuration={100}>
                               <Tooltip>
@@ -1798,13 +1807,13 @@ function HomePage() {
                             </TooltipProvider>
                           </span>
                           {avgEquity === null ? (
-                            <span className="font-medium tabular-nums text-muted-foreground">--</span>
+                            <span className="text-[12px] font-medium tabular-nums text-muted-foreground">--</span>
                           ) : (
-                            <span className="font-medium tabular-nums" style={{ color: KPI_ACCENTS.blue.from }}>
+                            <span className="text-[12px] font-medium tabular-nums" style={{ color: KPI_ACCENTS.blue.from }}>
                               {avgEquity.toFixed(2)}%
                             </span>
                           )}
-                        </div>
+                        </>
                       );
                     })()}
                   </div>
@@ -2180,7 +2189,7 @@ function HomePage() {
               <div className="flex-1 min-h-[260px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart
-                    data={ratePeriod === "年度" ? RATE_TREND_YEAR : RATE_TREND}
+                    data={ratePeriod === "年度" ? RATE_TREND_YEAR : rateTrendMonthly}
                     margin={{ top: 10, right: 12, left: -8, bottom: 18 }}
                   >
                     <CartesianGrid strokeDasharray="3 3" stroke="#EEF2F7" vertical={false} />
@@ -2459,6 +2468,7 @@ function LandYearCard({
     : visibleLandKeys[0] ?? LAND_YEAR_KEYS[0];
 
   const [selected, setSelected] = useState<string>(defaultSelected);
+  const [hasFocusedLandYear, setHasFocusedLandYear] = useState(false);
   const [hoverKey, setHoverKey] = useState<string | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
   useRegisterModuleOpener("land-year-5y-trend", () => setDetailOpen(true), []);
@@ -2470,6 +2480,7 @@ function LandYearCard({
   // 顶部年份变化时，重置选中
   useEffect(() => {
     setSelected(defaultSelected);
+    setHasFocusedLandYear(false);
   }, [defaultSelected]);
 
   const effectiveSelected = visibleLandKeys.includes(selected) ? selected : defaultSelected;
@@ -2572,15 +2583,18 @@ function LandYearCard({
                   isAnimationActive={false}
                   onMouseEnter={(d: any) => setHoverKey(d.key)}
                   onMouseLeave={() => setHoverKey(null)}
-                  onClick={(d: any) => setSelected(d.key)}
+                  onClick={(d: any) => {
+                    setSelected(d.key);
+                    setHasFocusedLandYear(true);
+                  }}
                 >
                   {pieData.map((p) => {
-                    const focus = hoverKey ?? selected;
+                    const focus = hoverKey ?? (hasFocusedLandYear ? selected : null);
                     return (
                       <Cell
                         key={p.key}
                         fill={p.color}
-                        opacity={focus === p.key ? 1 : 0.4}
+                        opacity={!focus || focus === p.key ? 1 : 0.4}
                         style={{ cursor: "pointer", transition: "opacity 180ms" }}
                       />
                     );
@@ -2590,9 +2604,9 @@ function LandYearCard({
             </ResponsiveContainer>
             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
               {(() => {
-                const focusKey = hoverKey ?? selected;
+                const focusKey = hoverKey ?? (hasFocusedLandYear ? selected : null);
                 const focusItem = pieData.find((p) => p.key === focusKey);
-                const label = focusItem ? `${focusItem.name}未售货值` : "总未售货值";
+                const label = focusItem ? `${focusItem.name}未售货值` : "总货值";
                 const val = focusItem ? focusItem.value : totalUnsold;
                 return (
                   <>
@@ -2610,20 +2624,17 @@ function LandYearCard({
           <div className="mt-2 w-full px-1 flex flex-col gap-0.5 text-[11px]">
             {pieData.map((p) => {
               const isSel = selected === p.key;
-              const isHov = hoverKey === p.key;
               const pct = totalUnsold > 0 ? (p.value / totalUnsold) * 100 : 0;
               return (
                 <button
                   key={p.key}
-                  onClick={() => setSelected(p.key)}
-                  onMouseEnter={() => setHoverKey(p.key)}
-                  onMouseLeave={() => setHoverKey(null)}
+                  onClick={() => {
+                    setSelected(p.key);
+                  }}
                   className={`grid grid-cols-[1fr_auto_42px] items-center gap-2 text-left px-1.5 py-0.5 rounded transition-colors ${
                     isSel
                       ? "bg-[var(--color-brand-soft)] text-[var(--color-brand)] font-semibold"
-                      : isHov
-                        ? "bg-[#F1F5F9] text-foreground"
-                        : "text-muted-foreground"
+                      : "text-muted-foreground hover:bg-[#F8FAFC] hover:text-foreground"
                   }`}
                 >
                   <span className="flex items-center gap-1 truncate">
@@ -2704,7 +2715,7 @@ function LandYearCard({
             <span className="w-1 h-4 rounded bg-[var(--color-brand)]" />
             <span className="text-[13px] font-semibold text-foreground">已售货值分解</span>
           </div>
-          <div className="mb-2 pl-2.5 text-[12px] text-[#64748B] ">
+          <div className="mb-2 pl-2.5 text-[11px] text-[#64748B]">
             对应当前拿地年份的销售年份拆分
           </div>
           <div className="rounded-md border border-[#EEF1F6] overflow-hidden text-[12px] shrink-0">

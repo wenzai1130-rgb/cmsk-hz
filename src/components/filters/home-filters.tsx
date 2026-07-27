@@ -102,13 +102,13 @@ export const ORG_TREE: { name: string; children?: { name: string; children?: str
   name: "招商蛇口",
   children: [
     {
-      name: "南部城市群",
+      name: "南部城市群组",
       children: ["深圳公司", "广州公司", "佛山公司", "东莞公司", "珠海公司", "惠州公司", "中山公司", "江门公司"],
     },
-    { name: "北部城市群", children: ["北京公司", "天津公司", "青岛公司", "济南公司"] },
-    { name: "东部城市群", children: ["上海公司", "杭州公司", "南京公司", "苏州公司", "宁波公司"] },
-    { name: "中部城市群", children: ["武汉公司", "长沙公司", "郑州公司", "合肥公司"] },
-    { name: "西部城市群", children: ["成都公司", "重庆公司", "西安公司", "昆明公司"] },
+    { name: "北部城市群组", children: ["北京公司", "天津公司", "青岛公司", "济南公司"] },
+    { name: "东部城市群组", children: ["上海公司", "杭州公司", "南京公司", "苏州公司", "宁波公司"] },
+    { name: "中部城市群组", children: ["武汉公司", "长沙公司", "郑州公司", "合肥公司"] },
+    { name: "西部城市群组", children: ["成都公司", "重庆公司", "西安公司", "昆明公司"] },
     { name: "自贸投资", children: ["海南公司", "深圳前海"] },
     { name: "招商产园", children: ["产园华南", "产园华东"] },
   ],
@@ -122,7 +122,7 @@ export function OrgPicker({
   loading = false,
 }: { value: string; onChange: (v: string) => void; leafOnly?: boolean } & PickerStateProps) {
   const [open, setOpen] = useState(false);
-  const [expanded, setExpanded] = useState<string[]>(["南部城市群"]);
+  const [expanded, setExpanded] = useState<string[]>(["南部城市群组"]);
   const inactive = disabled || loading;
   const toggle = (n: string) =>
     setExpanded((a) => (a.includes(n) ? a.filter((x) => x !== n) : [...a, n]));
@@ -223,7 +223,7 @@ export function OrgPicker({
 }
 
 /**
- * 组织多选下拉：招商蛇口 → 城市群 → 城市公司（叶子多选）。
+ * 组织多选下拉：招商蛇口 → 城市群组 → 城市公司（叶子多选）。
  * value：选中的城市公司名数组（空数组 = 全部）。
  */
 export function OrgMultiPicker({
@@ -266,7 +266,7 @@ export function OrgMultiPicker({
 
   const label = useMemo(() => {
     if (selectedCount === 0 || selectedCount === totalCount) return `招商局蛇口工业区控股股份有限公司`;
-    // 完整命中某个城市群
+    // 完整命中某个城市群组
     const fullGroup = groups.find(
       (g) =>
         g.children.length === selectedCount &&

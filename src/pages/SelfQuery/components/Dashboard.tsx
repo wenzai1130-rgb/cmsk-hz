@@ -59,20 +59,20 @@ type Row = {
 };
 
 const CITY_GROUP_MAP: Record<string, string> = {
-  深圳公司: "南部城市群",
-  广州公司: "南部城市群",
-  佛山公司: "南部城市群",
-  东莞公司: "南部城市群",
-  珠海公司: "南部城市群",
-  惠州公司: "南部城市群",
-  中山公司: "南部城市群",
-  江门公司: "南部城市群",
+  深圳公司: "南部城市群组",
+  广州公司: "南部城市群组",
+  佛山公司: "南部城市群组",
+  东莞公司: "南部城市群组",
+  珠海公司: "南部城市群组",
+  惠州公司: "南部城市群组",
+  中山公司: "南部城市群组",
+  江门公司: "南部城市群组",
 };
 
 function buildRows(): Row[] {
   const map = new Map<string, Row>();
   for (const p of PROJECTS) {
-    const cg = CITY_GROUP_MAP[p.cityCompany] || "南部城市群";
+    const cg = CITY_GROUP_MAP[p.cityCompany] || "南部城市群组";
     const key = `${cg}|${p.cityCompany}`;
     const r = map.get(key) || {
       cityGroup: cg,
@@ -107,21 +107,21 @@ function buildRows(): Row[] {
     map.set(key, r);
   }
   const rows = Array.from(map.values());
-  // 招商蛇口全量范围 mock：补充其他城市群 / 城市公司的汇总数据
+  // 招商蛇口全量范围 mock：补充其他城市群组 / 城市公司的汇总数据
   const extras: Array<{ cityGroup: string; cityCompany: string; total: number; unsold: number; signed: number }> = [
-    { cityGroup: "华东城市群", cityCompany: "上海公司", total: 276.8, unsold: 148.3, signed: 17.5 },
-    { cityGroup: "华东城市群", cityCompany: "南京公司", total: 198.6, unsold: 108.4, signed: 12.8 },
-    { cityGroup: "华东城市群", cityCompany: "杭州公司", total: 232.4, unsold: 124.6, signed: 14.9 },
-    { cityGroup: "华东城市群", cityCompany: "苏州公司", total: 174.2, unsold: 92.1, signed: 11.3 },
-    { cityGroup: "华北城市群", cityCompany: "北京公司", total: 245.2, unsold: 132.1, signed: 15.4 },
-    { cityGroup: "华北城市群", cityCompany: "天津公司", total: 168.5, unsold: 88.7, signed: 10.6 },
-    { cityGroup: "华北城市群", cityCompany: "济南公司", total: 142.3, unsold: 76.4, signed: 9.2 },
-    { cityGroup: "西部城市群", cityCompany: "成都公司", total: 186.3, unsold: 96.8, signed: 10.6 },
-    { cityGroup: "西部城市群", cityCompany: "重庆公司", total: 158.7, unsold: 82.4, signed: 9.3 },
-    { cityGroup: "西部城市群", cityCompany: "西安公司", total: 134.2, unsold: 71.6, signed: 8.4 },
-    { cityGroup: "中部城市群", cityCompany: "武汉公司", total: 192.5, unsold: 102.3, signed: 11.8 },
-    { cityGroup: "中部城市群", cityCompany: "长沙公司", total: 156.8, unsold: 84.2, signed: 9.6 },
-    { cityGroup: "中部城市群", cityCompany: "郑州公司", total: 138.4, unsold: 73.5, signed: 8.5 },
+    { cityGroup: "华东城市群组", cityCompany: "上海公司", total: 276.8, unsold: 148.3, signed: 17.5 },
+    { cityGroup: "华东城市群组", cityCompany: "南京公司", total: 198.6, unsold: 108.4, signed: 12.8 },
+    { cityGroup: "华东城市群组", cityCompany: "杭州公司", total: 232.4, unsold: 124.6, signed: 14.9 },
+    { cityGroup: "华东城市群组", cityCompany: "苏州公司", total: 174.2, unsold: 92.1, signed: 11.3 },
+    { cityGroup: "华北城市群组", cityCompany: "北京公司", total: 245.2, unsold: 132.1, signed: 15.4 },
+    { cityGroup: "华北城市群组", cityCompany: "天津公司", total: 168.5, unsold: 88.7, signed: 10.6 },
+    { cityGroup: "华北城市群组", cityCompany: "济南公司", total: 142.3, unsold: 76.4, signed: 9.2 },
+    { cityGroup: "西部城市群组", cityCompany: "成都公司", total: 186.3, unsold: 96.8, signed: 10.6 },
+    { cityGroup: "西部城市群组", cityCompany: "重庆公司", total: 158.7, unsold: 82.4, signed: 9.3 },
+    { cityGroup: "西部城市群组", cityCompany: "西安公司", total: 134.2, unsold: 71.6, signed: 8.4 },
+    { cityGroup: "中部城市群组", cityCompany: "武汉公司", total: 192.5, unsold: 102.3, signed: 11.8 },
+    { cityGroup: "中部城市群组", cityCompany: "长沙公司", total: 156.8, unsold: 84.2, signed: 9.6 },
+    { cityGroup: "中部城市群组", cityCompany: "郑州公司", total: 138.4, unsold: 73.5, signed: 8.5 },
   ];
   for (const e of extras) {
     rows.push({
@@ -573,7 +573,7 @@ export function Dashboard({
 
 // ---------------- 趋势图表（轻量版） ----------------
 type Granularity = "月度" | "季度" | "年度";
-type SplitDim = "城市群" | "城市公司" | "业态" | "项目";
+type SplitDim = "城市群组" | "城市公司" | "业态" | "项目";
 
 // 推断单位
 function metricUnit(name: string): string {
@@ -705,7 +705,7 @@ function TrendTab({
     const splits =
       splitDim === "城市公司"
         ? companySplits
-        : splitDim === "城市群"
+        : splitDim === "城市群组"
           ? groupSplits
           : splitDim === "业态"
             ? bizSplits
@@ -755,7 +755,7 @@ function TrendTab({
           <FilterPill label="趋势指标" value={metric} options={["总未售货值", "签约货值", "在建达售未取证货值", "在建已取证未售货值", "已竣工已取证未售货值", "取证去化率", ...derivedMetrics.map((d) => d.name)]} onChange={(v) => { setMetric(v); handleConfigChange(); }} />
           <FilterPill label="时间粒度" value={granularity} options={granularityOptions} onChange={(v) => { setGranularity(v as Granularity); handleConfigChange(); }} />
           <FilterPill label="图表类型" value={chartType} options={["柱状图", "折线图"]} onChange={(v) => { setChartType(v as any); handleConfigChange(); }} />
-          <FilterPill label="拆分维度" value={splitDim} options={["城市群", "城市公司", "业态", "项目"]} onChange={(v) => { setSplitDim(v as SplitDim); handleConfigChange(); }} />
+          <FilterPill label="拆分维度" value={splitDim} options={["城市群组", "城市公司", "业态", "项目"]} onChange={(v) => { setSplitDim(v as SplitDim); handleConfigChange(); }} />
         </div>
         <div className="flex gap-2">
           <ExportButton>导出图片</ExportButton>
@@ -964,7 +964,7 @@ const DIM_VALUE_LISTS: Record<string, string[]> = {
   ddim_biz_type: ["住宅", "商业", "写字楼", "车位", "其他"],
 };
 const DIM_LABEL: Record<string, string> = {
-  ddim_city_group: "城市群",
+  ddim_city_group: "城市群组",
   ddim_city_company: "城市公司",
   ddim_city: "城市",
   ddim_project: "项目",
@@ -1019,7 +1019,7 @@ function buildDynRows(
   const projectF = filters["ddim_project"];
 
   for (const r of ROWS_ALL) {
-    // 顶层（按城市群/城市公司）筛选
+    // 顶层（按城市群组/城市公司）筛选
     if (groupF && groupF.length && !groupF.includes(r.cityGroup)) continue;
     if (companyF && companyF.length && !companyF.includes(r.cityCompany)) continue;
 
@@ -1580,7 +1580,7 @@ function CompositionTab({ focusMetric }: { focusMetric: string | null }) {
       <div className="flex flex-wrap items-center justify-between gap-2 p-3 rounded-lg bg-[#F8FAFD] border border-[var(--color-panel-border)]">
         <div className="flex flex-wrap gap-2">
           <FilterPill label="构成指标" value={metricName} options={COMP_METRICS.map((c) => c.name)} onChange={setMetricName} />
-          <FilterPill label="构成维度" value={dim} options={["城市群", "城市公司", "城市", "项目", "业态", "货龄"]} onChange={setDim} />
+          <FilterPill label="构成维度" value={dim} options={["城市群组", "城市公司", "城市", "项目", "业态", "货龄"]} onChange={setDim} />
           <FilterPill label="图表类型" value={chartType} options={["条形图", "环形图"]} onChange={(v) => setChartType(v as "条形图" | "环形图")} />
         </div>
         <div className="flex gap-2">

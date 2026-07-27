@@ -525,11 +525,11 @@ type DetailRow = {
 };
 
 const DETAIL_BY_TAB: Record<string, DetailRow[]> = {
-  城市群: [
-    { group: "南部城市群", category: "综合型大盘", startInv: 132.5, m: { target: 14.0, signed: 12.85, units: 142 }, y: { target: 168.0, signed: 38.5, units: 412 }, visits: { newV: 2840, reV: 1680 } },
-    { group: "北部城市群", category: "综合型大盘", startInv: 88.4, m: { target: 9.5, signed: 8.92, units: 98 }, y: { target: 114.0, signed: 26.7, units: 282 }, visits: { newV: 2120, reV: 1320 } },
-    { group: "东部城市群", category: "综合型大盘", startInv: 156.2, m: { target: 16.5, signed: 14.2, units: 168 }, y: { target: 198.0, signed: 42.3, units: 478 }, visits: { newV: 3320, reV: 2010 } },
-    { group: "西部城市群", category: "综合型大盘", startInv: 64.3, m: { target: 7.0, signed: 5.85, units: 72 }, y: { target: 84.0, signed: 18.4, units: 198 }, visits: { newV: 1480, reV: 920 } },
+  城市群组: [
+    { group: "南部城市群组", category: "综合型大盘", startInv: 132.5, m: { target: 14.0, signed: 12.85, units: 142 }, y: { target: 168.0, signed: 38.5, units: 412 }, visits: { newV: 2840, reV: 1680 } },
+    { group: "北部城市群组", category: "综合型大盘", startInv: 88.4, m: { target: 9.5, signed: 8.92, units: 98 }, y: { target: 114.0, signed: 26.7, units: 282 }, visits: { newV: 2120, reV: 1320 } },
+    { group: "东部城市群组", category: "综合型大盘", startInv: 156.2, m: { target: 16.5, signed: 14.2, units: 168 }, y: { target: 198.0, signed: 42.3, units: 478 }, visits: { newV: 3320, reV: 2010 } },
+    { group: "西部城市群组", category: "综合型大盘", startInv: 64.3, m: { target: 7.0, signed: 5.85, units: 72 }, y: { target: 84.0, signed: 18.4, units: 198 }, visits: { newV: 1480, reV: 920 } },
   ],
   城市公司: [
     { group: "上海公司", category: "综合型大盘", startInv: 88.5, m: { target: 9.0, signed: 8.85, units: 92 }, y: { target: 108.0, signed: 26.5, units: 280 }, visits: { newV: 1820, reV: 1060 } },
@@ -679,20 +679,20 @@ type Bldg = {
 };
 const BUILDINGS_SEED: Bldg[] = (() => {
   const seed: { group: string; company: string; city: string; project: string; category: string; unsold: number; period: number }[] = [
-    { group: "东部城市群", company: "上海公司", city: "上海", project: "上海·招商雍景湾", category: "综合型大盘", unsold: 88, period: 14 },
-    { group: "东部城市群", company: "上海公司", city: "上海", project: "上海·臻湾府",     category: "正常持销",   unsold: 28, period: 16 },
-    { group: "东部城市群", company: "苏州公司", city: "苏州", project: "苏州·云澜府",     category: "综合型大盘", unsold: 42, period: 15 },
-    { group: "南部城市群", company: "深圳公司", city: "深圳", project: "深圳·招商蛇口湾", category: "综合型大盘", unsold: 76, period: 13 },
-    { group: "南部城市群", company: "深圳公司", city: "深圳", project: "深圳·雍云府",     category: "公商办",     unsold: 38, period: 18 },
-    { group: "南部城市群", company: "广州公司", city: "广州", project: "广州·东湾",       category: "滞销项目",   unsold: 52, period: 24 },
-    { group: "南部城市群", company: "广州公司", city: "广州", project: "广州·天河项目",   category: "滞销项目",   unsold: 28, period: 22 },
-    { group: "南部城市群", company: "佛山公司", city: "佛山", project: "佛山·湖景湾",     category: "车位 / 尾盘", unsold: 22, period: 28 },
-    { group: "北部城市群", company: "北京公司", city: "北京", project: "北京·招商臻园",   category: "综合型大盘", unsold: 64, period: 14 },
-    { group: "北部城市群", company: "北京公司", city: "北京", project: "北京·朝阳办公",   category: "公商办",     unsold: 30, period: 19 },
-    { group: "北部城市群", company: "天津公司", city: "天津", project: "天津·海河项目",   category: "滞销项目",   unsold: 38, period: 23 },
-    { group: "西部城市群", company: "成都公司", city: "成都", project: "成都·锦江项目",   category: "正常持销",   unsold: 26, period: 17 },
-    { group: "西部城市群", company: "重庆公司", city: "重庆", project: "重庆·中央公园",   category: "综合型大盘", unsold: 34, period: 19 },
-    { group: "西部城市群", company: "重庆公司", city: "重庆", project: "重庆·尾盘车位",   category: "车位 / 尾盘", unsold: 18, period: 30 },
+    { group: "东部城市群组", company: "上海公司", city: "上海", project: "上海·招商雍景湾", category: "综合型大盘", unsold: 88, period: 14 },
+    { group: "东部城市群组", company: "上海公司", city: "上海", project: "上海·臻湾府",     category: "正常持销",   unsold: 28, period: 16 },
+    { group: "东部城市群组", company: "苏州公司", city: "苏州", project: "苏州·云澜府",     category: "综合型大盘", unsold: 42, period: 15 },
+    { group: "南部城市群组", company: "深圳公司", city: "深圳", project: "深圳·招商蛇口湾", category: "综合型大盘", unsold: 76, period: 13 },
+    { group: "南部城市群组", company: "深圳公司", city: "深圳", project: "深圳·雍云府",     category: "公商办",     unsold: 38, period: 18 },
+    { group: "南部城市群组", company: "广州公司", city: "广州", project: "广州·东湾",       category: "滞销项目",   unsold: 52, period: 24 },
+    { group: "南部城市群组", company: "广州公司", city: "广州", project: "广州·天河项目",   category: "滞销项目",   unsold: 28, period: 22 },
+    { group: "南部城市群组", company: "佛山公司", city: "佛山", project: "佛山·湖景湾",     category: "车位 / 尾盘", unsold: 22, period: 28 },
+    { group: "北部城市群组", company: "北京公司", city: "北京", project: "北京·招商臻园",   category: "综合型大盘", unsold: 64, period: 14 },
+    { group: "北部城市群组", company: "北京公司", city: "北京", project: "北京·朝阳办公",   category: "公商办",     unsold: 30, period: 19 },
+    { group: "北部城市群组", company: "天津公司", city: "天津", project: "天津·海河项目",   category: "滞销项目",   unsold: 38, period: 23 },
+    { group: "西部城市群组", company: "成都公司", city: "成都", project: "成都·锦江项目",   category: "正常持销",   unsold: 26, period: 17 },
+    { group: "西部城市群组", company: "重庆公司", city: "重庆", project: "重庆·中央公园",   category: "综合型大盘", unsold: 34, period: 19 },
+    { group: "西部城市群组", company: "重庆公司", city: "重庆", project: "重庆·尾盘车位",   category: "车位 / 尾盘", unsold: 18, period: 30 },
   ];
   const list: Bldg[] = [];
   for (const p of seed) {
@@ -731,7 +731,7 @@ const BUILDINGS_SEED: Bldg[] = (() => {
 type TreeNode = {
   id: string;
   name: string;
-  level: "城市群" | "城市公司" | "城市" | "项目" | "楼栋";
+  level: "城市群组" | "城市公司" | "城市" | "项目" | "楼栋";
   category?: string;
   unsold: number;
   mT: number; mS: number; mU: number;
@@ -841,7 +841,7 @@ function buildTree(buildings: Bldg[]): TreeNode[] {
     result.push({
       id: gName,
       name: gName,
-      level: "城市群",
+      level: "城市群组",
       category: uniqCategories(gItems),
       ...ag,
       childCount: cChildren.length,
@@ -902,7 +902,7 @@ function LegacyPage() {
       title: "各城市公司货值分布",
       desc: [
         '【展示内容】按总未售货值降序展示 TOP5 城市公司；每行以横向堆叠条按"综合型大盘 / 正常持销 / 公商办 / 滞销项目 / 车位尾盘 / 未分类"六类分段展示未售货值结构，条形长度与最大总未售货值成比例；表头列包含：排名、城市公司（或项目）、货值结构、总未售货值(亿/万㎡)、去化周期。当组织下钻到城市公司时，标题切换为"{公司} · 项目货值分布"并以单色条展示项目 TOP5。',
-        '【交互规则】"总未售货值"和"去化周期"列表头带排序箭头图标，点击可切换升 / 降序，再次点击同一列则反转方向，切换列时总未售货值默认降序、去化周期默认升序；鼠标悬停条形展示浮层，明细列出各类别未售货值与占比、总未售货值合计、去化周期；点击右上角"查看全部"打开全量弹窗，弹窗内通过表头排序箭头切换总未售货值 / 去化周期排序，并支持按城市群筛选与搜索。',
+        '【交互规则】"总未售货值"和"去化周期"列表头带排序箭头图标，点击可切换升 / 降序，再次点击同一列则反转方向，切换列时总未售货值默认降序、去化周期默认升序；鼠标悬停条形展示浮层，明细列出各类别未售货值与占比、总未售货值合计、去化周期；点击右上角"查看全部"打开全量弹窗，弹窗内通过表头排序箭头切换总未售货值 / 去化周期排序，并支持按城市群组筛选与搜索。',
         '【数据规则】总未售货值 = 综合型大盘 + 正常持销 + 公商办 + 滞销项目 + 车位尾盘 + 未分类；跟随顶部口径（全口径 / 权益）与指标（金额 / 面积）联动，金额单位"亿"，面积单位"万㎡"，均保留 2 位小数；未分类：暂未归入以上五类的未售货值；去化周期（月）= 当前未售规模 ÷ 近12个月月均去化规模。',
         '【边界处理】某类别数值为 0 时该分段不展示；总未售货值为 0 时行内条形置空；去化周期无法计算时展示为"--"；筛选结果为空时展示"暂无匹配数据"。',
       ].join("\n"),
@@ -916,7 +916,7 @@ function LegacyPage() {
   const [unit, setUnit] = useState<"amount" | "area">("amount");
   const [caliber, setCaliber] = useState<Caliber>("equity");
   const calFactor = CALIBER_OPTIONS.find((c) => c.key === caliber)!.factor;
-  const [tab, setTab] = useState<"城市群" | "城市公司" | "项目" | "楼栋">("城市群");
+  const [tab, setTab] = useState<"城市群组" | "城市公司" | "项目" | "楼栋">("城市群组");
   const [search, setSearch] = useState("");
   const [detailExpanded, setDetailExpanded] = useState(false);
   const [trendTab, setTrendTab] = useState("全部");
@@ -1184,7 +1184,7 @@ function LegacyPage() {
                     <input
                       value={search}
                       onChange={(e) => setSearch(e.target.value)}
-                      placeholder="搜索城市群 / 城市公司 / 城市 / 项目 / 楼栋"
+                      placeholder="搜索城市群组 / 城市公司 / 城市 / 项目 / 楼栋"
                       className="h-9 pl-8 pr-3 w-72 rounded-md border border-[#E2E8F0] bg-white text-[13px] text-foreground placeholder:text-[#94A3B8] focus:outline-none focus:border-[var(--color-brand)]"
                     />
                   </div>

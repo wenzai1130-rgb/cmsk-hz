@@ -57,6 +57,15 @@ const GRADIENT_DEFS = (
 import { formatNumber, formatPercent } from "@/lib/format";
 const fmt2 = (n: number | null | undefined) => formatNumber(n, { thousand: false });
 const pct2 = (n: number | null | undefined) => formatPercent(n);
+const formatMoneyDisplay = (n: number | null | undefined) => {
+  if (n == null || Number.isNaN(n)) return "--";
+  if (n > 0 && n < 0.01) return "<0.01";
+  return fmt2(n);
+};
+const formatWan = (n: number | null | undefined) => {
+  if (n == null || Number.isNaN(n)) return "";
+  return `${formatNumber(n * 10000, { digits: 2, thousand: false })} 万元`;
+};
 
 // --- Mock data ---
 const YEARLY = [
@@ -104,7 +113,7 @@ const SUMMARY: SummaryRow[] = [
   { name: "公寓", doneStart: 52.30, doneNew: 34.10, soldStart: 28.40, soldNew: 18.60, rateStart: 54.30, rateNew: 54.55 },
   { name: "写字楼", doneStart: 18.40, doneNew: 12.80, soldStart: 7.20, soldNew: 4.80, rateStart: 39.13, rateNew: 37.50 },
   { name: "车位", doneStart: 35.20, doneNew: 23.00, soldStart: 16.40, soldNew: 9.80, rateStart: 46.59, rateNew: 42.61 },
-  { name: "配套及其他", doneStart: 11.80, doneNew: 7.79, soldStart: 5.10, soldNew: 3.20, rateStart: 43.22, rateNew: 41.08 },
+  { name: "配套及其他", doneStart: 11.80, doneNew: 0.006, soldStart: 5.10, soldNew: 0.002, rateStart: 43.22, rateNew: 33.33 },
 ];
 const SUMMARY_TOTAL: SummaryRow = (() => {
   const sum = (k: keyof SummaryRow) => SUMMARY.reduce((a, r) => a + (r[k] as number), 0);
@@ -195,7 +204,8 @@ const PROJECTS: Record<YeType, ProjectRow[]> = {
     ...genProjects("写字楼", 5, 8),
   ],
   配套及其他: [
-    { name: "综合配套-深圳", doneStart: 4.20, doneNew: 2.80, soldStart: 1.80, soldNew: 1.15, rateStart: 42.86, rateNew: 41.07 },
+    { name: "综合配套-深圳", doneStart: 4.20, doneNew: 0.006, soldStart: 1.80, soldNew: 0.002, rateStart: 42.86, rateNew: 33.33 },
+    { name: "零星配套-杭州", doneStart: 0.008, doneNew: 0.004, soldStart: 0.003, soldNew: 0.001, rateStart: 37.50, rateNew: 25.00 },
     ...genProjects("配套及其他", 3, 10),
   ],
 };
@@ -427,6 +437,24 @@ function SortIcon({ active, dir }: { active: boolean; dir: SortDir }) {
     : <ArrowDown className="w-3 h-3 text-[#3B82F6]" />;
 }
 
+function MoneyTd({
+  value,
+  className = "",
+}: {
+  value: number | null | undefined;
+  className?: string;
+}) {
+  const isTiny = value != null && value > 0 && value < 0.01;
+  return (
+    <td
+      className={`px-3 py-2.5 text-right tabular-nums ${className}`}
+      title={isTiny ? formatWan(value) : undefined}
+    >
+      {formatMoneyDisplay(value)}
+    </td>
+  );
+}
+
 function GroupedTable({
   rows,
   withIndex,
@@ -471,15 +499,15 @@ function GroupedTable({
             <th colSpan={3} className="bg-[#E8F1FF] text-[#3B82F6] px-3 py-2 text-center font-semibold border-b border-[#E2E8F0]">去化率</th>
           </tr>
           <tr className="bg-[#F1F5F9] text-[#475569]">
-            <Th k="doneStart" leftBorder>年初库存</Th>
-            <Th k="doneNew">本年新增</Th>
-            <Th k="doneSub">小计</Th>
-            <Th k="soldStart" leftBorder>年初库存</Th>
-            <Th k="soldNew">本年新增</Th>
-            <Th k="soldSub">小计</Th>
-            <Th k="remainStart" leftBorder>年初库存</Th>
-            <Th k="remainNew">本年新增</Th>
-            <Th k="remainSub">小计</Th>
+            <Th k="doneStart" leftBorder>年初库存(亿)</Th>
+            <Th k="doneNew">本年新增(亿)</Th>
+            <Th k="doneSub">小计(亿)</Th>
+            <Th k="soldStart" leftBorder>年初库存(亿)</Th>
+            <Th k="soldNew">本年新增(亿)</Th>
+            <Th k="soldSub">小计(亿)</Th>
+            <Th k="remainStart" leftBorder>年初库存(亿)</Th>
+            <Th k="remainNew">本年新增(亿)</Th>
+            <Th k="remainSub">小计(亿)</Th>
             <Th k="rateStart" leftBorder>年初库存</Th>
             <Th k="rateNew">本年新增</Th>
             <Th k="rateSub">小计</Th>
@@ -502,15 +530,15 @@ function GroupedTable({
                   </td>
                 )}
                 <td className={`px-3 py-2.5 text-left text-[#1E293B] border-b border-r border-[#EEF1F6] whitespace-nowrap`}>{r.name}</td>
-                <td className="px-3 py-2.5 text-right tabular-nums border-b border-l border-[#EEF1F6] text-[#1E293B]">{fmt2(r.doneStart)}</td>
-                <td className="px-3 py-2.5 text-right tabular-nums border-b border-[#EEF1F6] text-[#1E293B]">{fmt2(r.doneNew)}</td>
-                <td className="px-3 py-2.5 text-right tabular-nums border-b border-r border-[#EEF1F6] text-[#1E293B] font-medium">{fmt2(doneSub)}</td>
-                <td className="px-3 py-2.5 text-right tabular-nums border-b border-[#EEF1F6] text-[#1E293B]">{fmt2(r.soldStart)}</td>
-                <td className="px-3 py-2.5 text-right tabular-nums border-b border-[#EEF1F6] text-[#1E293B]">{fmt2(r.soldNew)}</td>
-                <td className="px-3 py-2.5 text-right tabular-nums border-b border-r border-[#EEF1F6] text-[#1E293B] font-medium">{fmt2(soldSub)}</td>
-                <td className="px-3 py-2.5 text-right tabular-nums border-b border-l border-[#EEF1F6] text-[#1E293B]">{fmt2(remainStart)}</td>
-                <td className="px-3 py-2.5 text-right tabular-nums border-b border-[#EEF1F6] text-[#1E293B]">{fmt2(remainNew)}</td>
-                <td className="px-3 py-2.5 text-right tabular-nums border-b border-r border-[#EEF1F6] text-[#1E293B] font-medium">{fmt2(remainSub)}</td>
+                <MoneyTd value={r.doneStart} className="border-b border-l border-[#EEF1F6] text-[#1E293B]" />
+                <MoneyTd value={r.doneNew} className="border-b border-[#EEF1F6] text-[#1E293B]" />
+                <MoneyTd value={doneSub} className="border-b border-r border-[#EEF1F6] text-[#1E293B] font-medium" />
+                <MoneyTd value={r.soldStart} className="border-b border-[#EEF1F6] text-[#1E293B]" />
+                <MoneyTd value={r.soldNew} className="border-b border-[#EEF1F6] text-[#1E293B]" />
+                <MoneyTd value={soldSub} className="border-b border-r border-[#EEF1F6] text-[#1E293B] font-medium" />
+                <MoneyTd value={remainStart} className="border-b border-l border-[#EEF1F6] text-[#1E293B]" />
+                <MoneyTd value={remainNew} className="border-b border-[#EEF1F6] text-[#1E293B]" />
+                <MoneyTd value={remainSub} className="border-b border-r border-[#EEF1F6] text-[#1E293B] font-medium" />
                 <td className="px-3 py-2.5 text-right tabular-nums border-b border-[#EEF1F6] text-[#1E293B]">{pct2(r.rateStart)}</td>
                 <td className="px-3 py-2.5 text-right tabular-nums border-b border-[#EEF1F6] text-[#1E293B]">{pct2(r.rateNew)}</td>
                 <td className="px-3 py-2.5 text-right tabular-nums border-b border-[#EEF1F6] text-[#3B82F6] font-medium">{pct2(rateSub)}</td>
@@ -529,15 +557,15 @@ function GroupedTable({
               <tr className="bg-[#EAF2FF] text-[#1E293B] font-semibold">
                 {withIndex && <td className="px-3 py-2.5 border-r border-[#DCE7F5]" />}
                 <td className="px-3 py-2.5 text-left border-r border-[#DCE7F5]">{r.name}</td>
-                <td className="px-3 py-2.5 text-right tabular-nums border-l border-[#DCE7F5]">{fmt2(r.doneStart)}</td>
-                <td className="px-3 py-2.5 text-right tabular-nums">{fmt2(r.doneNew)}</td>
-                <td className="px-3 py-2.5 text-right tabular-nums border-r border-[#DCE7F5]">{fmt2(doneSub)}</td>
-                <td className="px-3 py-2.5 text-right tabular-nums">{fmt2(r.soldStart)}</td>
-                <td className="px-3 py-2.5 text-right tabular-nums">{fmt2(r.soldNew)}</td>
-                <td className="px-3 py-2.5 text-right tabular-nums border-r border-[#DCE7F5]">{fmt2(soldSub)}</td>
-                <td className="px-3 py-2.5 text-right tabular-nums border-l border-[#DCE7F5]">{fmt2(remainStart)}</td>
-                <td className="px-3 py-2.5 text-right tabular-nums">{fmt2(remainNew)}</td>
-                <td className="px-3 py-2.5 text-right tabular-nums border-r border-[#DCE7F5]">{fmt2(remainSub)}</td>
+                <MoneyTd value={r.doneStart} className="border-l border-[#DCE7F5]" />
+                <MoneyTd value={r.doneNew} />
+                <MoneyTd value={doneSub} className="border-r border-[#DCE7F5]" />
+                <MoneyTd value={r.soldStart} />
+                <MoneyTd value={r.soldNew} />
+                <MoneyTd value={soldSub} className="border-r border-[#DCE7F5]" />
+                <MoneyTd value={remainStart} className="border-l border-[#DCE7F5]" />
+                <MoneyTd value={remainNew} />
+                <MoneyTd value={remainSub} className="border-r border-[#DCE7F5]" />
                 <td className="px-3 py-2.5 text-right tabular-nums text-[#3B82F6]">{pct2(r.rateStart)}</td>
                 <td className="px-3 py-2.5 text-right tabular-nums text-[#3B82F6]">{pct2(r.rateNew)}</td>
                 <td className="px-3 py-2.5 text-right tabular-nums text-[#3B82F6]">{pct2(rateSub)}</td>

@@ -44,7 +44,7 @@ export const MONTHS = [
   "2026-04",
 ];
 export const CALIBERS = ["全口径", "全口径-权益", "并表口径"];
-export const ORGS = ["招商蛇口", "南部城市群", "北部城市群", "东部城市群"];
+export const ORGS = ["招商蛇口", "南部城市群组", "北部城市群组", "东部城市群组"];
 
 // 简单的可重现随机
 function mulberry32(seed: number) {
