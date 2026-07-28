@@ -92,6 +92,12 @@ function fmtOpenDate(ts: number): string {
   const pad = (n: number) => String(n).padStart(2, "0");
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
+function displayOpenDate(p: { projectId: string; snakeSellThroughRate: number }): string {
+  const stageK = stageOf(p);
+  if (stageK === "notOpened" || stageK === "tail") return "--";
+  const t = openDateOf(p.projectId);
+  return t ? fmtOpenDate(t) : "--";
+}
 
 // 部分项目具备真实照片；其余无照片项目使用按 projectId 哈希稳定分配的渐变色
 const PROJECT_PHOTO_POOL = [projectPhoto1, projectPhoto2, projectPhoto3, projectPlaceholder];
@@ -466,7 +472,7 @@ export default function ProjectList() {
                     <div className="mt-1 flex items-center gap-1.5 text-[12px] text-muted-foreground min-w-0">
                       <CalendarDays className="w-3 h-3 shrink-0" />
                       <span className="text-foreground/80 truncate">
-                        开盘时间：{(() => { const t = openDateOf(p.projectId); return t ? fmtOpenDate(t) : "--"; })()}
+                        开盘时间：{displayOpenDate(p)}
                       </span>
                     </div>
                   </div>
@@ -515,6 +521,7 @@ export default function ProjectList() {
                 <tr>
                   <th className="text-left font-medium px-4 py-2.5">项目名称</th>
                   <th className="text-left font-medium px-3 py-2.5">城市公司</th>
+                  <th className="text-left font-medium px-3 py-2.5">开盘时间</th>
                   <th className="text-left font-medium px-3 py-2.5">业态</th>
                   <th className="text-left font-medium px-3 py-2.5">阶段</th>
                   <th className="text-right font-medium px-3 py-2.5">均价(元/㎡)</th>
@@ -537,6 +544,7 @@ export default function ProjectList() {
                         </div>
                       </td>
                       <td className="px-3 py-2.5 text-foreground/80">{cityOf(p.cityCompany)}</td>
+                      <td className="px-3 py-2.5 text-foreground/80 tabular-nums whitespace-nowrap">{displayOpenDate(p)}</td>
                       <td className="px-3 py-2.5 text-foreground/80">{displayBizLabel(p)}</td>
                       <td className="px-3 py-2.5">
                         <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs border ${stageBadgeClass(stageK)}`}>
@@ -557,7 +565,7 @@ export default function ProjectList() {
                 })}
                 {list.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="px-4 py-16 text-center text-muted-foreground">
+                    <td colSpan={8} className="px-4 py-16 text-center text-muted-foreground">
                       当前筛选下暂无项目
                     </td>
                   </tr>

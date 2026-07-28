@@ -565,7 +565,7 @@ function StageDistributionCard({
           opacity: 0.9,
         }}
       />
-      <div className="relative flex items-center justify-between px-6 pt-5 mb-2">
+      <div className="relative h-11 flex items-center justify-between px-6 pt-5 mb-2 shrink-0">
         <div className="flex items-center gap-2">
           <span
             className="w-7 h-7 rounded-lg flex items-center justify-center"
@@ -580,10 +580,10 @@ function StageDistributionCard({
       <div className="relative flex flex-1 min-h-0 items-stretch">
         {stages.map((s, i) => {
           const isLast = i === stages.length - 1;
-          const basis = s.idx === 1 ? "22%" : s.idx === 2 ? "39%" : "39%";
+          const basisClass = s.idx === 1 ? "basis-[22%]" : "basis-[39%]";
           const innerPad = "px-[clamp(0.75rem,2vw,2rem)]";
           return (
-            <div key={s.idx} className="relative flex" style={{ width: basis, flex: `0 0 ${basis}` }}>
+            <div key={s.idx} className={`relative flex shrink-0 grow-0 ${basisClass}`}>
               <div className={`flex-1 ${innerPad} py-2 flex flex-col justify-start min-w-0`}>
                 <KpiTrendPopover metric={s.title as KpiTrendMetric}>
                   <div
@@ -1343,29 +1343,22 @@ function DoneUnsoldDistributionCard({
                   type="button"
                   key={row.name}
                   onClick={() => setActiveBiz(row.name)}
-                  className={`grid grid-cols-[10px_minmax(58px,1fr)_56px_54px_10px] items-center gap-1.5 h-8 rounded-md px-1.5 text-left transition-colors focus:outline-none ${
+                  className={`grid grid-cols-[10px_minmax(58px,1fr)_56px_54px] items-center gap-1.5 h-8 rounded-md px-1.5 text-left transition-colors focus:outline-none ${
                     active
                       ? "bg-[#EFF6FF] border border-[#BFDBFE]"
                       : "border border-transparent hover:bg-[#F8FAFC]"
                   }`}
                 >
                   <span className="w-2 h-2 rounded-sm" style={{ background: row.color }} />
-                  <span
-                    className={`text-[11.5px] truncate ${active ? "font-semibold" : "text-[#111827]"}`}
-                    style={active ? { color: selectedColor } : undefined}
-                  >
+                  <span className={`text-[11.5px] truncate text-[#111827] ${active ? "font-semibold" : ""}`}>
                     {row.name}
                   </span>
-                  <span
-                    className={`text-[11.5px] tabular-nums text-right ${active ? "font-semibold" : "text-[#111827]"}`}
-                    style={active ? { color: selectedColor } : undefined}
-                  >
+                  <span className={`text-[11.5px] tabular-nums text-right text-[#111827] ${active ? "font-semibold" : ""}`}>
                     {row.value.toFixed(2)}{unit}
                   </span>
                   <span className="text-[11.5px] tabular-nums text-right text-[#64748B]">
                     {row.pct.toFixed(2)}%
                   </span>
-                  <ChevronRight className="w-3 h-3" style={{ color: active ? selectedColor : "transparent" }} />
                 </button>
               );
             })}
@@ -1718,11 +1711,11 @@ function HomePage() {
       {/* Page content */}
       <main className="px-6 py-5 space-y-4">
         {/* Core metrics — 首屏视觉重点 */}
-        <section className="grid grid-cols-[28fr_44fr_28fr] gap-4">
+        <section className="grid grid-cols-[minmax(320px,28fr)_minmax(520px,44fr)_minmax(320px,28fr)] gap-4 items-stretch overflow-x-auto pb-1">
           {/* Card 1: 总货值及供货 — 蓝色系 */}
-          <ModuleBadge moduleId="total-value-kpi" className="h-full">
+          <ModuleBadge moduleId="total-value-kpi" className="h-full min-w-0">
             <KpiCard accent={KPI_ACCENTS.blue}>
-              <div className="flex items-center justify-between mb-4">
+              <div className="h-11 flex items-center justify-between mb-2 shrink-0">
                 <div className="flex items-center gap-2">
                   <span
                     className="w-7 h-7 rounded-lg flex items-center justify-center"
@@ -1734,7 +1727,7 @@ function HomePage() {
                 </div>
                 
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-4 items-start">
                 <div className="flex flex-col">
                   <KpiTrendPopover metric="未售总货值">
                     <div
@@ -1751,9 +1744,9 @@ function HomePage() {
 
 
 
-                  <div className="h-9 flex items-baseline gap-1">
+                  <div className="h-7 flex items-baseline gap-1">
                     <span
-                      className="text-[28px] font-semibold leading-none tabular-nums tracking-tight"
+                      className="text-[20px] font-semibold leading-none tabular-nums tracking-tight"
                       style={{ color: KPI_ACCENTS.blue.from }}
                     >
                       {fmt(UNSOLD_TOTAL_BY_CALIBER[caliber] * (metricMode === "amount" ? 1 : 0.62))}
@@ -1781,8 +1774,8 @@ function HomePage() {
 
 
 
-                  <div className="h-9 flex items-baseline gap-1">
-                    <span className="text-[22px] font-semibold leading-none tabular-nums text-foreground">
+                  <div className="h-7 flex items-baseline gap-1">
+                    <span className="text-[20px] font-semibold leading-none tabular-nums text-foreground">
                       {fmt(86.42)}
                     </span>
                     <span className="text-[12px] text-muted-foreground">{unit}</span>
@@ -1824,15 +1817,15 @@ function HomePage() {
           </ModuleBadge>
 
           {/* Card 2: 总货值阶段分布 — 三阶段漏斗 */}
-          <ModuleBadge moduleId="stage-distribution">
+          <ModuleBadge moduleId="stage-distribution" className="h-full min-w-0">
             <StageDistributionCard metricMode={metricMode} />
           </ModuleBadge>
 
           {/* Card 3: 签约金额 — 蓝紫青蓝系 */}
-          <ModuleBadge moduleId="signing-amount-kpi" className="h-full">
+          <ModuleBadge moduleId="signing-amount-kpi" className="h-full min-w-0">
 
           <KpiCard accent={KPI_ACCENTS.violet}>
-            <div className="flex items-center justify-between mb-4">
+            <div className="h-11 flex items-center justify-between mb-2 shrink-0">
               <div className="flex items-center gap-2">
                 <span
                   className="w-7 h-7 rounded-lg flex items-center justify-center"
@@ -1844,7 +1837,7 @@ function HomePage() {
               </div>
               
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-4 items-start">
               <div className="flex flex-col">
                 <KpiTrendPopover metric="年累计签约">
                   <div
@@ -1861,9 +1854,9 @@ function HomePage() {
 
 
 
-                <div className="h-9 flex items-baseline gap-1">
+                <div className="h-7 flex items-baseline gap-1">
                   <span
-                    className="text-[28px] font-semibold leading-none tabular-nums tracking-tight"
+                    className="text-[20px] font-semibold leading-none tabular-nums tracking-tight"
                     style={{ color: KPI_ACCENTS.violet.from }}
                   >
                     {fmt(ytdSigned)}
@@ -1898,8 +1891,8 @@ function HomePage() {
 
 
 
-                <div className="h-9 flex items-baseline gap-1">
-                  <span className="text-[22px] font-semibold leading-none tabular-nums text-foreground">
+                <div className="h-7 flex items-baseline gap-1">
+                  <span className="text-[20px] font-semibold leading-none tabular-nums text-foreground">
                     {fmt(monthSigned)}
                   </span>
                   <span className="text-[12px] text-muted-foreground">{unit}</span>
@@ -1923,8 +1916,8 @@ function HomePage() {
 
 
         {/* Row 1: 业态 / 拿地 / 城市公司 */}
-        <div className="grid grid-cols-12 gap-4">
-          <ModuleBadge moduleId="type-distribution" className="col-span-12 xl:col-span-3 flex h-[320px]">
+        <div className="grid grid-cols-[minmax(320px,3fr)_minmax(640px,6fr)_minmax(320px,3fr)] gap-4 overflow-x-auto pb-1">
+          <ModuleBadge moduleId="type-distribution" className="flex h-[320px] min-w-0">
           <Card className="flex-1 flex flex-col overflow-hidden">
 
             <CardHead title="总货值业态分布" icon={<PieIcon className="w-3.5 h-3.5" />} />
@@ -2043,18 +2036,18 @@ function HomePage() {
                             key={t.name}
                             onMouseEnter={() => setActiveType(t.name)}
                             onMouseLeave={() => setActiveType(null)}
-                            className={`grid ${gridCols} items-center px-1 h-9 rounded transition-colors text-[11px] leading-[16px] whitespace-nowrap text-[#1E293B] ${
+                            className={`grid ${gridCols} items-center px-1 h-9 rounded-md border transition-colors text-[11px] leading-[16px] whitespace-nowrap text-[#1E293B] ${
                               isActive
-                                ? "bg-[#EFF6FF] ring-1 ring-inset ring-[#BFDBFE]"
-                                : "hover:bg-[#F1F5F9]"
+                                ? "bg-[#EFF6FF] border-[#BFDBFE]"
+                                : "border-transparent hover:bg-[#F8FAFC]"
                             }`}
                           >
                             <span
                               className="w-2 h-2 rounded-sm shrink-0"
                               style={{ background: colorOf(t.name, i) }}
                             />
-                            <span className="truncate">{t.name}</span>
-                            <span className="tabular-nums text-right">
+                            <span className={`truncate ${isActive ? "font-semibold" : ""}`}>{t.name}</span>
+                            <span className={`tabular-nums text-right ${isActive ? "font-semibold" : ""}`}>
                               {t.displayValue.toFixed(2)}
                             </span>
                             <span className="tabular-nums text-right text-[#64748B]">
@@ -2078,11 +2071,11 @@ function HomePage() {
 
 
 
-          <ModuleBadge moduleId="land-year" className="col-span-12 lg:col-span-8 xl:col-span-6 h-[320px] block">
+          <ModuleBadge moduleId="land-year" className="h-[320px] block min-w-0">
             <LandYearCard factor={factor} unit={unit} caliber={caliber} metricMode={metricMode} currentYear={parseInt((date || "").slice(0, 4), 10) || new Date().getFullYear()} org={org} date={date} onDetail={() => onDetail("按拿地时间")} />
           </ModuleBadge>
 
-          <ModuleBadge moduleId="city-rank" className="col-span-12 lg:col-span-4 xl:col-span-3 h-[320px] block">
+          <ModuleBadge moduleId="city-rank" className="h-[320px] block min-w-0">
             <CityRankCard factor={factor} unit={unit} org={org} caliber={caliber} date={date} onDetail={() => onDetail("城市公司排名")} />
           </ModuleBadge>
         </div>
@@ -2631,17 +2624,17 @@ function LandYearCard({
                   onClick={() => {
                     setSelected(p.key);
                   }}
-                  className={`grid grid-cols-[1fr_auto_42px] items-center gap-2 text-left px-1.5 py-0.5 rounded transition-colors ${
+                  className={`grid grid-cols-[1fr_auto_42px] items-center gap-2 text-left px-1.5 py-0.5 rounded-md border transition-colors ${
                     isSel
-                      ? "bg-[var(--color-brand-soft)] text-[var(--color-brand)] font-semibold"
-                      : "text-muted-foreground hover:bg-[#F8FAFC] hover:text-foreground"
+                      ? "bg-[#EFF6FF] border-[#BFDBFE]"
+                      : "border-transparent text-muted-foreground hover:bg-[#F8FAFC] hover:text-foreground"
                   }`}
                 >
                   <span className="flex items-center gap-1 truncate">
                     <span className="w-2 h-2 rounded-sm shrink-0" style={{ background: p.color }} />
-                    <span className="truncate">{p.name}</span>
+                    <span className={`truncate ${isSel ? "font-semibold" : ""}`}>{p.name}</span>
                   </span>
-                  <span className="tabular-nums">
+                  <span className={`tabular-nums ${isSel ? "font-semibold" : ""}`}>
                     {p.value > 0 && p.value < 0.01 ? "<0.01" : p.value.toFixed(2)}
                   </span>
                   <span className="tabular-nums text-right">{pct.toFixed(2)}%</span>
