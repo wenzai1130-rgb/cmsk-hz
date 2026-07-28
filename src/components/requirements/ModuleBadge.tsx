@@ -11,7 +11,7 @@ interface Props {
   onClick?: (e: MouseEvent<HTMLDivElement>) => void;
   /** 角标颜色风格 */
   tone?: "primary" | "warn" | "success";
-  /** 角标容器额外类名（用于覆盖默认 -top-2 -left-2 定位） */
+  /** 角标容器额外类名（用于覆盖默认 top-2 left-2 定位） */
   badgeClassName?: string;
 }
 
@@ -50,7 +50,7 @@ export function ModuleBadge({ moduleId, children, className, style, onClick, ton
       )}
     >
       {open && reqs.length > 0 && (
-        <div className={cn("absolute -top-2 -left-2 z-20 flex gap-1", badgeClassName)}>
+        <div className={cn("absolute top-2 left-2 z-20 flex gap-1", badgeClassName)}>
           {reqs.map((r) => (
             <button
               key={r.code}
