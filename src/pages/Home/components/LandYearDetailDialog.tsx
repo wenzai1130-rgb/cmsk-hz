@@ -39,7 +39,7 @@ const DEFAULT_MONTHLY_HIDDEN_SERIES: Record<string, boolean> = {
   "2024拿地": true,
   "2025拿地": true,
   "2026拿地": true,
-  [PCT_2021_KEY]: true,
+  [PCT_2021_KEY]: false,
 };
 
 const fmtAmt = (n: number) => `${(+n).toFixed(2)}亿`;
@@ -387,6 +387,9 @@ export function LandYearDetailDialog({
       ? <ArrowUp className="w-3 h-3 text-[var(--color-brand)]" />
       : <ArrowDown className="w-3 h-3 text-[var(--color-brand)]" />;
   };
+  const sortHeadClass = (k: SortKey) => sortKey === k ? "text-[var(--color-brand)]" : "text-[#1E293B]";
+  const sortCellClass = (k: SortKey, fallback = "text-[#1E293B]") =>
+    sortKey === k ? "text-[var(--color-brand)] font-medium" : fallback;
 
   const onLegendClick = (e: any, legendKeys = visibleYearKeys) => {
     const rawKey = e?.dataKey ?? e?.value;
@@ -805,32 +808,32 @@ export function LandYearDetailDialog({
               <table className="min-w-full text-[12px] border-collapse">
                 <thead className="sticky top-0 z-10">
                   <tr className="bg-[#F1F5F9] text-[#1E293B]">
-                    <th rowSpan={2} className="sticky left-0 z-20 bg-[#F1F5F9] text-left px-2.5 py-2 font-semibold whitespace-nowrap border-b border-r border-[#E2E8F0] min-w-[120px]">
+                    <th rowSpan={2} className={`sticky left-0 z-20 bg-[#F1F5F9] text-left px-2.5 py-2 font-semibold whitespace-nowrap border-b border-r border-[#E2E8F0] min-w-[120px] ${sortHeadClass("year")}`}>
                       <button onClick={() => toggleSort("year")} className="inline-flex items-center gap-1">
                         拿地年份 <SortIcon k="year" />
                       </button>
                     </th>
-                    <th rowSpan={2} className="text-right px-2.5 py-2 font-semibold whitespace-nowrap border-b border-r border-[#E2E8F0] min-w-[120px]">
+                    <th rowSpan={2} className={`text-right px-2.5 py-2 font-semibold whitespace-nowrap border-b border-r border-[#E2E8F0] min-w-[120px] ${sortHeadClass("total")}`}>
                       <button onClick={() => toggleSort("total")} className="inline-flex items-center gap-1">
                         总{metricMode === "area" ? "面积" : "货值"}（{unit}） <SortIcon k="total" />
                       </button>
                     </th>
-                    <th rowSpan={2} className="text-right px-2.5 py-2 font-semibold whitespace-nowrap border-b border-r border-[#E2E8F0] min-w-[130px]">
+                    <th rowSpan={2} className={`text-right px-2.5 py-2 font-semibold whitespace-nowrap border-b border-r border-[#E2E8F0] min-w-[130px] ${sortHeadClass("sold")}`}>
                       <button onClick={() => toggleSort("sold")} className="inline-flex items-center gap-1">
                         已售{metricMode === "area" ? "面积" : "货值"}（{unit}） <SortIcon k="sold" />
                       </button>
                     </th>
-                    <th rowSpan={2} className="text-right px-2.5 py-2 font-semibold whitespace-nowrap border-b border-r border-[#E2E8F0] min-w-[100px]">
+                    <th rowSpan={2} className={`text-right px-2.5 py-2 font-semibold whitespace-nowrap border-b border-r border-[#E2E8F0] min-w-[100px] ${sortHeadClass("rate")}`}>
                       <button onClick={() => toggleSort("rate")} className="inline-flex items-center gap-1">
                         累计去化率 <SortIcon k="rate" />
                       </button>
                     </th>
-                    <th rowSpan={2} className="text-right px-2.5 py-2 font-semibold whitespace-nowrap border-b border-r border-[#E2E8F0] min-w-[150px]">
+                    <th rowSpan={2} className={`text-right px-2.5 py-2 font-semibold whitespace-nowrap border-b border-r border-[#E2E8F0] min-w-[150px] ${sortHeadClass("remain")}`}>
                       <button onClick={() => toggleSort("remain")} className="inline-flex items-center gap-1">
                         剩余未售{metricMode === "area" ? "面积" : "货值"}（{unit}） <SortIcon k="remain" />
                       </button>
                     </th>
-                    <th rowSpan={2} className="text-right px-2.5 py-2 font-semibold whitespace-nowrap border-b border-r border-[#E2E8F0] min-w-[100px]">
+                    <th rowSpan={2} className={`text-right px-2.5 py-2 font-semibold whitespace-nowrap border-b border-r border-[#E2E8F0] min-w-[100px] ${sortHeadClass("remainPct")}`}>
                       <button onClick={() => toggleSort("remainPct")} className="inline-flex items-center gap-1">
                         未售占比 <SortIcon k="remainPct" />
                       </button>
@@ -843,7 +846,7 @@ export function LandYearDetailDialog({
                     {visibleSaleCols.map((c) => (
                       <th
                         key={c.key}
-                        className="text-right px-2.5 py-2 font-medium whitespace-nowrap border-b border-[#E2E8F0] min-w-[110px]"
+                        className={`text-right px-2.5 py-2 font-medium whitespace-nowrap border-b border-[#E2E8F0] min-w-[110px] ${sortHeadClass(c.key)}`}
                       >
                         <button onClick={() => toggleSort(c.key)} className="inline-flex items-center gap-1">
                           {c.label} <SortIcon k={c.key} />
@@ -859,20 +862,20 @@ export function LandYearDetailDialog({
                       : idx % 2 === 0 ? "bg-white" : "bg-[#FAFBFD]";
                     return (
                       <tr key={r.year} className={`${baseBg} hover:bg-[#F5F9FF] transition-colors`}>
-                        <td className={`sticky left-0 z-[1] ${baseBg} px-2.5 py-2 text-left whitespace-nowrap border-b border-r border-[#EEF1F6] text-[#1E293B]`}>
+                        <td className={`sticky left-0 z-[1] ${baseBg} px-2.5 py-2 text-left whitespace-nowrap border-b border-r border-[#EEF1F6] ${sortCellClass("year")}`}>
                           {r.year}
                         </td>
-                        <td className="px-2.5 py-2 text-right tabular-nums whitespace-nowrap border-b border-r border-[#EEF1F6] text-[#1E293B]">{fmtNum(r.total == null ? null : r.total * factor)}</td>
-                        <td className="px-2.5 py-2 text-right tabular-nums whitespace-nowrap border-b border-r border-[#EEF1F6] text-[#1E293B]">{fmtNum(r.sold == null ? null : r.sold * factor)}</td>
-                        <td className="px-2.5 py-2 text-right tabular-nums whitespace-nowrap border-b border-r border-[#EEF1F6] text-[#1E293B] font-medium">{r.rate.toFixed(2)}%</td>
-                        <td className="px-2.5 py-2 text-right tabular-nums whitespace-nowrap border-b border-r border-[#EEF1F6] text-[#1E293B]">{fmtNum(r.remain == null ? null : r.remain * factor)}</td>
-                        <td className="px-2.5 py-2 text-right tabular-nums whitespace-nowrap border-b border-r border-[#EEF1F6] text-[#1E293B]">{r.remainPct.toFixed(2)}%</td>
+                        <td className={`px-2.5 py-2 text-right tabular-nums whitespace-nowrap border-b border-r border-[#EEF1F6] ${sortCellClass("total")}`}>{fmtNum(r.total == null ? null : r.total * factor)}</td>
+                        <td className={`px-2.5 py-2 text-right tabular-nums whitespace-nowrap border-b border-r border-[#EEF1F6] ${sortCellClass("sold")}`}>{fmtNum(r.sold == null ? null : r.sold * factor)}</td>
+                        <td className={`px-2.5 py-2 text-right tabular-nums whitespace-nowrap border-b border-r border-[#EEF1F6] ${sortCellClass("rate")} font-medium`}>{r.rate.toFixed(2)}%</td>
+                        <td className={`px-2.5 py-2 text-right tabular-nums whitespace-nowrap border-b border-r border-[#EEF1F6] ${sortCellClass("remain")}`}>{fmtNum(r.remain == null ? null : r.remain * factor)}</td>
+                        <td className={`px-2.5 py-2 text-right tabular-nums whitespace-nowrap border-b border-r border-[#EEF1F6] ${sortCellClass("remainPct")}`}>{r.remainPct.toFixed(2)}%</td>
                         {visibleSaleCols.map((c) => {
                           const raw = (r as any)[c.key] as number | null;
                           return (
                             <td
                               key={c.key}
-                              className={`px-2.5 py-2 text-right tabular-nums whitespace-nowrap border-b border-[#EEF1F6] ${raw == null ? "text-[#94A3B8]" : "text-[#1E293B]"}`}
+                              className={`px-2.5 py-2 text-right tabular-nums whitespace-nowrap border-b border-[#EEF1F6] ${sortCellClass(c.key, raw == null ? "text-[#94A3B8]" : "text-[#1E293B]")}`}
                             >
                               {fmtNum(raw == null ? null : raw * factor)}
                             </td>

@@ -250,16 +250,16 @@ function buildWaterfall(rows: WFRaw[]) {
 }
 
 const WF_COLOR: Record<WFType, string> = {
-  start: "#94A3B8",
+  start: TOKEN_BRAND.primary,
   add: "#F97066",
   sub: "#4ADE80",
-  end: "#64748B",
+  end: TOKEN_BRAND.primary,
 };
 // 终止柱净增部分（红加绿减，高亮浅红）
 const WF_END_TOP_COLOR = "#FCA5A5";
 
 // 终止柱下半段（与起始柱一致的暗灰主色）
-const WF_END_BASE_COLOR = "#94A3B8";
+const WF_END_BASE_COLOR = TOKEN_BRAND.primary;
 
 
 // ====== 去化率 分子/分母 mock（亿） ======
@@ -627,7 +627,7 @@ function StageDistributionCard({
                         className={`flex items-center justify-between gap-x-1.5 pl-1.5 pr-1.5 py-0.5 rounded whitespace-nowrap overflow-hidden min-w-0 ${s.pill}`}
                       >
                         <span className={`text-[10.5px] truncate min-w-0 ${s.pillLabel}`}>{it.label}</span>
-                        <span className="flex items-baseline gap-1 shrink-0">
+                        <span className="flex items-baseline gap-2 shrink-0">
                           <span className={`text-[10.5px] font-semibold tabular-nums ${s.pillValue}`}>
                             {it.value.toFixed(2)}
                           </span>
@@ -840,7 +840,10 @@ function OnSaleWaterfallCard({
             ))}
           </div>
         </div>
-        <div className="flex-1 min-h-[280px]">
+        <div className="relative flex-1 min-h-[280px]">
+          <div className="absolute left-0 top-0 z-10 text-[11px] text-[#64748B]">
+            单位：{unit}
+          </div>
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={rows} margin={{ top: 42, right: 16, left: -8, bottom: 8 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#EEF2F7" vertical={false} />
@@ -906,19 +909,20 @@ function OnSaleWaterfallCard({
                 dataKey="bar"
                 stackId="w"
                 isAnimationActive={false}
-                maxBarSize={56}
+                maxBarSize={38}
                 shape={(props: any) => {
                   const { x, y, width, height, index } = props;
                   const r = rows[index];
                   const isEndGain = r?.type === "end" && (r as any).barTop > 0;
                   const fill = isEndGain ? WF_END_BASE_COLOR : WF_COLOR[r?.type as keyof typeof WF_COLOR];
                   const rad = isEndGain ? 0 : 4;
-                  const w = Math.max(0, width);
+                  const w = Math.max(0, Math.min(width, 38));
                   const h = Math.max(0, height);
+                  const dx = x + (width - w) / 2;
                   const rr = Math.min(rad, w / 2, h);
                   const d = rr > 0
-                    ? `M${x},${y + rr} Q${x},${y} ${x + rr},${y} L${x + w - rr},${y} Q${x + w},${y} ${x + w},${y + rr} L${x + w},${y + h} L${x},${y + h} Z`
-                    : `M${x},${y} L${x + w},${y} L${x + w},${y + h} L${x},${y + h} Z`;
+                    ? `M${dx},${y + rr} Q${dx},${y} ${dx + rr},${y} L${dx + w - rr},${y} Q${dx + w},${y} ${dx + w},${y + rr} L${dx + w},${y + h} L${dx},${y + h} Z`
+                    : `M${dx},${y} L${dx + w},${y} L${dx + w},${y + h} L${dx},${y + h} Z`;
                   return <path d={d} fill={fill} />;
                 }}
               >
@@ -956,7 +960,7 @@ function OnSaleWaterfallCard({
                   }}
                 />
               </Bar>
-              <Bar dataKey="barTop" stackId="w" isAnimationActive={false} radius={[4, 4, 0, 0]} maxBarSize={56}>
+              <Bar dataKey="barTop" stackId="w" isAnimationActive={false} radius={[4, 4, 0, 0]} maxBarSize={38}>
                 {rows.map((r, i) => (
                   <Cell key={i} fill={r.type === "end" && (r as any).barTop > 0 ? WF_END_TOP_COLOR : "transparent"} />
                 ))}
@@ -1140,11 +1144,30 @@ function AgeStackStructureCard({
   secondLabel: string;
   colors: [string, string];
 }) {
+  const [hiddenAgeSeries, setHiddenAgeSeries] = useState<Record<string, boolean>>({});
+  const firstHidden = !!hiddenAgeSeries[firstLabel];
+  const secondHidden = !!hiddenAgeSeries[secondLabel];
   const bars = buckets.map((b) => ({
     age: b.age,
     [firstLabel]: +(b.达售未取证 * factor).toFixed(2),
     [secondLabel]: +(b.取证未售 * factor).toFixed(2),
+    total: +((firstHidden ? 0 : b.达售未取证) * factor + (secondHidden ? 0 : b.取证未售) * factor).toFixed(2),
+    __stackTotal: +((b.达售未取证 + b.取证未售) * factor).toFixed(2),
+    __certificateUnsold: +(b.取证未售 * factor).toFixed(2),
   }));
+  const certificateUnsoldTotal = +bars.reduce((sum, b) => sum + Number(b[secondLabel] ?? 0), 0).toFixed(2);
+  const certificateSummaryLabel = unit.includes("㎡") ? "取证未售面积合计" : "取证未售货值合计";
+  const renderTotalLabel = () => (
+    <LabelList
+      dataKey="total"
+      position="top"
+      offset={8}
+      fill="#374151"
+      fontSize={12}
+      fontWeight={600}
+      formatter={(value: number) => (Number(value) > 0 ? Number(value).toFixed(2) : "")}
+    />
+  );
 
   return (
     <Card className="flex flex-col h-full">
@@ -1162,15 +1185,19 @@ function AgeStackStructureCard({
       <div className="px-5 py-4 flex-1 flex flex-col min-w-0">
         {/* 堆叠柱：在建在售货值按取证未售货龄分布 */}
         <div className="flex-1 flex flex-col min-h-0">
-          <div className="flex items-center justify-center mb-2">
-            <div className="flex items-center gap-3 text-[11px] text-slate-500">
-              <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm" style={{ background: colors[0] }} />{firstLabel}</span>
-              <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm" style={{ background: colors[1] }} />{secondLabel}</span>
-            </div>
+          <div className="flex items-center justify-center mb-1.5 text-[12px] text-[#64748B]">
+            <span>{certificateSummaryLabel}：</span>
+            <span className="ml-1 text-[15px] font-semibold tabular-nums text-[#111827]">
+              {certificateUnsoldTotal.toFixed(2)}
+            </span>
+            <span className="ml-1">{unit}</span>
           </div>
-          <div className="flex-1 min-h-[180px]">
+          <div className="relative flex-1 min-h-[180px]">
+            <div className="absolute left-0 top-0 z-10 text-[11px] text-[#64748B]">
+              单位：{unit}
+            </div>
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={bars} margin={{ top: 12, right: 8, left: -12, bottom: 4 }}>
+              <BarChart data={bars} margin={{ top: 34, right: 8, left: -12, bottom: 4 }}>
                 <defs>
                   <linearGradient id="age-stack-first-gradient" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor={colors[0]} stopOpacity={0.82} />
@@ -1197,10 +1224,12 @@ function AgeStackStructureCard({
                   cursor={{ fill: "rgba(91,141,239,0.06)" }}
                   content={({ active, payload, label }) => {
                     if (!active || !payload?.length) return null;
+                    const row = payload[0]?.payload as Record<string, number> | undefined;
+                    const stackTotal = Number(row?.total ?? 0);
                     return (
                       <div style={CHART_TOOLTIP_STYLE}>
                         <div className={chartTooltipTitleClass}>{label}</div>
-                        {payload.map((item) => (
+                        {payload.filter((item) => !String(item.dataKey).startsWith("__") && item.dataKey !== "total").map((item) => (
                           <div key={String(item.dataKey)} className={chartTooltipRowClass}>
                             <span className="inline-flex items-center gap-1.5 text-[#475569]">
                               <span
@@ -1214,25 +1243,46 @@ function AgeStackStructureCard({
                             </span>
                           </div>
                         ))}
+                        <div className="my-1.5 h-px bg-[#EEF1F6]" />
+                        <div className={chartTooltipRowClass}>
+                          <span className="text-[#475569]">合计</span>
+                          <span className="tabular-nums font-semibold text-[#111827]">
+                            {stackTotal.toFixed(2)} {unit}
+                          </span>
+                        </div>
                       </div>
                     );
                   }}
                 />
-                <Bar dataKey={firstLabel} stackId="a" fill="url(#age-stack-first-gradient)" radius={[0, 0, 0, 0]} maxBarSize={30} />
-                <Bar dataKey={secondLabel} stackId="a" fill="url(#age-stack-second-gradient)" radius={[3, 3, 0, 0]} maxBarSize={30}>
-                  <LabelList
-                    position="top"
-                    formatter={(_v: any, _n: any, entry: any) => {
-                      const p = entry?.payload;
-                      if (!p) return "";
-                      const sum = (p[firstLabel] || 0) + (p[secondLabel] || 0);
-                      return sum > 0 ? sum.toFixed(2) : "";
-                    }}
-                    style={{ fill: "#334155", fontSize: 11, fontWeight: 600 }}
-                  />
+                <Bar dataKey={firstLabel} stackId="a" fill="url(#age-stack-first-gradient)" radius={[0, 0, 0, 0]} barSize={30} hide={firstHidden}>
+                  {secondHidden && !firstHidden ? renderTotalLabel() : null}
+                </Bar>
+                <Bar dataKey={secondLabel} stackId="a" fill="url(#age-stack-second-gradient)" radius={[3, 3, 0, 0]} barSize={30} hide={secondHidden}>
+                  {!secondHidden ? renderTotalLabel() : null}
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
+          </div>
+          <div className="mt-1.5 flex items-center justify-center">
+            <div className="flex items-center gap-3 text-[11px] text-slate-500">
+              {[
+                { label: firstLabel, color: colors[0], hidden: firstHidden },
+                { label: secondLabel, color: colors[1], hidden: secondHidden },
+              ].map((item) => (
+                <button
+                  type="button"
+                  key={item.label}
+                  onClick={() => setHiddenAgeSeries((prev) => ({ ...prev, [item.label]: !prev[item.label] }))}
+                  className={`flex items-center gap-1 rounded px-1 py-0.5 transition-colors hover:bg-[#F8FAFC] ${item.hidden ? "text-[#94A3B8]" : "text-slate-500"}`}
+                >
+                  <span
+                    className="w-2.5 h-2.5 rounded-sm"
+                    style={{ background: item.color, opacity: item.hidden ? 0.35 : 1 }}
+                  />
+                  {item.label}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       </div>
@@ -1261,11 +1311,11 @@ function DoneUnsoldDistributionCard({
     ? DONE_UNSOLD_AGE_BY_BIZ[activeBiz] ?? DONE_UNSOLD_AGE_BY_BIZ["全部业态"]
     : DONE_UNSOLD_YEAR_BY_BIZ[activeBiz] ?? DONE_UNSOLD_YEAR_BY_BIZ["全部业态"];
   const chartLabels = chartMode === "age"
-    ? ["12个月以内", "12-18个月", "18-24个月", "24个月以上"]
+    ? ["24个月以上", "18-24个月", "12-18个月", "12个月以内"]
     : ["2021及之前", "2022", "2023", "2024", "2025", "2026"];
   const barData = chartLabels.map((name, i) => ({
     name,
-    value: +((selectedValues[i] ?? 0) * factor).toFixed(2),
+    value: +((selectedValues[chartMode === "age" ? selectedValues.length - 1 - i : i] ?? 0) * factor).toFixed(2),
   }));
 
   const listRows = [
@@ -1370,7 +1420,6 @@ function DoneUnsoldDistributionCard({
             <div className="flex items-center gap-2 text-[12px] text-[#64748B]">
               <span className="w-1 h-4 rounded" style={{ background: selectedColor }} />
               <span className="font-semibold text-[#1E293B]">已竣未售 - {activeBiz}</span>
-              <span>单位：{unit}</span>
             </div>
             <div className="inline-flex h-8 rounded-md bg-[#F1F5F9] p-0.5 text-[12px]">
               <button
@@ -1398,9 +1447,12 @@ function DoneUnsoldDistributionCard({
             </div>
           </div>
 
-          <div className="flex-1 min-h-[220px]">
+          <div className="relative flex-1 min-h-[220px]">
+            <div className="absolute left-0 top-0 z-10 text-[11px] text-[#64748B]">
+              单位：{unit}
+            </div>
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={barData} margin={{ top: 20, right: 8, left: -10, bottom: 4 }}>
+              <BarChart data={barData} margin={{ top: 30, right: 8, left: -10, bottom: 4 }}>
                 <defs>
                   <linearGradient id="done-unsold-bar-gradient" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor={selectedColor} stopOpacity={0.82} />
@@ -1501,8 +1553,8 @@ function HomePage() {
       moduleId: "land-year",
       title: "按拿地时间",
       desc: [
-        '【展示内容】左侧环形图按拿地年份（2026年、2025年、2024年、2023年、2022年、2021年及之前）展示未售货值分布；中心显示当前聚焦年份的"未售货值"金额与单位，未聚焦时显示"总未售货值"；环形图下方列表展示各年份、货值、占比；中间区域展示选中年份的核心指标（已售+未售、已售货值、累计去化率、剩余未售、未售货值占比）；右侧展示已售货值按销售年份的分解明细，仅展示 2023 年及之后销售年份。',
-        "【交互规则】点击或悬停环形图扇区、或点击列表项，可聚焦该拿地年份：对应扇区高亮、其他扇区降透明度，中心数值切换为该年份未售货值，中间指标区同步更新为选中年份数据；移出悬停后恢复选中态展示。右上角提供'查看趋势'入口，可打开按拿地时间详情弹窗。指标行带 info 图标，Hover 展示公式说明。",
+        '【展示内容】左侧环形图按拿地年份（2026年、2025年、2024年、2023年、2022年、2021年及之前）展示未售货值分布；扇区外侧通过引导线展示年份、货值、占比；中心显示当前聚焦年份的"未售货值"金额与单位，未聚焦时显示"总未售货值"；中间区域展示选中年份的核心指标；右侧展示已售货值按销售年份的分解明细，仅展示 2023 年及之后销售年份。',
+        "【交互规则】点击或悬停环形图扇区、点击外侧标注，可聚焦该拿地年份：对应扇区高亮、其他扇区降透明度，中心数值切换为该年份未售货值，中间指标区同步更新为选中年份数据；移出悬停后恢复选中态展示。右上角提供'查看趋势'入口，可打开按拿地时间详情弹窗。指标行带 info 图标，Hover 展示公式说明。",
         '【数据规则】各年份未售货值跟随顶部口径（全口径 / 权益）与指标（金额 / 面积）联动；面积模式下所有数值展示面积数据，单位为"万㎡"；各年份未售货值按全局总未售货值基准同比例缩放，确保环形图合计与顶部总货值一致；累计去化率 = 已售货值 /（已售+未售）；未售货值占比 = 该拿地年份未售货值 / 全部拿地年份未售货值合计。',
         '【边界处理】当前筛选条件下无拿地年份数据时，模块展示空状态提示"暂无拿地时间数据"；某销售年份已售货值缺失时展示"--"；主卡右侧分解列表不展示 2021 年销售和 2022 年销售；数值统一保留 2 位小数，占比保留 2 位小数；极小值处理：数值低于当前展示精度时，图例展示为"<0.01"；列表与表格过长时容器内可滚动，不撑破卡片高度。',
       ].join("\n"),
@@ -1557,9 +1609,9 @@ function HomePage() {
       moduleId: "city-rank-detail",
       title: "城市公司排名 - 查看详情弹窗",
       desc: [
-        '【展示内容】排名详情弹窗，标题随外层组织动态变为"城市公司排名"或"{组织}项目排名"；顶部工具栏：搜索框、城市群组筛选（仅城市维度展示）、统计周期（与外层日期联动，精确到日）、导出按钮；列分为四组——基础列（排名、城市群组、城市公司/项目）、年度签约（目标/完成额/完成率）、月度签约（目标/完成额/完成率）、未售（未售货值或面积、占比）；滚动时表头与"全部平均"行同列固定。',
+        '【展示内容】排名详情弹窗，标题随外层组织动态变为"城市公司排名"或"{组织}项目排名"；顶部工具栏：搜索框、城市群组筛选（仅城市维度展示）、导出按钮；列分为四组——基础列（排名、城市群组、城市公司/项目）、年度签约（目标/完成额/完成率）、月度签约（目标/完成额/完成率）、未售（未售货值或面积、占比）；滚动时表头与"全部平均"行同列固定。',
         '【交互规则】所有数值列点击表头切换升/降序，激活方向高亮（▲▼）；外层 Tab 切换会同步设置弹窗默认排序键（年度签约→年度完成额、月度签约→月度完成额、未售→未售货值）；搜索按名称即时过滤；占比列后置 Info 图标，Hover 提示公式"该项 / 全部合计 ×100%"；分页 50 条/页，底部上一页/下一页 + 总条数；导出为当前过滤后的全量明细 .xlsx，文件名格式：城市公司排名_{组织}_{口径}_{YYYY-MM-DD}_{HHmmss}.xlsx。',
-        '【数据规则】城市维度展示该组织下属城市公司行；项目维度（外层选中具体城市公司时）展示该公司下属项目行，并隐藏"城市群组"下拉与列；金额/面积、口径（全口径/权益）跟随外层联动；完成率 = 完成额 / 目标 ×100%；未售占比 = 该行未售 / 全部行未售合计 ×100%；"全部平均"行对所有数值列取算术平均；统计周期显示为"YYYY年M月D日"。',
+        '【数据规则】城市维度展示该组织下属城市公司行；项目维度（外层选中具体城市公司时）展示该公司下属项目行，并隐藏"城市群组"下拉与列；金额/面积、口径（全口径/权益）跟随外层联动；完成率 = 完成额 / 目标 ×100%；未售占比 = 该行未售 / 全部行未售合计 ×100%；"全部平均"行对所有数值列取算术平均。',
         '【边界处理】目标为 0 时完成率显示"--"；数值统一保留 2 位小数，占比保留 2 位小数；表头与"全部平均"行始终不滚动；项目维度下"城市群组"隐藏，避免空列。',
       ].join("\n"),
     },
@@ -1568,7 +1620,7 @@ function HomePage() {
       moduleId: "onsale-waterfall",
       title: "在售货值变动瀑布图",
       desc: [
-        '【展示内容】瀑布图从左至右依次展示：年初在售货值（起始柱，暗灰色）、本年新达售/新取证货值（增量柱，红色向上）、本年销售货值（减量柱，绿色向下）、货值折损（减量柱，绿色向下）、当前剩余在售（终止柱）；顶部提供"达售 / 取证"口径切换按钮；每根柱体上方标注具体数值与单位（如 +88.20 亿 / -65.30 亿）。终止柱采用"双色堆叠"形态：当剩余大于年初时，下半段沿用暗灰主色、高度等于年初在售且顶部为直角（不带圆角），上半段以浅红高亮显示净增量薄片、底部直角、仅顶部保留 4px 微圆角，避免薄片畸形；柱顶双行标注——第一行大字号显示当前剩余总货值（如 168.61 亿），第二行为带浅色底的胶囊 Tag 标出较年初净增（如 +5.15 亿）。',
+        '【展示内容】瀑布图从左至右依次展示：年初在售货值（起始柱，主题蓝）、本年新达售/新取证货值（增量柱，红色向上）、本年销售货值（减量柱，绿色向下）、货值折损（减量柱，绿色向下）、当前剩余在售（终止柱）；顶部提供"达售 / 取证"口径切换按钮；每根柱体上方标注具体数值与单位（如 +88.20 亿 / -65.30 亿）。终止柱采用"双色堆叠"形态：当剩余大于年初时，下半段沿用主题蓝、高度等于年初在售且顶部为直角（不带圆角），上半段以浅红高亮显示净增量薄片、底部直角、仅顶部保留 4px 微圆角，避免薄片畸形；柱顶双行标注——第一行大字号显示当前剩余总货值（如 168.61 亿），第二行为带浅色底的胶囊 Tag 标出较年初净增（如 +5.15 亿）。',
         '【交互规则】顶部按钮切换"达售/取证"口径，图表数据即时刷新；鼠标悬停普通柱体触发 Tooltip，展示节点名称与变动金额；悬停终止柱时 Tooltip 额外展示两行——"当前剩余在售 168.61 亿"与"较年初净增 +5.15 亿"（遵循"红加绿减"：正向增长为红色、负向减少为绿色）。',
         '【数据规则】跟随顶部口径（全口径/权益）与指标（金额/面积）联动；勾稽关系：年初货值 + 本年新增 − 本年销售 − 货值折损 = 当前剩余在售；金额单位"亿"、面积单位"万㎡"；数值统一保留 2 位小数并千分位分隔；净增量 Tag 遵循"红加绿减"配色规范（正值红底红字、负值绿底绿字）。',
         '【边界处理】当"当前剩余在售"小于"年初在售"（净减少）时，终止柱恢复为单色主色柱、顶部保留 4px 圆角、高度对应实际剩余值，柱顶 Tag 自动适配为负数与绿色（如 -10.00 亿）；某节点数值为 0 时柱体不渲染、标签展示 0.00；无数据时展示空状态"暂无在售货值数据"。',
@@ -1580,20 +1632,20 @@ function HomePage() {
       moduleId: "rate-trend",
       title: "取证/达售去化率趋势",
       desc: [
-        '【展示内容】卡片顶部展示 KPI 组：当期去化率（大号高亮）、已售金额、取证/达售货值（分子/分母）；右侧展示同比、环比（仅月度）DeltaTag；下方双线趋势图：当期去化率（蓝色）与同比去化率（青色）；顶部提供两个胶囊切换器——"取证 / 达售"口径 与 "月度 / 年度"周期。',
+        '【展示内容】卡片顶部展示 KPI 组：当期去化率（大号高亮）、已售金额、取证未售货值/达售未售货值（分子/分母）；右侧展示同比、环比（仅月度）DeltaTag；下方双线趋势图：当期去化率（蓝色）与同比去化率（青色）；顶部提供两个胶囊切换器——"取证 / 达售"口径 与 "月度 / 年度"周期。',
         '【交互规则】口径与周期切换即时刷新 KPI 与趋势图；鼠标悬停趋势节点触发 Tooltip，展示当期值、同比值、同比差额（个百分点，正红负绿）；右上角"查看详情"打开取证去化率详情弹窗，并沿用当前口径/周期。',
-        '【数据规则】跟随顶部口径（全口径/权益）与指标（金额/面积）联动；去化率 = 已售金额 / (取证或达售货值) ×100%；同比 = 当期 − 去年同期；环比 = 当期 − 上期；年度周期下不展示环比；金额单位"亿"、面积单位"万㎡"，去化率与差额统一保留 2 位小数。',
+        '【数据规则】跟随顶部口径（全口径/权益）与指标（金额/面积）联动；去化率 = 已售金额 / (取证未售货值或达售未售货值) ×100%；同比 = 当期 − 去年同期；环比 = 当期 − 上期；年度周期下不展示环比；金额单位"亿"、面积单位"万㎡"，去化率与差额统一保留 2 位小数。',
         '【边界处理】分母为 0 时去化率展示"--"；同比/环比无对比期时 DeltaTag 展示"--"；未来月份不渲染数据点；无数据时图表区域展示空状态提示。',
       ].join("\n"),
     },
     {
       code: "REQ-12",
       moduleId: "in-build-structure",
-      title: "在建货值结构分析",
+      title: "取证未售货龄分析",
       desc: [
-        '【展示内容】上部三个 KPI 块横向排列：在建总货值、在建达售未取证货值、在建取证未售货值；下部横向堆积柱状图按项目/城市维度展示各行"在建达售未取证"与"在建取证未售"两段构成，并按货龄（6个月以内 / 6-12个月 / 12-18个月 / 18个月以上）分色堆叠；图例位于图表顶部。',
-        '【交互规则】图例支持单击切换显隐、双击独显；鼠标悬停柱段触发 Tooltip，展示所在项目、货龄段、该段货值及占该行合计比例；模块无点击跳转。',
-        '【数据规则】跟随顶部口径（全口径/权益）与指标（金额/面积）联动；KPI"在建总货值" = 达售未取证 + 取证未售；货龄口径统一按"进入在建状态起至今"计算；金额单位"亿"、面积单位"万㎡"，占比与数值统一保留 2 位小数。',
+        '【展示内容】模块展示取证未售货龄分析，顶部展示取证未售货值合计；下方堆叠柱状图按货龄展示"在建达售未取证"与"在建取证未售"构成，柱顶展示取证未售货值，图例位于柱状图下方。',
+        '【交互规则】鼠标悬停柱段触发 Tooltip，展示货龄、分项货值及取证未售货值合计；模块无点击跳转。',
+        '【数据规则】跟随顶部口径（全口径/权益）与指标（金额/面积）联动；货龄口径统一按"进入在建状态起至今"计算；金额单位"亿"、面积单位"万㎡"，数值统一保留 2 位小数。',
         '【边界处理】某货龄段无数据时柱段不渲染；行数过多时容器纵向滚动，图例与坐标轴保持固定；全部为 0 时展示空状态"暂无在建货值数据"。',
       ].join("\n"),
     },
@@ -1604,7 +1656,7 @@ function HomePage() {
       desc: [
         '【展示内容】模块标题为"已竣未售分布"；左侧环形图展示已竣未售货值按业态（住宅 / 商业 / 公寓 / 写字楼 / 车位配套）的构成，中心展示合计金额与单位；右侧列表展示"全部业态"及各业态的货值、占比；右侧柱状图默认按货龄展示，支持切换为按形成年份展示，形成年份 X 轴依次为 2021及之前、2022、2023、2024、2025、2026。',
         '【交互规则】点击环形图扇区或左侧业态列表项后，当前业态高亮，右侧柱状图切换为该业态对应数据，柱体颜色同步使用该业态在系统中的固定业态色；点击"全部业态"恢复汇总数据；点击"按货龄 / 按形成年份"分段按钮切换右侧柱状图维度；右上角"查看详情"打开已竣未售明细弹窗。',
-        '【数据规则】跟随顶部口径（全口径/权益）与指标（金额/面积）联动；占比 = 该业态货值 / 竣工未售货值合计 ×100%；按货龄维度依次展示 12个月以内、12-18个月、18-24个月、24个月以上；按形成年份维度依次展示 2021及之前、2022、2023、2024、2025、2026；金额单位"亿"、面积单位"万㎡"，数值与占比统一保留 2 位小数。',
+        '【数据规则】跟随顶部口径（全口径/权益）与指标（金额/面积）联动；占比 = 该业态货值 / 竣工未售货值合计 ×100%；按货龄维度依次展示 24个月以上、18-24个月、12-18个月、12个月以内；按形成年份维度依次展示 2021及之前、2022、2023、2024、2025、2026；金额单位"亿"、面积单位"万㎡"，数值与占比统一保留 2 位小数。',
         '【边界处理】某业态货值为 0 时环形不展示色块，列表可保留并置灰；合计为 0 时中心展示"--"并给出空状态提示；极小值处理：数值低于展示精度时图例展示为"<0.01"，Tooltip 展示精确值；点击环形图不展示浏览器默认焦点框。',
       ].join("\n"),
     },
@@ -1646,6 +1698,7 @@ function HomePage() {
   const [activeType, setActiveType] = useState<string | null>(null);
   const [rateMode, setRateMode] = useState<"取证" | "达售">("取证");
   const [ratePeriod, setRatePeriod] = useState<"月度" | "年度">("月度");
+  const [hiddenRateSeries, setHiddenRateSeries] = useState<Record<string, boolean>>({});
 
   const calFactor = CALIBER_OPTIONS.find((c) => c.key === caliber)!.factor;
   const factor = calFactor * (metricMode === "amount" ? 1 : 0.62);
@@ -1972,13 +2025,13 @@ function HomePage() {
                 const centerLabel = `总货值`;
                 const centerValue = headerTotal;
                 const gridCols =
-                  "grid-cols-[8px_minmax(44px,0.9fr)_minmax(52px,0.6fr)_minmax(34px,0.42fr)_minmax(58px,0.62fr)] gap-x-1";
+                  "grid-cols-[68px_54px_63px_73px] gap-x-0";
                 if (!hasTypeData) {
                   return <EmptyState title="暂无业态数据" description="当前筛选条件下暂无可展示的业态分布" />;
                 }
                 return (
                   <div className="flex items-center gap-2 flex-1 min-w-0 min-h-0 overflow-hidden">
-                    <div className="relative w-[96px] h-[96px] sm:w-[104px] sm:h-[104px] shrink-0 [&_.recharts-sector]:outline-none [&_.recharts-sector:focus]:outline-none [&_.recharts-wrapper]:outline-none [&_svg]:outline-none">
+                    <div className="relative basis-[35%] max-w-[104px] min-w-[88px] aspect-square shrink-0 [&_.recharts-sector]:outline-none [&_.recharts-sector:focus]:outline-none [&_.recharts-wrapper]:outline-none [&_svg]:outline-none">
                       <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
                           <Pie
@@ -2030,14 +2083,13 @@ function HomePage() {
                         })()}
                       </div>
                     </div>
-                    <div className="flex-1 min-w-0 min-h-0 overflow-x-auto overflow-y-auto">
-                      <div className="min-w-[252px]">
-                      <div className={`grid ${gridCols} items-center px-1 h-8 mb-1 border-b border-[#EEF1F6] text-[11px] font-medium text-[#64748B] leading-[16px] whitespace-nowrap`}>
-                        <span />
-                        <span>业态</span>
-                        <span className="text-right">{metricMode === "amount" ? "货值（亿）" : "面积（万㎡）"}</span>
-                        <span className="text-right">占比</span>
-                        <span className="text-right">取证去化率</span>
+                    <div className="basis-[65%] flex-1 min-w-0 min-h-0 overflow-x-auto overflow-y-auto">
+                      <div className="min-w-[266px] w-full">
+                      <div className={`grid ${gridCols} items-center w-full px-1 h-8 mb-1 border-b border-[#EEF1F6] text-[11px] font-medium text-[#64748B] leading-[16px] whitespace-nowrap`}>
+                        <span className="text-left">业态</span>
+                        <span className="text-right">{metricMode === "amount" ? "货值(亿)" : "面积(万㎡)"}</span>
+                        <span className="pl-2 text-right">占比</span>
+                        <span className="pl-2 text-right">取证去化率</span>
                       </div>
                       {data.map((t, i) => {
                         const isActive = activeType === t.name;
@@ -2047,24 +2099,39 @@ function HomePage() {
                             key={t.name}
                             onMouseEnter={() => setActiveType(t.name)}
                             onMouseLeave={() => setActiveType(null)}
-                            className={`grid ${gridCols} items-center px-1 h-9 rounded-md border transition-colors text-[11px] leading-[16px] whitespace-nowrap text-[#1E293B] ${
+                            className={`grid ${gridCols} items-center w-full px-1 h-9 rounded-md border transition-colors text-[11px] leading-[16px] whitespace-nowrap text-[#1E293B] ${
                               isActive
                                 ? "bg-[#EFF6FF] border-[#BFDBFE]"
                                 : "border-transparent hover:bg-[#F8FAFC]"
                             }`}
                           >
-                            <span
-                              className="w-2 h-2 rounded-sm shrink-0"
-                              style={{ background: colorOf(t.name, i) }}
-                            />
-                            <span className={`truncate ${isActive ? "font-semibold" : ""}`}>{t.name}</span>
+                            <span className="inline-flex w-[68px] min-w-0 items-center gap-1.5 text-left">
+                              <span
+                                className="w-2 h-2 rounded-sm shrink-0"
+                                style={{ background: colorOf(t.name, i) }}
+                              />
+                              <TooltipProvider delayDuration={100}>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <span
+                                      className={`block max-w-[52px] overflow-hidden text-ellipsis whitespace-nowrap ${isActive ? "font-semibold" : ""}`}
+                                    >
+                                      {t.name}
+                                    </span>
+                                  </TooltipTrigger>
+                                  <TooltipContent side="top" className="bg-white text-slate-700 border border-[#E2E8F0] shadow-[0_8px_24px_-8px_rgba(15,23,42,0.18)] text-[11px]">
+                                    {t.name}
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            </span>
                             <span className={`tabular-nums text-right ${isActive ? "font-semibold" : ""}`}>
                               {t.displayValue.toFixed(2)}
                             </span>
-                            <span className="tabular-nums text-right text-[#64748B]">
+                            <span className="pl-2 tabular-nums text-right text-[#64748B]">
                               {t.pct.toFixed(2)}%
                             </span>
-                            <span className="tabular-nums text-right">
+                            <span className="pl-2 tabular-nums text-right">
                               {rate != null ? `${rate.toFixed(2)}%` : "--"}
                             </span>
                           </div>
@@ -2166,7 +2233,7 @@ function HomePage() {
                         </div>
                       </div>
                       <div>
-                        <div className="text-[11px] text-muted-foreground mb-0.5">{rateMode}货值</div>
+                        <div className="text-[11px] text-muted-foreground mb-0.5">{rateMode}未售货值</div>
                         <div className="text-[15px] font-semibold tabular-nums text-foreground leading-none">
                           {den.toFixed(2)}
                           <span className="text-[11px] text-muted-foreground ml-1 font-normal">{unit}</span>
@@ -2220,36 +2287,63 @@ function HomePage() {
                         const a = payload.find((p) => p.dataKey === "actual")?.value as number;
                         const y = payload.find((p) => p.dataKey === "yoy")?.value as number;
                         const [yr, m] = (label as string).split("-");
-                        const diff = a - y;
+                        const hasActual = typeof a === "number";
+                        const hasYoy = typeof y === "number";
+                        const diff = hasActual && hasYoy ? a - y : null;
                         return (
                           <div style={CHART_TOOLTIP_STYLE}>
                             <div className={chartTooltipTitleClass}>
                               {m ? `${yr}年${Number(m)}月` : `${yr}年`}
                             </div>
-                            <div className={chartTooltipRowClass}>
-                              <span className="text-[#475569]">当期{rateMode}去化率</span>
-                              <span className="text-[var(--color-brand)] tabular-nums">
-                                {a.toFixed(2)}%
-                              </span>
-                            </div>
-                            <div className={chartTooltipRowClass}>
-                              <span className="text-[#475569]">同比{rateMode}去化率</span>
-                              <span className="text-teal-500 tabular-nums">{y.toFixed(2)}%</span>
-                            </div>
-                            <div className={chartTooltipRowClass}>
-                              <span className="text-[#475569]">同比差额</span>
-                              <span
-                                className={`tabular-nums ${diff > 0 ? "text-rose-600" : diff < 0 ? "text-emerald-600" : "text-slate-500"}`}
-                              >
-                                {diff >= 0 ? "+" : ""}
-                                {diff.toFixed(2)}个百分点
-                              </span>
-                            </div>
+                            {hasActual && (
+                              <div className={chartTooltipRowClass}>
+                                <span className="text-[#475569]">当期{rateMode}去化率</span>
+                                <span className="text-[var(--color-brand)] tabular-nums">
+                                  {a.toFixed(2)}%
+                                </span>
+                              </div>
+                            )}
+                            {hasYoy && (
+                              <div className={chartTooltipRowClass}>
+                                <span className="text-[#475569]">同比{rateMode}去化率</span>
+                                <span className="text-teal-500 tabular-nums">{y.toFixed(2)}%</span>
+                              </div>
+                            )}
+                            {diff != null && (
+                              <div className={chartTooltipRowClass}>
+                                <span className="text-[#475569]">同比差额</span>
+                                <span
+                                  className={`tabular-nums ${diff > 0 ? "text-rose-600" : diff < 0 ? "text-emerald-600" : "text-slate-500"}`}
+                                >
+                                  {diff >= 0 ? "+" : ""}
+                                  {diff.toFixed(2)}个百分点
+                                </span>
+                              </div>
+                            )}
                           </div>
                         );
                       }}
                     />
-                    <Legend wrapperStyle={{ fontSize: 12, paddingTop: 4 }} iconType="plainline" />
+                    <Legend
+                      align="center"
+                      verticalAlign="bottom"
+                      iconType="plainline"
+                      wrapperStyle={{ fontSize: 12, paddingTop: 4, textAlign: "center" }}
+                      onClick={(entry: any) => {
+                        const key = String(entry?.dataKey ?? "");
+                        if (!key) return;
+                        setHiddenRateSeries((prev) => ({ ...prev, [key]: !prev[key] }));
+                      }}
+                      formatter={(value: string, entry: any) => {
+                        const key = String(entry?.dataKey ?? "");
+                        const hidden = !!hiddenRateSeries[key];
+                        return (
+                          <span className={hidden ? "text-[#94A3B8]" : "text-[#64748B]"} style={{ cursor: "pointer" }}>
+                            {value}
+                          </span>
+                        );
+                      }}
+                    />
                     <Line
                       type="monotone"
                       dataKey="actual"
@@ -2258,6 +2352,7 @@ function HomePage() {
                       strokeWidth={2}
                       dot={{ r: 3, fill: TOKEN_BRAND.primary, strokeWidth: 0 }}
                       activeDot={{ r: 5 }}
+                      hide={!!hiddenRateSeries.actual}
                     />
                     <Line
                       type="monotone"
@@ -2267,6 +2362,7 @@ function HomePage() {
                       strokeWidth={2}
                       dot={{ r: 3, fill: "#2DD4BF", strokeWidth: 0 }}
                       activeDot={{ r: 5 }}
+                      hide={!!hiddenRateSeries.yoy}
                     />
                   </LineChart>
                 </ResponsiveContainer>
@@ -2281,7 +2377,7 @@ function HomePage() {
         <div className="grid grid-cols-12 gap-4">
           <ModuleBadge moduleId="in-build-structure" className="col-span-4 h-full block">
             <AgeStackStructureCard
-              title="在建货值结构分析"
+              title="取证未售货龄分析"
               icon={<Building2 className="w-3.5 h-3.5" />}
               factor={factor}
               unit={unit}
@@ -2548,6 +2644,63 @@ function LandYearCard({
   const totalUnsold = pieData.reduce((s, p) => s + p.value, 0);
   // 该拿地年份未售货值占总未售货值之比
   const unsoldShare = totalUnsold > 0 ? (curUnsold / totalUnsold) * 100 : 0;
+  const toggleLandYear = (key: string) => {
+    if (hasFocusedLandYear && selected === key) {
+      setHasFocusedLandYear(false);
+      setHoverKey(null);
+      return;
+    }
+    setSelected(key);
+    setHasFocusedLandYear(true);
+  };
+  const renderLandYearLabel = (props: any) => {
+    const { cx, cy, midAngle, outerRadius, payload } = props;
+    const focusKey = hoverKey ?? (hasFocusedLandYear ? selected : null);
+    const RADIAN = Math.PI / 180;
+    const sin = Math.sin(-RADIAN * midAngle);
+    const cos = Math.cos(-RADIAN * midAngle);
+    const sx = cx + (outerRadius + 2) * cos;
+    const sy = cy + (outerRadius + 2) * sin;
+    const mx = cx + (outerRadius + 8) * cos;
+    const my = cy + (outerRadius + 12) * sin;
+    const labelYOffset: Record<string, number> = {
+      "2025": -42,
+      "2026": 4,
+      "2024": -14,
+      "2023": 14,
+    };
+    const labelY = my + (labelYOffset[String(payload.key)] ?? 0);
+    const isRight = cos >= 0;
+    const dotX = cx + (isRight ? 70 : -70);
+    const textX = cx + (isRight ? 75 : -75);
+    const textAnchor = isRight ? "start" : "end";
+    const pct = totalUnsold > 0 ? (payload.value / totalUnsold) * 100 : 0;
+    const isSel = selected === payload.key;
+    const isFocus = !focusKey || focusKey === payload.key;
+    const opacity = isFocus ? 1 : 0.42;
+    const textColor = isSel ? "#1677FF" : "#475569";
+
+    return (
+      <g
+        onClick={() => {
+          toggleLandYear(payload.key);
+        }}
+        style={{ cursor: "pointer" }}
+      >
+        <path d={`M${sx},${sy}L${mx},${my}L${dotX},${labelY}`} fill="none" stroke={payload.color} strokeWidth={isFocus ? 1.2 : 1} opacity={opacity} />
+        <circle cx={dotX} cy={labelY} r={2} fill={payload.color} opacity={opacity} />
+        <text x={textX} y={labelY - 12} textAnchor={textAnchor} fill={textColor} fontSize={10.5} fontWeight={isSel ? 600 : 500} opacity={opacity}>
+          {payload.name}
+        </text>
+        <text x={textX} y={labelY + 1} textAnchor={textAnchor} fill="#111827" fontSize={9.5} fontWeight={500} opacity={opacity}>
+          {payload.value > 0 && payload.value < 0.01 ? "<0.01" : payload.value.toFixed(2)} {unit}
+        </text>
+        <text x={textX} y={labelY + 14} textAnchor={textAnchor} fill="#64748B" fontSize={9.5} opacity={opacity}>
+          {pct.toFixed(2)}%
+        </text>
+      </g>
+    );
+  };
 
 
   const selectedLabel = LAND_YEAR_LABELS[LAND_YEAR_KEYS.indexOf(effectiveSelected)];
@@ -2569,29 +2722,34 @@ function LandYearCard({
         </button>
       </div>
 
-      <div className="px-4 py-2.5 grid grid-cols-12 gap-4 flex-1 min-h-0 overflow-y-auto">
-        {/* Left: donut + 年份列表 */}
-        <div className="col-span-4 flex flex-col items-center min-h-0">
-          <div className="relative w-full h-[128px] [&_.recharts-sector]:outline-none [&_.recharts-sector]:focus:outline-none [&_svg]:outline-none [&_svg_*]:outline-none">
+      <div className="px-4 pt-2.5 text-[12px] text-[#64748B]">
+        * 点击年份，可联动切换拿地年份数据
+      </div>
+
+      <div className="px-4 pt-2 pb-1.5 grid grid-cols-[minmax(0,5.2fr)_minmax(0,3.4fr)_minmax(0,3.4fr)] gap-4 flex-1 min-h-0 overflow-y-auto">
+        {/* Left: donut + 扇区外侧标注 */}
+        <div className="flex flex-col items-center min-h-0">
+          <div className="relative w-full h-full min-h-[210px] [&_.recharts-sector]:outline-none [&_.recharts-sector]:focus:outline-none [&_svg]:outline-none [&_svg_*]:outline-none">
             <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
+              <PieChart margin={{ top: 12, right: 70, bottom: 8, left: 70 }}>
                 <Pie
                   data={pieData}
                   dataKey="value"
                   nameKey="name"
                   cx="50%"
                   cy="50%"
-                  innerRadius={36}
-                  outerRadius={56}
-                  paddingAngle={2}
+                  innerRadius={34}
+                  outerRadius={50}
+                  paddingAngle={1.5}
                   stroke="#fff"
                   strokeWidth={1.5}
                   isAnimationActive={false}
+                  label={renderLandYearLabel}
+                  labelLine={false}
                   onMouseEnter={(d: any) => setHoverKey(d.key)}
                   onMouseLeave={() => setHoverKey(null)}
                   onClick={(d: any) => {
-                    setSelected(d.key);
-                    setHasFocusedLandYear(true);
+                    toggleLandYear(d.key);
                   }}
                 >
                   {pieData.map((p) => {
@@ -2608,57 +2766,38 @@ function LandYearCard({
                 </Pie>
               </PieChart>
             </ResponsiveContainer>
-            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <button
+                type="button"
+                onClick={() => {
+                  setHasFocusedLandYear(false);
+                  setHoverKey(null);
+                }}
+                className="w-[76px] h-[76px] flex flex-col items-center justify-center rounded-full outline-none pointer-events-auto"
+                title="点击查看总货值"
+              >
               {(() => {
                 const focusKey = hoverKey ?? (hasFocusedLandYear ? selected : null);
                 const focusItem = pieData.find((p) => p.key === focusKey);
-                const label = focusItem ? `${focusItem.name}未售货值` : "总货值";
+                const label = focusItem ? focusItem.name : "总货值";
                 const val = focusItem ? focusItem.value : totalUnsold;
                 return (
                   <>
                     <div className="text-[11px] text-[#64748B] leading-tight">{label}</div>
-                    <div className="text-[17px] font-semibold tabular-nums leading-tight text-[#1E293B] mt-0.5">
+                    <div className="text-[15px] font-bold tabular-nums leading-tight text-[#1E293B] mt-0.5 whitespace-nowrap">
                       {val.toFixed(2)}
                     </div>
-                    <div className="text-[11px] text-[#64748B] leading-tight">{unit}</div>
+                    <div className="text-[10px] text-[#64748B] leading-tight">{unit}</div>
                   </>
                 );
               })()}
+              </button>
             </div>
-          </div>
-          {/* 年份 · 货值 · 占比 列表 */}
-          <div className="mt-2 w-full px-1 flex flex-col gap-0.5 text-[11px]">
-            {pieData.map((p) => {
-              const isSel = selected === p.key;
-              const pct = totalUnsold > 0 ? (p.value / totalUnsold) * 100 : 0;
-              return (
-                <button
-                  key={p.key}
-                  onClick={() => {
-                    setSelected(p.key);
-                  }}
-                  className={`grid grid-cols-[1fr_auto_42px] items-center gap-2 text-left px-1.5 py-0.5 rounded-md border transition-colors ${
-                    isSel
-                      ? "bg-[#EFF6FF] border-[#BFDBFE]"
-                      : "border-transparent text-muted-foreground hover:bg-[#F8FAFC] hover:text-foreground"
-                  }`}
-                >
-                  <span className="flex items-center gap-1 truncate">
-                    <span className="w-2 h-2 rounded-sm shrink-0" style={{ background: p.color }} />
-                    <span className={`truncate ${isSel ? "font-semibold" : ""}`}>{p.name}</span>
-                  </span>
-                  <span className={`tabular-nums ${isSel ? "font-semibold" : ""}`}>
-                    {p.value > 0 && p.value < 0.01 ? "<0.01" : p.value.toFixed(2)}
-                  </span>
-                  <span className="tabular-nums text-right">{pct.toFixed(2)}%</span>
-                </button>
-              );
-            })}
           </div>
         </div>
 
         {/* Middle: 选中年份指标 */}
-        <div className="col-span-4 flex flex-col min-h-0 min-w-0">
+        <div className="flex flex-col min-h-0 min-w-0">
           <div className="mb-1 flex items-center gap-2 whitespace-nowrap">
             <span className="w-1 h-4 rounded bg-[var(--color-brand)]" />
             <span className="text-[13px] font-semibold text-foreground">{selectedLabel}拿地指标</span>
@@ -2667,7 +2806,7 @@ function LandYearCard({
             当前选中拿地年份的核心指标
           </div>
           <div className="rounded-md border border-[#EEF1F6] overflow-hidden text-[12px] flex flex-col">
-            <div className="grid grid-cols-[1fr_76px] bg-[#F1F5F9]">
+            <div className="grid grid-cols-[1fr_68px] bg-[#F1F5F9]">
               <div className="px-2.5 py-1.5 font-semibold text-foreground border-r border-[#EEF1F6]">指标</div>
               <div className="px-2.5 py-1.5 font-semibold text-foreground text-right">数值</div>
             </div>
@@ -2689,7 +2828,7 @@ function LandYearCard({
             ].map((row, i) => (
               <div
                 key={row.label}
-                className={`grid grid-cols-[1fr_76px] ${i % 2 === 0 ? "bg-white" : "bg-[#F8FAFC]"}`}
+                className={`grid grid-cols-[1fr_68px] ${i % 2 === 0 ? "bg-white" : "bg-[#F8FAFC]"}`}
               >
                 <div className="px-2.5 py-1.5 text-muted-foreground border-r border-[#EEF1F6] flex items-center gap-1 min-w-0">
                   <span className="truncate">{row.label}</span>
@@ -2716,7 +2855,7 @@ function LandYearCard({
 
 
         {/* Right: 已售货值分解（按销售年份） */}
-        <div className="col-span-4 flex flex-col min-h-0 min-w-0">
+        <div className="flex flex-col min-h-0 min-w-0">
           <div className="mb-1 flex items-center gap-2">
             <span className="w-1 h-4 rounded bg-[var(--color-brand)]" />
             <span className="text-[13px] font-semibold text-foreground">已售货值分解</span>
@@ -2725,7 +2864,7 @@ function LandYearCard({
             对应当前拿地年份的销售年份拆分
           </div>
           <div className="rounded-md border border-[#EEF1F6] overflow-hidden text-[12px] shrink-0">
-            <div className="grid grid-cols-[1fr_76px] bg-[#F1F5F9]">
+            <div className="grid grid-cols-[1fr_68px] bg-[#F1F5F9]">
               <div className="px-2.5 py-1.5 font-semibold text-foreground border-r border-[#EEF1F6]">销售年份</div>
               <div className="px-2.5 py-1.5 font-semibold text-foreground text-right whitespace-nowrap">已售（{unit}）</div>
             </div>
@@ -2733,7 +2872,7 @@ function LandYearCard({
               const v = sales?.[k];
               const year = k.replace("销售", "");
               return (
-                <div key={k} className={`grid grid-cols-[1fr_76px] ${i % 2 === 0 ? "bg-white" : "bg-[#F8FAFC]"}`}>
+                <div key={k} className={`grid grid-cols-[1fr_68px] ${i % 2 === 0 ? "bg-white" : "bg-[#F8FAFC]"}`}>
                   <div className="px-2.5 py-1.5 text-muted-foreground border-r border-[#EEF1F6]">{year}</div>
                   <div className="px-2.5 py-1.5 text-right tabular-nums text-foreground">
                     {v == null ? <span className="text-muted-foreground">--</span> : (v * factor).toFixed(2)}
@@ -2741,7 +2880,7 @@ function LandYearCard({
                 </div>
               );
             })}
-            <div className="grid grid-cols-[1fr_76px] bg-[#F1F5F9] border-t border-[#EEF1F6]">
+            <div className="grid grid-cols-[1fr_68px] bg-[#F1F5F9] border-t border-[#EEF1F6]">
               <div className="px-2.5 py-1.5 font-semibold text-foreground border-r border-[#EEF1F6]">合计</div>
               <div className="px-2.5 py-1.5 text-right tabular-nums text-foreground font-semibold">
                 {(() => {

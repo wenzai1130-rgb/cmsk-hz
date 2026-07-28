@@ -273,7 +273,7 @@ export function RateDetailDialog({
   open,
   onOpenChange,
   initialMode: _m,
-  initialPeriod,
+  initialPeriod: _initialPeriod,
   unit = "亿",
   org = "",
   caliberLabel = "",
@@ -289,16 +289,15 @@ export function RateDetailDialog({
   date?: string;
 }) {
   const [dim, setDim] = useState<Dim>("城市群组");
-  const [period, setPeriod] = useState<RatePeriod>(initialPeriod ?? "月度");
   const [mode, setMode] = useState<RateMode>("取证");
   const [keyword, setKeyword] = useState("");
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
-  const [sortKey, setSortKey] = useState<SortKey>("rateYearTarget");
+  const [sortKey, setSortKey] = useState<SortKey>("rateOldStock");
+  const [sortColumn, setSortColumn] = useState("yearRateOldStock");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
 
-  useEffect(() => { if (open && initialPeriod) setPeriod(initialPeriod); }, [open, initialPeriod]);
   useEffect(() => { if (open && _m) setMode(_m); }, [open, _m]);
 
   // 达售口径整体略低于取证口径（mock 差异）
@@ -311,20 +310,16 @@ export function RateDetailDialog({
     return out;
   };
 
-  const isMonth = period === "月度";
   const u = `(${unit})`;
   const L = {
-    startStock: (isMonth ? "月初库存" : "年初库存") + u,
-    newAdd: (isMonth ? "本月新增" : "本年新增") + u,
-    sold: isMonth ? "本月已售" : "本年已售",
-    soldNew: (isMonth ? "本月新供" : "本年新供") + u,
-    soldOld: (isMonth ? "月初库存" : "年初库存") + u,
-    remainNew: (isMonth ? "本月新供" : "本年新供") + u,
-    remainOld: (isMonth ? "月初库存" : "年初库存") + u,
-    subtotal: `小计${u}`,
-    ratePrimary: isMonth ? `月度${mode}` : `年度${mode}`,
-    rateCurrent: isMonth ? `本月${mode}` : `当年${mode}`,
-    rateOldStock: isMonth ? "月初库存" : "年初库存",
+    startStock: `年初库存${u}`,
+    newAdd: `本年新增${u}`,
+    monthSold: `本月已售${u}`,
+    monthRemain: `本月剩余在售${u}`,
+    monthRate: "本月去化率",
+    yearSold: `本年已售${u}`,
+    yearRemain: `本年剩余在售${u}`,
+    yearRate: "本年去化率",
   };
 
   // body scroll lock
@@ -340,14 +335,47 @@ export function RateDetailDialog({
     const ids = collectIdsUpToLevel(buildProjectTree(), DIM_LEVEL[dim]);
     setExpanded(new Set(ids));
     setPage(1);
-    setSortKey("rateYearTarget");
+    setSortKey("rateOldStock");
+    setSortColumn("yearRateOldStock");
     setSortDir("desc");
-  }, [dim, period]);
+  }, [dim]);
   useEffect(() => { setPage(1); }, [keyword, pageSize, sortKey, sortDir]);
 
   const topRows = useMemo(() => {
     const fullTree = buildProjectTree();
-    const tree = dim === "业态" ? buildBizRows(fullTree) : fullTree;
+    let tree: Row[];
+    if (dim === "业态") {
+      tree = buildBizRows(fullTree);
+    } else if (dim === "城市公司") {
+      tree = fullTree.flatMap((cluster) =>
+        (cluster.children ?? []).map((company) => ({
+          ...company,
+          children: (company.children ?? []).map((project) => ({
+            ...project,
+            cityGroup: cluster.name,
+            cityCompany: company.name,
+          } as Row & { cityGroup: string; cityCompany: string })),
+        })),
+      );
+    } else if (dim === "项目") {
+      const projects: Row[] = [];
+      fullTree.forEach((cluster) => {
+        cluster.children?.forEach((company) => {
+          company.children?.forEach((project) => {
+            projects.push({
+              ...project,
+              children: undefined,
+              level: 3,
+              cityGroup: cluster.name,
+              cityCompany: company.name,
+            } as Row & { cityGroup: string; cityCompany: string });
+          });
+        });
+      });
+      tree = projects;
+    } else {
+      tree = fullTree;
+    }
     if (mode === "取证") return tree;
     const mapRow = (r: Row): Row => ({ ...adjustRow(r), children: r.children?.map(mapRow) });
     return tree.map(mapRow);
@@ -413,17 +441,17 @@ export function RateDetailDialog({
     });
   };
 
-  const onSort = (k: NonNullable<SortKey>) => {
-    if (sortKey === k) setSortDir(sortDir === "asc" ? "desc" : "asc");
-    else { setSortKey(k); setSortDir("desc"); }
+  const onSort = (k: NonNullable<SortKey>, columnId = String(k)) => {
+    if (sortKey === k && sortColumn === columnId) setSortDir(sortDir === "asc" ? "desc" : "asc");
+    else {
+      setSortKey(k);
+      setSortColumn(columnId);
+      setSortDir("desc");
+    }
   };
 
   const onExport = () => {
     const targetLevel = DIM_LEVEL[dim];
-    const PATH_HEADERS =
-      dim === "业态"
-        ? ["业态"]
-        : ["城市群组", "城市公司", "项目"].slice(0, dim === "项目" ? 3 : targetLevel + 1);
 
     // 收集到 targetLevel 的所有节点，并带上祖先路径
     const rows: { path: string[]; row: Row }[] = [];
@@ -445,30 +473,34 @@ export function RateDetailDialog({
       ? rows.filter((x) => x.path.some((p) => p.includes(k)) || (x.row.openDate ?? "").includes(k))
       : rows;
 
-    const includeProjectAttrs = dim === "项目";
     const header = [
       "序号",
-      ...PATH_HEADERS,
-      ...(includeProjectAttrs ? ["业态", "开盘时间"] : []),
-      L.startStock, L.newAdd,
-      `${L.sold}-${L.soldOld}`, `${L.sold}-${L.soldNew}`, `${L.sold}-${L.subtotal}`,
-      `剩余在售-${L.remainOld}`, `剩余在售-${L.remainNew}`, `剩余在售-${L.subtotal}`,
-      `去化率-${L.ratePrimary}(%)`, `去化率-${L.rateCurrent}(%)`, `去化率-${L.rateOldStock}(%)`,
+      ...(dim === "项目" ? ["城市群组", "城市公司", "项目", "开盘时间"] : [dim]),
+      L.startStock,
+      L.newAdd,
+      L.monthSold,
+      L.monthRemain,
+      `${L.monthRate}(%)`,
+      L.yearSold,
+      L.yearRemain,
+      `${L.yearRate}(%)`,
     ];
 
     const aoa: (string | number)[][] = [header];
     filteredRows.forEach((x, i) => {
       const r = x.row;
-      const soldSub = +(r.soldNew + r.soldOld).toFixed(2);
-      const remainSub = +(r.remainNew + r.remainOld).toFixed(2);
+      const extra = r as Row & { cityGroup?: string; cityCompany?: string };
       aoa.push([
         i + 1,
-        ...x.path,
-        ...(includeProjectAttrs ? [r.bizType ?? "", r.openDate ?? ""] : []),
-        r.startStock, r.newAdd,
-        r.soldOld, r.soldNew, soldSub,
-        r.remainOld, r.remainNew, remainSub,
-        r.rateYearTarget, r.rateCurTarget, r.rateOldStock,
+        ...(dim === "项目" ? [extra.cityGroup ?? "", extra.cityCompany ?? "", r.name, r.openDate ?? ""] : [r.name]),
+        r.startStock,
+        r.newAdd,
+        r.soldNew,
+        r.remainNew,
+        r.rateCurTarget,
+        +(r.soldOld + r.soldNew).toFixed(2),
+        +(r.remainOld + r.remainNew).toFixed(2),
+        r.rateYearTarget,
       ]);
     });
 
@@ -521,20 +553,82 @@ export function RateDetailDialog({
 
   // Sticky column widths
   const W_IDX = 56;
-  const W_NAME = 220;
+  const W_NAME = 190;
   const NAME_LEFT = W_IDX;
 
-  const sortIcon = (k: SortKey) => {
-    if (sortKey !== k) return <ArrowUpDown className="w-3 h-3 text-slate-400" />;
+  const isSortColumn = (columnId: string) => sortColumn === columnId;
+  const sortIcon = (k: SortKey, columnId = String(k)) => {
+    if (sortKey !== k || !isSortColumn(columnId)) return <ArrowUpDown className="w-3 h-3 text-slate-400" />;
     return sortDir === "asc"
       ? <ArrowUp className="w-3 h-3 text-[#1677FF]" />
       : <ArrowDown className="w-3 h-3 text-[#1677FF]" />;
   };
 
-  const numCell = (v: number, isPct = false) => (
-    <td className="px-3 py-2.5 text-right tabular-nums text-[#475569] border-b border-[#F1F5F9] whitespace-nowrap">
+  const numCell = (v: number, isPct = false, active = false) => (
+    <td className={`px-2 py-2.5 text-right tabular-nums border-b border-[#F1F5F9] whitespace-nowrap ${active ? "text-[var(--color-brand)] font-medium" : "text-[#475569]"}`}>
       {isPct ? pct(v) : fmt2(v)}
     </td>
+  );
+
+  const monthSold = (r: Row) => r.soldNew;
+  const monthRemain = (r: Row) => r.remainNew;
+  const monthRate = (r: Row) => r.rateCurTarget;
+  const yearSold = (r: Row) => +(r.soldOld + r.soldNew).toFixed(2);
+  const yearRemain = (r: Row) => +(r.remainOld + r.remainNew).toFixed(2);
+  const projectExtra = (r: Row) => r as Row & { cityGroup?: string; cityCompany?: string };
+  const groupTh = "sticky top-0 z-20 bg-[#F1F5F9] border-b border-l border-[#E2E8F0] px-2 py-2 text-center font-medium text-[#475569] whitespace-nowrap";
+  const subTh = "sticky top-[33px] z-20 bg-[#F8FAFC] border-b border-l border-[#E2E8F0] px-2 py-1.5 text-center font-medium text-[#475569] whitespace-nowrap";
+  const leafTh = "sticky top-[64px] z-20 bg-white border-b border-l border-[#EEF2F7] px-2 py-1.5 text-right font-normal text-[#64748B] whitespace-nowrap";
+  const subSortable = (key: NonNullable<SortKey>, label: ReactNode, columnId = String(key)) => (
+    <th
+      rowSpan={2}
+      onClick={() => onSort(key, columnId)}
+      className={`${subTh} cursor-pointer select-none ${isSortColumn(columnId) ? "text-[var(--color-brand)] font-medium" : ""}`}
+      style={{ minWidth: 82 }}
+    >
+      <span className="inline-flex items-center justify-center gap-1">
+        {label}
+        {sortIcon(key, columnId)}
+      </span>
+    </th>
+  );
+  const leafSortable = (key: NonNullable<SortKey>, label: ReactNode, bordered = true, columnId = String(key)) => (
+    <th
+      onClick={() => onSort(key, columnId)}
+      className={`${leafTh} cursor-pointer select-none ${isSortColumn(columnId) ? "text-[var(--color-brand)] font-medium" : ""} ${bordered ? "" : "border-l-0"}`}
+      style={{ minWidth: 82 }}
+    >
+      <span className="inline-flex items-center justify-end gap-1">
+        {label}
+        {sortIcon(key, columnId)}
+      </span>
+    </th>
+  );
+  const metricCells = (r: Row) => (
+    <>
+      {numCell(r.startStock, false, isSortColumn("monthStartStock"))}
+      {numCell(r.newAdd, false, isSortColumn("monthNewAdd"))}
+      <td className={`px-2 py-2.5 text-right tabular-nums border-b border-l border-[#F1F5F9] whitespace-nowrap ${isSortColumn("monthSoldOld") ? "text-[var(--color-brand)] font-medium" : "text-[#475569]"}`}>{fmt2(r.soldOld)}</td>
+      {numCell(r.soldNew, false, isSortColumn("monthSoldNew"))}
+      {numCell(monthSold(r), false, isSortColumn("monthSoldTotal"))}
+      <td className={`px-2 py-2.5 text-right tabular-nums border-b border-l border-[#F1F5F9] whitespace-nowrap ${isSortColumn("monthRemainOld") ? "text-[var(--color-brand)] font-medium" : "text-[#475569]"}`}>{fmt2(r.remainOld)}</td>
+      {numCell(r.remainNew, false, isSortColumn("monthRemainNew"))}
+      {numCell(monthRemain(r), false, isSortColumn("monthRemainTotal"))}
+      <td className={`px-2 py-2.5 text-right tabular-nums border-b border-l border-[#F1F5F9] whitespace-nowrap ${isSortColumn("monthRateOldStock") ? "text-[var(--color-brand)] font-medium" : "text-[#475569]"}`}>{pct(r.rateOldStock)}</td>
+      {numCell(r.rateCurTarget, true, isSortColumn("monthRateCur"))}
+      {numCell(monthRate(r), true, isSortColumn("monthRateTotal"))}
+      <td className={`px-2 py-2.5 text-right tabular-nums border-b border-l border-[#F1F5F9] whitespace-nowrap ${isSortColumn("yearStartStock") ? "text-[var(--color-brand)] font-medium" : "text-[#475569]"}`}>{fmt2(r.startStock)}</td>
+      {numCell(r.newAdd, false, isSortColumn("yearNewAdd"))}
+      <td className={`px-2 py-2.5 text-right tabular-nums border-b border-l border-[#F1F5F9] whitespace-nowrap ${isSortColumn("yearSoldOld") ? "text-[var(--color-brand)] font-medium" : "text-[#475569]"}`}>{fmt2(r.soldOld)}</td>
+      {numCell(r.soldNew, false, isSortColumn("yearSoldNew"))}
+      {numCell(yearSold(r), false, isSortColumn("yearSoldTotal"))}
+      <td className={`px-2 py-2.5 text-right tabular-nums border-b border-l border-[#F1F5F9] whitespace-nowrap ${isSortColumn("yearRemainOld") ? "text-[var(--color-brand)] font-medium" : "text-[#475569]"}`}>{fmt2(r.remainOld)}</td>
+      {numCell(r.remainNew, false, isSortColumn("yearRemainNew"))}
+      {numCell(yearRemain(r), false, isSortColumn("yearRemainTotal"))}
+      <td className={`px-2 py-2.5 text-right tabular-nums border-b border-l border-[#F1F5F9] whitespace-nowrap ${isSortColumn("yearRateOldStock") ? "text-[var(--color-brand)] font-medium" : "text-[#475569]"}`}>{pct(r.rateOldStock)}</td>
+      {numCell(r.rateCurTarget, true, isSortColumn("yearRateCur"))}
+      <td className={`px-2 py-2.5 text-right tabular-nums border-b border-[#F1F5F9] whitespace-nowrap ${isSortColumn("yearRateTotal") ? "text-[var(--color-brand)] font-medium" : "text-[#475569]"}`}>{pct(r.rateYearTarget)}</td>
+    </>
   );
 
   return (
@@ -580,21 +674,6 @@ export function RateDetailDialog({
           </div>
           <div className="flex items-center gap-2">
             <div className="inline-flex p-0.5 rounded-md bg-slate-100">
-              {(["月度", "年度"] as RatePeriod[]).map((p) => (
-                <button
-                  key={p}
-                  onClick={() => setPeriod(p)}
-                  className={`px-3 h-8 rounded text-[13px] transition ${
-                    period === p
-                      ? "bg-white text-[#1677FF] shadow-sm font-medium"
-                      : "text-slate-600 hover:text-slate-800"
-                  }`}
-                >
-                  {p}
-                </button>
-              ))}
-            </div>
-            <div className="inline-flex p-0.5 rounded-md bg-slate-100">
               {(["取证", "达售"] as RateMode[]).map((m) => (
                 <button
                   key={m}
@@ -626,49 +705,77 @@ export function RateDetailDialog({
         <div className="flex-1 min-h-0 overflow-auto">
           <table className="min-w-full text-[12.5px] border-separate border-spacing-0">
             <thead className="t-table-header">
-              {/* Group header row */}
               <tr className="bg-[#F1F5F9]">
                 <th
-                  rowSpan={2}
+                  rowSpan={3}
                   className="sticky left-0 top-0 z-30 bg-[#F1F5F9] border-b border-[#E2E8F0] px-3 py-2 text-center font-medium align-middle"
                   style={{ width: W_IDX, minWidth: W_IDX }}
                 >序号</th>
-                <th
-                  rowSpan={2}
-                  className="sticky top-0 z-30 bg-[#F1F5F9] border-b border-r border-[#E2E8F0] px-3 py-2 text-left font-medium align-middle"
-                  style={{ width: W_NAME, minWidth: W_NAME, left: NAME_LEFT, position: "sticky" }}
-                >{dim}</th>
-                {dim === "项目" && (
+                {dim === "项目" ? (
                   <>
                     <th
-                      rowSpan={2}
+                      rowSpan={3}
                       className="sticky top-0 z-20 bg-[#F1F5F9] border-b border-[#E2E8F0] px-3 py-2 text-left font-medium align-middle whitespace-nowrap"
-                      style={{ minWidth: 92 }}
-                    >业态</th>
+                      style={{ minWidth: 110 }}
+                    >城市群组</th>
+                    <th
+                      rowSpan={3}
+                      className="sticky top-0 z-20 bg-[#F1F5F9] border-b border-[#E2E8F0] px-3 py-2 text-left font-medium align-middle whitespace-nowrap"
+                      style={{ minWidth: 110 }}
+                    >城市公司</th>
+                    <th
+                      rowSpan={3}
+                      className="sticky top-0 z-20 bg-[#F1F5F9] border-b border-[#E2E8F0] px-3 py-2 text-left font-medium align-middle whitespace-nowrap"
+                      style={{ minWidth: 160 }}
+                    >项目</th>
                     <ThSortable
-                      rowSpan={2}
+                      rowSpan={3}
                       onClick={() => onSort("openDate")}
                       sortIcon={sortIcon("openDate")}
                       align="left"
                     >开盘时间</ThSortable>
                   </>
+                ) : (
+                  <th
+                    rowSpan={3}
+                    className="sticky top-0 z-30 bg-[#F1F5F9] border-b border-r border-[#E2E8F0] px-3 py-2 text-left font-medium align-middle"
+                    style={{ width: W_NAME, minWidth: W_NAME, left: NAME_LEFT, position: "sticky" }}
+                  >{dim}</th>
                 )}
-                <ThSortable rowSpan={2} onClick={() => onSort("startStock")} sortIcon={sortIcon("startStock")}>{L.startStock}</ThSortable>
-                <ThSortable rowSpan={2} onClick={() => onSort("newAdd")} sortIcon={sortIcon("newAdd")}>{L.newAdd}</ThSortable>
-                <th colSpan={3} className="sticky top-0 z-20 bg-[#F1F5F9] border-b border-l border-[#E2E8F0] px-3 py-2 text-center font-medium">{L.sold}</th>
-                <th colSpan={3} className="sticky top-0 z-20 bg-[#F1F5F9] border-b border-l border-[#E2E8F0] px-3 py-2 text-center font-medium">剩余在售</th>
-                <th colSpan={3} className="sticky top-0 z-20 bg-[#F1F5F9] border-b border-l border-[#E2E8F0] px-3 py-2 text-center font-medium">去化率</th>
+                <th className={groupTh} colSpan={11}>月度</th>
+                <th className={groupTh} colSpan={11}>年度</th>
               </tr>
-              <tr className="bg-[#F8FAFC] text-[11.5px]">
-                <ThSortable onClick={() => onSort("soldOld")} sortIcon={sortIcon("soldOld")} bordered>{L.soldOld}</ThSortable>
-                <ThSortable onClick={() => onSort("soldNew")} sortIcon={sortIcon("soldNew")}>{L.soldNew}</ThSortable>
-                <th className="sticky top-0 z-20 bg-[#F8FAFC] border-b border-[#EEF2F7] px-3 py-1.5 text-right font-normal text-[#64748B] whitespace-nowrap">{L.subtotal}</th>
-                <ThSortable onClick={() => onSort("remainOld")} sortIcon={sortIcon("remainOld")} bordered>{L.remainOld}</ThSortable>
-                <ThSortable onClick={() => onSort("remainNew")} sortIcon={sortIcon("remainNew")}>{L.remainNew}</ThSortable>
-                <th className="sticky top-0 z-20 bg-[#F8FAFC] border-b border-[#EEF2F7] px-3 py-1.5 text-right font-normal text-[#64748B] whitespace-nowrap">{L.subtotal}</th>
-                <ThSortable onClick={() => onSort("rateYearTarget")} sortIcon={sortIcon("rateYearTarget")} bordered>{L.ratePrimary}</ThSortable>
-                <ThSortable onClick={() => onSort("rateCurTarget")} sortIcon={sortIcon("rateCurTarget")}>{L.rateCurrent}</ThSortable>
-                <ThSortable onClick={() => onSort("rateOldStock")} sortIcon={sortIcon("rateOldStock")}>{L.rateOldStock}</ThSortable>
+              <tr>
+                {subSortable("startStock", `月初库存${u}`, "monthStartStock")}
+                {subSortable("newAdd", `本月新增${u}`, "monthNewAdd")}
+                <th className={subTh} colSpan={3}>本月已售</th>
+                <th className={subTh} colSpan={3}>剩余在售</th>
+                <th className={subTh} colSpan={3}>去化率</th>
+                {subSortable("startStock", `年初库存${u}`, "yearStartStock")}
+                {subSortable("newAdd", `本年新增${u}`, "yearNewAdd")}
+                <th className={subTh} colSpan={3}>本年已售</th>
+                <th className={subTh} colSpan={3}>剩余在售</th>
+                <th className={subTh} colSpan={3}>去化率</th>
+              </tr>
+              <tr>
+                {leafSortable("soldOld", `月初库存${u}`, true, "monthSoldOld")}
+                {leafSortable("soldNew", `本月新供${u}`, true, "monthSoldNew")}
+                {leafSortable("soldNew", `小计${u}`, true, "monthSoldTotal")}
+                {leafSortable("remainOld", `月初库存${u}`, true, "monthRemainOld")}
+                {leafSortable("remainNew", `本月新供${u}`, true, "monthRemainNew")}
+                {leafSortable("remainNew", `小计${u}`, true, "monthRemainTotal")}
+                {leafSortable("rateOldStock", `月度${mode}`, true, "monthRateOldStock")}
+                {leafSortable("rateCurTarget", `本月${mode}`, true, "monthRateCur")}
+                {leafSortable("rateCurTarget", "小计", true, "monthRateTotal")}
+                {leafSortable("soldOld", `年初库存${u}`, true, "yearSoldOld")}
+                {leafSortable("soldNew", `本年新供${u}`, true, "yearSoldNew")}
+                {leafSortable("soldNew", `小计${u}`, true, "yearSoldTotal")}
+                {leafSortable("remainOld", `年初库存${u}`, true, "yearRemainOld")}
+                {leafSortable("remainNew", `本年新供${u}`, true, "yearRemainNew")}
+                {leafSortable("remainNew", `小计${u}`, true, "yearRemainTotal")}
+                {leafSortable("rateOldStock", `年度${mode}`, true, "yearRateOldStock")}
+                {leafSortable("rateCurTarget", `当年${mode}`, true, "yearRateCur")}
+                {leafSortable("rateYearTarget", "小计", true, "yearRateTotal")}
               </tr>
             </thead>
             <tbody>
@@ -683,8 +790,6 @@ export function RateDetailDialog({
                 const indexLabel = isTop
                   ? String(pageStart + visibleRows.slice(0, idx + 1).filter((row) => row.level === targetLevel).length).padStart(2, "0")
                   : "";
-                const soldSub = +(r.soldNew + r.soldOld).toFixed(2);
-                const remainSub = +(r.remainNew + r.remainOld).toFixed(2);
                 return (
                   <tr
                     key={r.id + "-" + idx}
@@ -694,53 +799,44 @@ export function RateDetailDialog({
                       className="sticky left-0 z-10 bg-inherit group-hover:bg-[#F5F9FF] border-b border-[#F1F5F9] px-3 py-2.5 text-center text-[#64748B] tabular-nums"
                       style={{ width: W_IDX, minWidth: W_IDX }}
                     >{indexLabel}</td>
-                    <td
-                      className="sticky z-10 bg-inherit group-hover:bg-[#F5F9FF] border-b border-r border-[#F1F5F9] px-3 py-2.5 text-[#1E293B]"
-                      style={{ width: W_NAME, minWidth: W_NAME, left: NAME_LEFT }}
-                    >
-                      <div className="flex items-center" style={{ paddingLeft: indent }}>
-                        {hasChildren ? (
-                          <button
-                            onClick={() => toggleExpand(r.id)}
-                            className="icon-sm mr-2 inline-flex items-center justify-center text-token-tertiary hover:text-[var(--color-brand)] cursor-pointer"
-                            aria-label={isExpanded ? "收起" : "展开"}
-                          >
-                            {isExpanded ? <ChevronDown className="icon-sm" /> : <ChevronRight className="icon-sm" />}
-                          </button>
-                        ) : (
-                          <span className="icon-sm mr-2 inline-block" />
-                        )}
-                        <HierarchyTag type={LEVEL_TYPES[r.level] ?? "cityGroup"} />
-                        <span className={isTop ? "font-medium text-[#1E293B] ml-2.5" : "text-[#475569] ml-2.5"}>{r.name}</span>
-                      </div>
-                    </td>
-                    {dim === "项目" && (
+                    {dim === "项目" ? (
                       <>
-                        <td className="px-3 py-2.5 text-left text-[#475569] border-b border-[#F1F5F9] whitespace-nowrap" style={{ minWidth: 92 }}>
-                          {r.level === 3 ? (r.bizType || "--") : "--"}
-                        </td>
+                        <td className="px-3 py-2.5 text-left text-[#475569] border-b border-[#F1F5F9] whitespace-nowrap">{projectExtra(r).cityGroup ?? "--"}</td>
+                        <td className="px-3 py-2.5 text-left text-[#475569] border-b border-[#F1F5F9] whitespace-nowrap">{projectExtra(r).cityCompany ?? "--"}</td>
+                        <td className="px-3 py-2.5 text-left text-[#1E293B] border-b border-[#F1F5F9] whitespace-nowrap font-medium">{r.name}</td>
                         <td className="px-3 py-2.5 text-left text-[#475569] border-b border-[#F1F5F9] whitespace-nowrap tabular-nums" style={{ minWidth: 120 }}>
-                          {r.level === 3 ? (r.openDate || "--") : "--"}
+                          {r.openDate || "--"}
                         </td>
                       </>
+                    ) : (
+                      <td
+                        className="sticky z-10 bg-inherit group-hover:bg-[#F5F9FF] border-b border-r border-[#F1F5F9] px-3 py-2.5 text-[#1E293B]"
+                        style={{ width: W_NAME, minWidth: W_NAME, left: NAME_LEFT }}
+                      >
+                        <div className="flex items-center" style={{ paddingLeft: indent }}>
+                          {hasChildren ? (
+                            <button
+                              onClick={() => toggleExpand(r.id)}
+                              className="icon-sm mr-2 inline-flex items-center justify-center text-token-tertiary hover:text-[var(--color-brand)] cursor-pointer"
+                              aria-label={isExpanded ? "收起" : "展开"}
+                            >
+                              {isExpanded ? <ChevronDown className="icon-sm" /> : <ChevronRight className="icon-sm" />}
+                            </button>
+                          ) : (
+                            <span className="icon-sm mr-2 inline-block" />
+                          )}
+                          <HierarchyTag type={LEVEL_TYPES[r.level] ?? "cityGroup"} />
+                          <span className={isTop ? "font-medium text-[#1E293B] ml-2.5" : "text-[#475569] ml-2.5"}>{r.name}</span>
+                        </div>
+                      </td>
                     )}
-                    {numCell(r.startStock)}
-                    {numCell(r.newAdd)}
-                    <td className="px-3 py-2.5 text-right tabular-nums text-[#475569] border-b border-l border-[#F1F5F9]">{fmt2(r.soldOld)}</td>
-                    {numCell(r.soldNew)}
-                    <td className="px-3 py-2.5 text-right tabular-nums text-[#1E293B] font-medium border-b border-[#F1F5F9]">{fmt2(soldSub)}</td>
-                    <td className="px-3 py-2.5 text-right tabular-nums text-[#475569] border-b border-l border-[#F1F5F9]">{fmt2(r.remainOld)}</td>
-                    {numCell(r.remainNew)}
-                    <td className="px-3 py-2.5 text-right tabular-nums text-[#1E293B] font-medium border-b border-[#F1F5F9]">{fmt2(remainSub)}</td>
-                    <td className="px-3 py-2.5 text-right tabular-nums border-b border-l border-[#F1F5F9] text-[var(--color-brand)] font-medium">{pct(r.rateYearTarget)}</td>
-                    {numCell(r.rateCurTarget, true)}
-                    {numCell(r.rateOldStock, true)}
+                    {metricCells(r)}
                   </tr>
                 );
               })}
               {visibleRows.length === 0 && (
                 <tr>
-                  <td colSpan={dim === "项目" ? 14 : 12} className="px-3 py-16 text-center text-[#94A3B8]">暂无数据</td>
+                  <td colSpan={dim === "项目" ? 27 : 24} className="px-3 py-16 text-center text-[#94A3B8]">暂无数据</td>
                 </tr>
               )}
             </tbody>

@@ -140,7 +140,7 @@ export function CityRankDetailDialog({
   const isProject = mode === "project";
   const [keyword, setKeyword] = useState("");
   const [group, setGroup] = useState<(typeof GROUPS)[number]>("全部城市群组");
-  const defaultSortKey: NumKey = tab === "月度签约" ? "monthSigned" : tab === "未售货值金额" ? "unsold" : "yearSigned";
+  const defaultSortKey: NumKey = tab === "月度签约" ? "monthSigned" : tab === "未售货值金额" ? "unsold" : "yearAchieve";
   const [sortKey, setSortKey] = useState<NumKey>(defaultSortKey);
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   useEffect(() => { setSortKey(defaultSortKey); setSortDir("desc"); }, [defaultSortKey, open]);
@@ -298,9 +298,6 @@ export function CityRankDetailDialog({
                 {GROUPS.map((g) => <option key={g} value={g}>{g}</option>)}
               </select>
             )}
-            <div className="h-7 px-2 inline-flex items-center text-[12px] text-[#64748B] rounded-md border border-[#E2E8F0] bg-white">
-              统计周期：<span className="text-[#1E293B] font-medium ml-1">{(() => { const [y, m, d] = (date || "").split("-"); return y && m && d ? `${y}年${parseInt(m, 10)}月${parseInt(d, 10)}日` : "--"; })()}</span>
-            </div>
             <ExportButton onClick={onExport} className="ml-auto" />
           </div>
 

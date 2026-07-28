@@ -470,10 +470,13 @@ function GroupedTable({
   sortDir: SortDir;
   onSort: (k: SortKey) => void;
 }) {
+  const sortedTextClass = (k: SortKey, fallback = "text-[#1E293B]") => (
+    sortKey === k ? "text-[#3B82F6] font-medium" : fallback
+  );
   const Th = ({ k, children, leftBorder }: { k: SortKey; children: React.ReactNode; leftBorder?: boolean }) => (
     <th
       onClick={() => onSort(k)}
-      className={`bg-[#F1F5F9] text-[#1E293B] px-3 py-2 text-right font-semibold whitespace-nowrap cursor-pointer select-none border-b border-[#E2E8F0] ${leftBorder ? "border-l border-[#E2E8F0]" : ""}`}
+      className={`bg-[#F1F5F9] px-3 py-2 text-right font-semibold whitespace-nowrap cursor-pointer select-none border-b border-[#E2E8F0] ${sortKey === k ? "text-[#3B82F6]" : "text-[#1E293B]"} ${leftBorder ? "border-l border-[#E2E8F0]" : ""}`}
     >
       <span className="inline-flex items-center gap-1 justify-end">
         {children}
@@ -530,18 +533,18 @@ function GroupedTable({
                   </td>
                 )}
                 <td className={`px-3 py-2.5 text-left text-[#1E293B] border-b border-r border-[#EEF1F6] whitespace-nowrap`}>{r.name}</td>
-                <MoneyTd value={r.doneStart} className="border-b border-l border-[#EEF1F6] text-[#1E293B]" />
-                <MoneyTd value={r.doneNew} className="border-b border-[#EEF1F6] text-[#1E293B]" />
-                <MoneyTd value={doneSub} className="border-b border-r border-[#EEF1F6] text-[#1E293B] font-medium" />
-                <MoneyTd value={r.soldStart} className="border-b border-[#EEF1F6] text-[#1E293B]" />
-                <MoneyTd value={r.soldNew} className="border-b border-[#EEF1F6] text-[#1E293B]" />
-                <MoneyTd value={soldSub} className="border-b border-r border-[#EEF1F6] text-[#1E293B] font-medium" />
-                <MoneyTd value={remainStart} className="border-b border-l border-[#EEF1F6] text-[#1E293B]" />
-                <MoneyTd value={remainNew} className="border-b border-[#EEF1F6] text-[#1E293B]" />
-                <MoneyTd value={remainSub} className="border-b border-r border-[#EEF1F6] text-[#1E293B] font-medium" />
-                <td className="px-3 py-2.5 text-right tabular-nums border-b border-[#EEF1F6] text-[#1E293B]">{pct2(r.rateStart)}</td>
-                <td className="px-3 py-2.5 text-right tabular-nums border-b border-[#EEF1F6] text-[#1E293B]">{pct2(r.rateNew)}</td>
-                <td className="px-3 py-2.5 text-right tabular-nums border-b border-[#EEF1F6] text-[#3B82F6] font-medium">{pct2(rateSub)}</td>
+                <MoneyTd value={r.doneStart} className={`border-b border-l border-[#EEF1F6] ${sortedTextClass("doneStart")}`} />
+                <MoneyTd value={r.doneNew} className={`border-b border-[#EEF1F6] ${sortedTextClass("doneNew")}`} />
+                <MoneyTd value={doneSub} className={`border-b border-r border-[#EEF1F6] ${sortedTextClass("doneSub", "text-[#1E293B] font-medium")}`} />
+                <MoneyTd value={r.soldStart} className={`border-b border-[#EEF1F6] ${sortedTextClass("soldStart")}`} />
+                <MoneyTd value={r.soldNew} className={`border-b border-[#EEF1F6] ${sortedTextClass("soldNew")}`} />
+                <MoneyTd value={soldSub} className={`border-b border-r border-[#EEF1F6] ${sortedTextClass("soldSub", "text-[#1E293B] font-medium")}`} />
+                <MoneyTd value={remainStart} className={`border-b border-l border-[#EEF1F6] ${sortedTextClass("remainStart")}`} />
+                <MoneyTd value={remainNew} className={`border-b border-[#EEF1F6] ${sortedTextClass("remainNew")}`} />
+                <MoneyTd value={remainSub} className={`border-b border-r border-[#EEF1F6] ${sortedTextClass("remainSub", "text-[#1E293B] font-medium")}`} />
+                <td className={`px-3 py-2.5 text-right tabular-nums border-b border-[#EEF1F6] ${sortedTextClass("rateStart")}`}>{pct2(r.rateStart)}</td>
+                <td className={`px-3 py-2.5 text-right tabular-nums border-b border-[#EEF1F6] ${sortedTextClass("rateNew")}`}>{pct2(r.rateNew)}</td>
+                <td className={`px-3 py-2.5 text-right tabular-nums border-b border-[#EEF1F6] ${sortedTextClass("rateSub", "text-[#1E293B] font-medium")}`}>{pct2(rateSub)}</td>
               </tr>
             );
           })}
@@ -557,18 +560,18 @@ function GroupedTable({
               <tr className="bg-[#EAF2FF] text-[#1E293B] font-semibold">
                 {withIndex && <td className="px-3 py-2.5 border-r border-[#DCE7F5]" />}
                 <td className="px-3 py-2.5 text-left border-r border-[#DCE7F5]">{r.name}</td>
-                <MoneyTd value={r.doneStart} className="border-l border-[#DCE7F5]" />
-                <MoneyTd value={r.doneNew} />
-                <MoneyTd value={doneSub} className="border-r border-[#DCE7F5]" />
-                <MoneyTd value={r.soldStart} />
-                <MoneyTd value={r.soldNew} />
-                <MoneyTd value={soldSub} className="border-r border-[#DCE7F5]" />
-                <MoneyTd value={remainStart} className="border-l border-[#DCE7F5]" />
-                <MoneyTd value={remainNew} />
-                <MoneyTd value={remainSub} className="border-r border-[#DCE7F5]" />
-                <td className="px-3 py-2.5 text-right tabular-nums text-[#3B82F6]">{pct2(r.rateStart)}</td>
-                <td className="px-3 py-2.5 text-right tabular-nums text-[#3B82F6]">{pct2(r.rateNew)}</td>
-                <td className="px-3 py-2.5 text-right tabular-nums text-[#3B82F6]">{pct2(rateSub)}</td>
+                <MoneyTd value={r.doneStart} className={`border-l border-[#DCE7F5] ${sortedTextClass("doneStart")}`} />
+                <MoneyTd value={r.doneNew} className={sortedTextClass("doneNew")} />
+                <MoneyTd value={doneSub} className={`border-r border-[#DCE7F5] ${sortedTextClass("doneSub", "text-[#1E293B] font-semibold")}`} />
+                <MoneyTd value={r.soldStart} className={sortedTextClass("soldStart")} />
+                <MoneyTd value={r.soldNew} className={sortedTextClass("soldNew")} />
+                <MoneyTd value={soldSub} className={`border-r border-[#DCE7F5] ${sortedTextClass("soldSub", "text-[#1E293B] font-semibold")}`} />
+                <MoneyTd value={remainStart} className={`border-l border-[#DCE7F5] ${sortedTextClass("remainStart")}`} />
+                <MoneyTd value={remainNew} className={sortedTextClass("remainNew")} />
+                <MoneyTd value={remainSub} className={`border-r border-[#DCE7F5] ${sortedTextClass("remainSub", "text-[#1E293B] font-semibold")}`} />
+                <td className={`px-3 py-2.5 text-right tabular-nums ${sortedTextClass("rateStart")}`}>{pct2(r.rateStart)}</td>
+                <td className={`px-3 py-2.5 text-right tabular-nums ${sortedTextClass("rateNew")}`}>{pct2(r.rateNew)}</td>
+                <td className={`px-3 py-2.5 text-right tabular-nums ${sortedTextClass("rateSub", "text-[#1E293B] font-semibold")}`}>{pct2(rateSub)}</td>
               </tr>
             );
           })()}
@@ -626,9 +629,9 @@ export function DoneUnsoldDetailDialog({ open, onOpenChange }: { open: boolean; 
   const [activeYe, setActiveYe] = useState<YeType>("住宅");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-  const [sortKey, setSortKey] = useState<SortKey | null>("rateSub");
+  const [sortKey, setSortKey] = useState<SortKey | null>("rateStart");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
-  const [sumSortKey, setSumSortKey] = useState<SortKey | null>("rateSub");
+  const [sumSortKey, setSumSortKey] = useState<SortKey | null>("rateStart");
   const [sumSortDir, setSumSortDir] = useState<SortDir>("desc");
   const [projectKeyword, setProjectKeyword] = useState("");
 
@@ -647,8 +650,8 @@ export function DoneUnsoldDetailDialog({ open, onOpenChange }: { open: boolean; 
 
   useEffect(() => {
     setPage(1);
-    // 切换业态 tab 时恢复默认排序：去化率小计降序
-    setSortKey("rateSub");
+    // 切换业态 tab 时恢复默认排序：年初库存去化率降序
+    setSortKey("rateStart");
     setSortDir("desc");
   }, [activeYe]);
   useEffect(() => { setPage(1); }, [pageSize, projectKeyword]);
