@@ -2293,17 +2293,72 @@ function MarketingTab() {
 const X_LABEL: Record<"L" | "M" | "H", string> = { L: "低", M: "正常", H: "高" };
 const Y_LABEL: Record<"L" | "M" | "H", string> = { L: "弱", M: "正常", H: "强" };
 
+function getProjectSummaryBlockReason(
+  project: (typeof groupProjectAnalysisData)[number],
+  target: ReturnType<typeof enrichProjects>[number] | undefined,
+  displayName: string,
+) {
+  const source = project as typeof project & {
+    biz_type?: string;
+    proj_goods_dep_rate?: number;
+    err_desc?: string | null;
+    open_time?: string | null;
+  };
+  const enriched = target as typeof target & {
+    biz_type?: string;
+    proj_goods_dep_rate?: number;
+    err_desc?: string | null;
+    open_time?: string | null;
+  };
+  const bizType = source.biz_type ?? enriched?.biz_type ?? source.businessType;
+  if (bizType && bizType !== "住宅") {
+    return `${displayName} 项目属于非住宅业态，暂不纳入多维分析模型，后续计划接入外部市场数据，实现模型覆盖。`;
+  }
+
+  const depRate = source.proj_goods_dep_rate ?? enriched?.proj_goods_dep_rate ?? source.snakeSellThroughRate;
+  if (depRate === 0) {
+    return `${displayName} 项目暂无成交数据支撑，暂不纳入多维分析。`;
+  }
+  if (typeof depRate === "number" && depRate >= 1) {
+    return `${displayName} 项目已售罄，暂不纳入多维分析。`;
+  }
+
+  const explicitErrDesc = source.err_desc ?? enriched?.err_desc;
+  const derivedErrDesc =
+    explicitErrDesc ??
+    (!target
+      ? null
+      : target.cmbValuationPrice <= 0 && target.marketSellThroughRate <= 0
+        ? "中介估值缺失，竞品去化缺失"
+        : target.cmbValuationPrice <= 0
+          ? "中介估值缺失"
+          : target.marketSellThroughRate <= 0
+            ? "竞品去化缺失"
+            : null);
+  if (derivedErrDesc) {
+    return `${displayName} 【指标提醒：${derivedErrDesc}，暂无法进行多维分析。】`;
+  }
+
+  if (!target) {
+    return `暂无 ${displayName} 的多维分析数据。`;
+  }
+
+  return null;
+}
+
 function ProjectSummaryCard({ project, compareMode }: { project: (typeof groupProjectAnalysisData)[number]; compareMode: CompareMode }) {
   const enriched = useMemo(() => enrichProjects(groupProjectAnalysisData, compareMode), [compareMode]);
   const target = enriched.find((p) => p.projectId === project.projectId);
   const displayName = formatProjectName(project.projectName);
-  if (!target) {
+  const blockReason = getProjectSummaryBlockReason(project, target, displayName);
+  if (blockReason) {
     return (
       <div className="bg-white rounded-xl border border-[#EEF2F7] p-4 text-sm text-muted-foreground">
-        暂无 {displayName} 的多维分析数据。
+        {blockReason}
       </div>
     );
   }
+  if (!target) return null;
   const cumulative = target.snakeSellThroughRate;
   const m12 = Math.max(0, Math.min(1, cumulative * 0.72));
   const m3 = Math.max(0, Math.min(1, cumulative * 0.28));
