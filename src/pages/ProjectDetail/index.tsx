@@ -298,6 +298,9 @@ export default function ProjectDetail() {
     const unsoldValue = round2(project.remainingValue);
     const yearSupplied = round2(unsoldValue * rand(seed + 2, 0.5, 0.8));
     const yearTarget = round2(yearSupplied * rand(seed + 3, 1.05, 1.25));
+    const newLandValue = round2(unsoldValue * rand(seed + 22, 0.08, 0.18));
+    const beginningDeltaAmount = round2(-unsoldValue * rand(seed + 23, 0.02, 0.08));
+    const newLandAvgEquity = round2(rand(seed + 24, 62, 86));
     const yoy = -(rand(seed + 4, 5, 18));
     const mom = rand(seed + 5, 0.1, 1.5);
     const notStarted = round2(totalValue * 0.42);
@@ -313,6 +316,9 @@ export default function ProjectDetail() {
       unsoldValue,
       yearSupplied,
       yearTarget,
+      newLandValue,
+      beginningDeltaAmount,
+      newLandAvgEquity,
       yoy,
       mom,
       supplyRate: (yearSupplied / yearTarget) * 100,
@@ -952,13 +958,13 @@ function SupplyCard({ detail }: { detail: DetailShape }) {
     <section className="h-full flex flex-col bg-white rounded-xl border border-[#EEF2F7] shadow-[0_1px_2px_rgba(15,23,42,0.04)] px-4 py-3">
       <div className="flex items-center gap-1.5 mb-4">
         <span className="w-1 h-3.5 rounded-sm bg-[var(--color-brand)]" />
-        <span className="text-[14px] font-medium text-[#1E293B]">总货值及供货</span>
+        <span className="text-[14px] font-medium text-[#1E293B]">总货值</span>
       </div>
 
       <div className="grid grid-cols-2 gap-x-6 gap-y-2 [grid-template-rows:auto_auto_auto] items-end">
         {/* Row 1: Labels */}
         <MetricLabel label="未售总货值" metric="未售总货值" />
-        <MetricLabel label="年累计供货" metric="新拿地货值" />
+        <MetricLabel label="新拿地货值" metric="新拿地货值" />
 
         {/* Row 2: Main values */}
         {(() => {
@@ -971,7 +977,7 @@ function SupplyCard({ detail }: { detail: DetailShape }) {
           );
         })()}
         {(() => {
-          const s = autoAmountFromYi(detail.yearSupplied);
+          const s = autoAmountFromYi(detail.newLandValue);
           return (
             <div className="flex items-baseline gap-1">
               <span className="text-[22px] font-bold leading-none tabular-nums text-[#1677FF]">{s.num}</span>
@@ -981,25 +987,23 @@ function SupplyCard({ detail }: { detail: DetailShape }) {
         })()}
 
         {/* Row 3: Footer (trends / progress) — bottom aligned */}
-        <div className="flex items-center gap-3 pt-1">
-          <TrendTag value={detail.yoy} label="同比" />
-          <TrendTag value={detail.mom} label="环比" />
+        <div className="flex flex-col justify-end gap-1 pt-1">
+          <span className="text-[11px] text-[#6B7280]">环比年初变化金额</span>
+          {(() => {
+            const d = autoAmountFromYi(Math.abs(detail.beginningDeltaAmount));
+            const isUp = detail.beginningDeltaAmount >= 0;
+            return (
+              <span className="text-[12px] font-medium tabular-nums" style={{ color: isUp ? "#DC2626" : "#059669" }}>
+                {isUp ? "+" : "-"}{d.num} {d.unit}
+              </span>
+            );
+          })()}
         </div>
-        <div className="pt-1">
-          <div className="h-1.5 rounded-full bg-[#EEF2F7] overflow-hidden">
-            <div
-              className="h-full rounded-full bg-gradient-to-r from-[#BFDBFE] via-[#60A5FA] to-[#1677FF]"
-              style={{ width: `${Math.min(100, detail.supplyRate)}%` }}
-            />
-          </div>
-          <div className="mt-1.5 flex items-center justify-between text-[11px] tabular-nums text-[#6B7280]">
-            <span>
-              目标 <span className="text-[#374151]">{(() => { const t = autoAmountFromYi(detail.yearTarget); return `${t.num} ${t.unit}`; })()}</span>
-            </span>
-            <span>
-              达成 <span className="text-[#374151] font-medium">{detail.supplyRate.toFixed(2)}%</span>
-            </span>
-          </div>
+        <div className="flex flex-col justify-end gap-1 pt-1">
+          <span className="text-[11px] text-[#6B7280]">新拿地项目平均权益比</span>
+          <span className="text-[12px] font-medium tabular-nums text-[#111827]">
+            {detail.newLandAvgEquity.toFixed(2)}%
+          </span>
         </div>
       </div>
 
@@ -1009,55 +1013,58 @@ function SupplyCard({ detail }: { detail: DetailShape }) {
         {(() => {
           const unsold = detail.unsoldValue;
           const roundAmount = (n: number) => Math.round(n * 100) / 100;
-          const unopened = roundAmount(unsold * 0.34);
-          const unavailable = roundAmount(unsold * 0.2);
-          const selling = roundAmount(Math.max(0, unsold - unopened - unavailable));
-          const availableUncertified = roundAmount(selling * 0.19);
-          const availableCertified = roundAmount(selling * 0.33);
-          const completedUncertified = roundAmount(selling * 0.05);
-          const completedCertified = roundAmount(Math.max(0, selling - availableUncertified - availableCertified - completedUncertified));
+          const landReserve = roundAmount(unsold * 0.28);
+          const building = roundAmount(unsold * 0.51);
+          const completed = roundAmount(Math.max(0, unsold - landReserve - building));
+          const startedNoPresell = roundAmount(building * 0.84);
+          const buildNoCert = roundAmount(building * 0.14);
+          const buildCertified = roundAmount(Math.max(0, building - startedNoPresell - buildNoCert));
+          const doneNoCert = roundAmount(completed * 0.8);
+          const doneCertified = roundAmount(Math.max(0, completed - doneNoCert));
           const stages = [
             {
               step: 1,
-              label: "未开工",
-              value: unopened,
+              label: "土储",
+              value: landReserve,
               tint: "#64748B",
               bg: "#FFF7ED",
               itemTone: "bg-slate-50 text-slate-600",
               valueTone: "text-slate-600",
               cols: "grid-cols-1",
-              items: [{ label: "土地储备", value: unopened }],
+              items: [] as { label: string; value: number; pct: number }[],
             },
             {
               step: 2,
-              label: "开工不可售",
-              value: unavailable,
+              label: "在建",
+              value: building,
               tint: "#D97706",
               bg: "#FFF7ED",
               itemTone: "bg-orange-50 text-[#C2410C]",
               valueTone: "text-[#C2410C]",
               cols: "grid-cols-1",
-              items: [{ label: "开工未达预售", value: unavailable }],
+              items: [
+                { label: "开工未达预售", value: startedNoPresell, pct: unsold > 0 ? (startedNoPresell / unsold) * 100 : 0 },
+                { label: "在建达售未取证", value: buildNoCert, pct: unsold > 0 ? (buildNoCert / unsold) * 100 : 0 },
+                { label: "在建已取证", value: buildCertified, pct: unsold > 0 ? (buildCertified / unsold) * 100 : 0 },
+              ],
             },
             {
               step: 3,
-              label: "在售",
-              value: selling,
+              label: "竣工",
+              value: completed,
               tint: "#1677FF",
               bg: "#EFF6FF",
               itemTone: "bg-blue-50 text-[#1D4ED8]",
               valueTone: "text-[#1D4ED8]",
-              cols: "grid-cols-2",
+              cols: "grid-cols-1",
               items: [
-                { label: "在建达售未取证", value: availableUncertified },
-                { label: "已竣工未取证未售", value: completedUncertified },
-                { label: "在建已取证未售", value: availableCertified },
-                { label: "已竣工已取证未售", value: completedCertified },
+                { label: "已竣工未取证", value: doneNoCert, pct: unsold > 0 ? (doneNoCert / unsold) * 100 : 0 },
+                { label: "已竣工已取证未售", value: doneCertified, pct: unsold > 0 ? (doneCertified / unsold) * 100 : 0 },
               ],
             },
           ];
           return (
-            <div className="grid grid-cols-[minmax(82px,0.75fr)_auto_minmax(108px,0.9fr)_auto_minmax(0,2fr)] gap-1.5 items-start overflow-hidden">
+            <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)_auto_minmax(0,1fr)] gap-1.5 items-start overflow-hidden">
               {stages.map((s, i, arr) => (
                 <Fragment key={s.step}>
                   <div className="min-w-0">
@@ -1080,11 +1087,16 @@ function SupplyCard({ detail }: { detail: DetailShape }) {
                       {s.items.map((item) => (
                         <div
                           key={item.label}
-                          className={`min-h-6 rounded-md pl-2 pr-5 py-1 flex items-center justify-between gap-1 min-w-0 ${s.itemTone}`}
+                          className={`min-h-6 rounded-md px-2 py-1 flex items-center justify-between gap-1.5 min-w-0 ${s.itemTone}`}
                         >
-                          <span className="text-[11px] leading-tight break-keep shrink-0">{item.label}</span>
-                          <span className={`w-8 text-right text-[11px] font-bold tabular-nums whitespace-nowrap shrink-0 ${s.valueTone}`}>
-                            {item.value.toFixed(2)}
+                          <span className="text-[11px] leading-tight truncate min-w-0">{item.label}</span>
+                          <span className="inline-flex items-baseline gap-2 shrink-0">
+                            <span className={`text-right text-[11px] font-bold tabular-nums whitespace-nowrap ${s.valueTone}`}>
+                              {item.value.toFixed(2)}
+                            </span>
+                            <span className="text-[10px] tabular-nums whitespace-nowrap opacity-75">
+                              {item.pct.toFixed(2)}%
+                            </span>
                           </span>
                         </div>
                       ))}
@@ -2064,6 +2076,9 @@ interface DetailShape {
   unsoldValue: number;
   yearSupplied: number;
   yearTarget: number;
+  newLandValue: number;
+  beginningDeltaAmount: number;
+  newLandAvgEquity: number;
   yoy: number;
   mom: number;
   supplyRate: number;

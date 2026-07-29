@@ -476,7 +476,7 @@ function Sparkline({
 
 // 7 张核心卡片指标的缩略趋势（近 6 期，mock）
 const SPARK_TRENDS: Record<string, number[]> = {
-  总未售货值: [612, 605, 598, 594, 588, 585],
+  未售总货值: [612, 605, 598, 594, 588, 585],
   新拿地货值: [42, 55, 63, 71, 80, 86],
   土储: [180, 172, 168, 162, 158, 155],
   在建: [260, 268, 272, 278, 282, 285],
@@ -489,8 +489,10 @@ const SPARK_TRENDS: Record<string, number[]> = {
 
 function StageDistributionCard({
   metricMode = "amount" as "amount" | "area",
+  caliber = "full" as "equity" | "full",
 }: {
   metricMode?: "amount" | "area";
+  caliber?: "equity" | "full";
 }) {
 
 
@@ -541,13 +543,17 @@ function StageDistributionCard({
     },
   ];
 
+  const totalAll = UNSOLD_TOTAL_BY_CALIBER[caliber] * areaFactor;
+  const rawStageTotal = rawStages.reduce((sum, s) => sum + s.total, 0);
+  const stageScale = rawStageTotal > 0 ? UNSOLD_TOTAL_BY_CALIBER[caliber] / rawStageTotal : 1;
+  const displayScale = stageScale * areaFactor;
+
   const stages = rawStages.map((s) => ({
     ...s,
-    total: s.total * areaFactor,
-    items: s.items.map((it) => ({ ...it, value: it.value * areaFactor })),
+    total: s.total * displayScale,
+    items: s.items.map((it) => ({ ...it, value: it.value * displayScale })),
   }));
 
-  const totalAll = 568 * areaFactor;
   const hasStageData = stages.some((s) => s.total > 0 || s.items.some((it) => it.value > 0));
 
   return (
@@ -1527,9 +1533,9 @@ function HomePage() {
       moduleId: "total-value-kpi",
       title: "总货值",
       desc: [
-        "【展示内容】核心指标：总未售货值、新拿地货值（两项旁边均带有趋势小图标）；辅助指标：环比年初变化金额、新拿地项目平均权益比（权益比旁边带有提示小图标）。",
+        "【展示内容】核心指标：未售总货值、新拿地货值（当年新拿地），后面有趋势小图标；辅助指标：环比年初变化金额、新拿地项目平均权益比，后有问号图标。",
         "【交互规则】点击核心指标或其旁边的趋势图标，在下方弹出近 12 个月的折线图浮窗。浮窗颜色与卡片主色调一致。新拿地项目平均权益比右侧提供 info 图标 Hover 提示，展示计算公式。",
-        '【数据规则】总未售货值跟随顶部口径（全口径 / 权益）与指标（金额 / 面积）联动；新拿地项目平均权益比固定在全口径口径下展示，不受口径切换影响；金额单位统一为"亿"，面积单位为"万㎡"，数值统一保留 2 位小数；。趋势浮窗默认按"金额-亿"展示近 12 个月月末值，末月为当前时点值。',
+        '【数据规则】未售总货值跟随顶部口径（全口径 / 权益）与指标（金额 / 面积）联动；新拿地项目平均权益比固定在全口径口径下展示，不受口径切换影响；金额单位统一为"亿"，面积单位为"万㎡"，数值统一保留 2 位小数；。趋势浮窗默认按"金额-亿"展示近 12 个月月末值，末月为当前时点值。',
         '【边界处理】新拿地项目个数为 0 时，平均权益比展示"--"；趋势浮窗中某月无数据时，该点缺失，前后点断开，Tooltip 展示"--"。',
       ].join("\n"),
 
@@ -1540,10 +1546,10 @@ function HomePage() {
       moduleId: "stage-distribution",
       title: "总货值阶段分布",
       desc: [
-        '【展示内容】三列布局展示土储、在建、竣工三大阶段；每列顶部展示阶段序号、名称与趋势入口图标（ChartSpline，点击查看近 12 个月走势浮窗），阶段合计货值位于名称下方；有子级的阶段（在建、竣工）以胶囊标签展示子级名称、货值及占总未售货值占比；阶段之间以带右箭头的圆形分隔符连接，形成漏斗流向感。',
-        '【交互规则】点击任一阶段（土储 / 在建 / 竣工）的名称行或其趋势图标（含键盘 Enter / Space），以 Popover 形式在锚点下方弹出趋势浮窗，展示该阶段近 12 个月折线趋势（X 轴为月份，末月标注"当前"，当前点带光晕）；浮窗颜色统一使用阶段分布卡片主色——警告橙（#F59E0B）；Tooltip 同时展示当期、去年同月与同比变化。',
-        '【数据规则】阶段合计货值与子级货值之和保持一致；子级占比 = 子级货值 / 总未售货值基准，统一保留 2 位小数；金额单位为"亿"，面积单位为"万㎡"；模块跟随顶部"金额/面积"切换联动：切换为面积时，标题变为"总面积阶段分布"，占比保持不变。趋势浮窗默认按"金额-亿"展示近 12 个月月末值。',
-        '【边界处理】某阶段无子级时（如土储），仅展示阶段合计，不展示子级区域；子级货值为 0 时，胶囊标签仍可展示但数值置灰；所有阶段合计为 0 时，整个模块展示空状态提示"暂无阶段数据"；趋势浮窗中某月无数据时，该点缺失，Tooltip 展示"--"。',
+        '【展示内容】三列布局展示土储、在建、竣工三大阶段；每列顶部展示阶段序号、名称与趋势入口图标，阶段合计货值位于名称下方；有子级的阶段（在建、竣工）以胶囊标签展示子级名称、货值及占总未售货值占比。',
+        '【交互规则】点击任一阶段（土储 / 在建 / 竣工）的名称行或其趋势图标，在锚点下方弹出趋势浮窗，展示该阶段近 12 个月折线趋势（X 轴为月份，末月标注"当前"）；浮窗颜色统一使用阶段分布卡片主色；Tooltip 同时展示当期、去年同月与同比变化。',
+        '【数据规则】阶段合计货值与子级货值之和保持一致；子级占比 = 子级货值 / 总未售货值基准，统一保留 2 位小数；金额单位为"亿"，面积单位为"万㎡"；模块跟随顶部"金额/面积"切换联动：切换为面积时，标题变为"总面积阶段分布"。',
+        '【边界处理】某阶段无子级时（如土储），仅展示阶段合计，不展示子级；子级货值为 0 时，胶囊标签仍可展示但数值为0；趋势浮窗中某月无数据时，该点缺失，Tooltip 展示"--"。',
       ].join("\n"),
 
 
@@ -1620,10 +1626,10 @@ function HomePage() {
       moduleId: "onsale-waterfall",
       title: "在售货值变动瀑布图",
       desc: [
-        '【展示内容】瀑布图从左至右依次展示：年初在售货值（起始柱，主题蓝）、本年新达售/新取证货值（增量柱，红色向上）、本年销售货值（减量柱，绿色向下）、货值折损（减量柱，绿色向下）、当前剩余在售（终止柱）；顶部提供"达售 / 取证"口径切换按钮；每根柱体上方标注具体数值与单位（如 +88.20 亿 / -65.30 亿）。终止柱采用"双色堆叠"形态：当剩余大于年初时，下半段沿用主题蓝、高度等于年初在售且顶部为直角（不带圆角），上半段以浅红高亮显示净增量薄片、底部直角、仅顶部保留 4px 微圆角，避免薄片畸形；柱顶双行标注——第一行大字号显示当前剩余总货值（如 168.61 亿），第二行为带浅色底的胶囊 Tag 标出较年初净增（如 +5.15 亿）。',
-        '【交互规则】顶部按钮切换"达售/取证"口径，图表数据即时刷新；鼠标悬停普通柱体触发 Tooltip，展示节点名称与变动金额；悬停终止柱时 Tooltip 额外展示两行——"当前剩余在售 168.61 亿"与"较年初净增 +5.15 亿"（遵循"红加绿减"：正向增长为红色、负向减少为绿色）。',
-        '【数据规则】跟随顶部口径（全口径/权益）与指标（金额/面积）联动；勾稽关系：年初货值 + 本年新增 − 本年销售 − 货值折损 = 当前剩余在售；金额单位"亿"、面积单位"万㎡"；数值统一保留 2 位小数并千分位分隔；净增量 Tag 遵循"红加绿减"配色规范（正值红底红字、负值绿底绿字）。',
-        '【边界处理】当"当前剩余在售"小于"年初在售"（净减少）时，终止柱恢复为单色主色柱、顶部保留 4px 圆角、高度对应实际剩余值，柱顶 Tag 自动适配为负数与绿色（如 -10.00 亿）；某节点数值为 0 时柱体不渲染、标签展示 0.00；无数据时展示空状态"暂无在售货值数据"。',
+        '【展示内容】瀑布图从左至右依次展示：年初在售货值（起始柱，主题蓝）、本年新达售/新取证货值（增量柱，红色向上）、本年销售货值（减量柱，绿色向下）、货值折损（减量柱，绿色向下）、当前剩余在售（终止柱）；顶部提供"达售 / 取证"口径切换按钮；每根柱体上方标注具体数值与单位。终止柱采用"双色堆叠"形态：当剩余大于年初时，下半段沿用主题蓝、高度等于年初在售，上半段以浅红高亮显示净增量薄片；柱顶双行标注当前剩余总货值，第二行为带浅色底的胶囊 Tag 标出较年初净增。',
+        '【交互规则】顶部按钮切换"达售/取证"口径，图表数据即时刷新；鼠标悬停普通柱体触发 Tooltip，展示节点名称与变动金额；悬停终止柱时 Tooltip 额外展示两行，遵循"红加绿减"：正向增长为红色、负向减少为绿色。',
+        '【数据规则】跟随顶部口径（全口径/权益）与指标（金额/面积）联动；勾稽关系：年初货值 + 本年新增 − 本年销售 − 货值折损 = 当前剩余在售；金额单位"亿"、面积单位"万㎡"；数值统一保留 2 位小数并千分位分隔。',
+        '【边界处理】当"当前剩余在售"小于"年初在售"（净减少）时，终止柱恢复为单色主色柱，高度对应实际剩余值，柱顶 Tag 自动适配为负数与绿色；某节点数值为 0 时柱体不渲染、标签展示 0.00；无数据时展示空状态"暂无数据"。',
       ].join("\n"),
 
     },
@@ -1665,8 +1671,8 @@ function HomePage() {
       moduleId: "signing-amount-kpi",
       title: "签约金额",
       desc: [
-        '【展示内容】卡片展示年累计签约、当月签约两大核心指标；每个指标名称右侧内嵌趋势入口图标（ChartSpline），点击可查看近 12 个月走势浮窗；下方展示对应目标完成率与环比说明。',
-        '【交互规则】点击"年累计签约"或"当月签约"指标名称/趋势图标（含键盘 Enter / Space），以 Popover 形式在锚点下方弹出趋势浮窗，展示该指标近 12 个月折线趋势（X 轴为月份，末月标注"当前"，当前点带光晕）；浮窗颜色跟随所属卡片主色——签约金额卡片指标使用紫色（#8B5CF6）；Tooltip 同时展示当期、去年同月与同比变化。',
+        '【展示内容】卡片展示年累计签约、当月签约两大核心指标；每个指标名称右侧跟随趋势图标，下方展示对应目标完成率。',
+        '【交互规则】点击"年累计签约"或"当月签约"指标名称/趋势图标，锚点下方弹出趋势浮窗，展示该指标近 12 个月折线趋势（X 轴为月份，末月标注"当前"）；浮窗颜色跟随所属卡片主色；Tooltip 同时展示当期、去年同月与同比变化。',
         '【数据规则】年累计签约 = 当年 1 月至当前月签约金额累计；当月签约 = 当前自然月签约金额；均跟随顶部口径（全口径 / 权益）联动；金额单位统一为"亿"。趋势浮窗默认按"金额-亿"展示近 12 个月月末值，末月为当前时点值。',
         '【边界处理】当前月尚未产生签约时，当月签约展示"0.00"；数值统一保留 2 位小数；趋势浮窗中某月无数据时，该点缺失，Tooltip 展示"--"。',
       ].join("\n"),
@@ -1801,8 +1807,8 @@ function HomePage() {
                       style={{ ["--_c" as any]: KPI_ACCENTS.blue.from }}
                       title="点击查看近 12 个月趋势"
                     >
-                      <span>总未售货值</span>
-                      <Sparkline data={SPARK_TRENDS["总未售货值"]} color={KPI_ACCENTS.blue.from} />
+                      <span>未售总货值</span>
+                      <Sparkline data={SPARK_TRENDS["未售总货值"]} color={KPI_ACCENTS.blue.from} />
                     </div>
                   </KpiTrendPopover>
 
@@ -1819,7 +1825,7 @@ function HomePage() {
                   </div>
                   <div className="mt-auto pt-4 min-h-[46px] flex flex-col justify-end gap-1">
                     <span className="text-[11px] text-muted-foreground">环比年初变化金额</span>
-                    <span className="text-[12px] font-medium tabular-nums text-rose-500">-23.46 {unit}</span>
+                    <span className="text-[12px] font-medium tabular-nums text-emerald-500">-23.46 {unit}</span>
                   </div>
                 </div>
                 <div className="flex flex-col">
@@ -1839,7 +1845,10 @@ function HomePage() {
 
 
                   <div className="h-7 flex items-baseline gap-1">
-                    <span className="text-[20px] font-semibold leading-none tabular-nums text-foreground">
+                    <span
+                      className="text-[20px] font-semibold leading-none tabular-nums"
+                      style={{ color: KPI_ACCENTS.blue.from }}
+                    >
                       {fmt(86.42)}
                     </span>
                     <span className="text-[12px] text-muted-foreground">{unit}</span>
@@ -1866,7 +1875,7 @@ function HomePage() {
                           {avgEquity === null ? (
                             <span className="text-[12px] font-medium tabular-nums text-muted-foreground">--</span>
                           ) : (
-                            <span className="text-[12px] font-medium tabular-nums" style={{ color: KPI_ACCENTS.blue.from }}>
+                            <span className="text-[12px] font-medium tabular-nums text-[#111827]">
                               {avgEquity.toFixed(2)}%
                             </span>
                           )}
@@ -1882,7 +1891,7 @@ function HomePage() {
 
           {/* Card 2: 总货值阶段分布 — 三阶段漏斗 */}
           <ModuleBadge moduleId="stage-distribution" className="h-full min-w-0">
-            <StageDistributionCard metricMode={metricMode} />
+            <StageDistributionCard metricMode={metricMode} caliber={caliber} />
           </ModuleBadge>
 
           {/* Card 3: 签约金额 — 蓝紫青蓝系 */}
@@ -1930,7 +1939,7 @@ function HomePage() {
                 <div className="mt-auto pt-4 min-h-[46px]">
                   <div className="text-[11px] flex items-center justify-between">
                     <span className="text-muted-foreground">目标 {fmt(ytdSignedTarget)} {unit}</span>
-                    <span className="font-medium tabular-nums" style={{ color: KPI_ACCENTS.violet.from }}>
+                    <span className="font-medium tabular-nums text-[#111827]">
                       达成率 21.00%
                     </span>
                   </div>
@@ -1956,7 +1965,10 @@ function HomePage() {
 
 
                 <div className="h-7 flex items-baseline gap-1">
-                  <span className="text-[20px] font-semibold leading-none tabular-nums text-foreground">
+                  <span
+                    className="text-[20px] font-semibold leading-none tabular-nums"
+                    style={{ color: KPI_ACCENTS.violet.from }}
+                  >
                     {fmt(monthSigned)}
                   </span>
                   <span className="text-[12px] text-muted-foreground">{unit}</span>
@@ -1964,7 +1976,7 @@ function HomePage() {
                 <div className="mt-auto pt-4 min-h-[46px]">
                   <div className="text-[11px] flex items-center justify-between">
                     <span className="text-muted-foreground">月目标 {fmt(monthSignedTarget)} {unit}</span>
-                    <span className="font-medium tabular-nums" style={{ color: KPI_ACCENTS.violet.to }}>
+                    <span className="font-medium tabular-nums text-[#111827]">
                       达成率 90.14%
                     </span>
                   </div>
