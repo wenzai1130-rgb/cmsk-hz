@@ -29,7 +29,7 @@ const LAND_YEAR_COLORS: Record<string, string> = {
 };
 const LAND_YEAR_KEYS = ["2021及之前拿地", "2022拿地", "2023拿地", "2024拿地", "2025拿地", "2026拿地"];
 const PCT_2021_KEY = "__pct2021";
-const PCT_2021_LEGEND_NAME = "21年及之前拿地占比";
+const PCT_2021_LEGEND_NAME = "2021年及之前拿地占比";
 const LEGEND_KEY_ALIAS: Record<string, string> = {
   [PCT_2021_LEGEND_NAME]: PCT_2021_KEY,
 };
@@ -513,7 +513,7 @@ export function LandYearDetailDialog({
                 </span>
               </div>
               <span className="t-caption max-w-[60%] text-right leading-relaxed">
-                * 横轴为统计年份，颜色图例为拿地年份；点击图例可切换显隐对应拿地批次；折线为「21年及之前」占比。
+                * 横轴为统计年份，颜色图例为拿地年份；点击图例可切换显隐对应拿地批次；折线为「2021年及之前」占比。
               </span>
             </div>
             <div className="t-caption mb-3">单位：{unit} ｜ 占比（%）</div>
@@ -579,7 +579,7 @@ export function LandYearDetailDialog({
                           </div>
                           {lineItem && (
                             <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginTop: 4 }}>
-                              <span style={{ color: "#64748B" }}>21年及之前占比</span>
+                              <span style={{ color: "#64748B" }}>{PCT_2021_LEGEND_NAME}</span>
                               <span style={{ fontWeight: 600, color: "#475569", fontVariantNumeric: "tabular-nums" }}>{(+lineItem.value).toFixed(2)}%</span>
                             </div>
                           )}
@@ -593,6 +593,25 @@ export function LandYearDetailDialog({
                     wrapperStyle={{ fontSize: 11, paddingTop: 10, color: "#64748B" }}
                     formatter={legendFormatter}
                     onClick={(e: any) => onLegendClick(e, trendLegendKeys)}
+                    payload={[
+                      ...visibleYearKeys.map((k) => ({
+                        value: k,
+                        type: "rect" as const,
+                        id: k,
+                        color: LAND_YEAR_COLORS[k],
+                        dataKey: k,
+                        inactive: !!hiddenSeries[k],
+                      })),
+                      {
+                        value: PCT_2021_LEGEND_NAME,
+                        type: "plainline" as const,
+                        id: PCT_2021_KEY,
+                        color: "#475569",
+                        dataKey: PCT_2021_KEY,
+                        inactive: !!hiddenSeries[PCT_2021_KEY],
+                        payload: { strokeDasharray: "0" },
+                      },
+                    ]}
                   />
                   {visibleYearKeys.map((k) => (
                     <Bar
@@ -696,7 +715,7 @@ export function LandYearDetailDialog({
                           </div>
                           {pctItem && (
                             <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginTop: 4 }}>
-                              <span style={{ color: "#64748B" }}>21年及之前占比</span>
+                              <span style={{ color: "#64748B" }}>{PCT_2021_LEGEND_NAME}</span>
                               <span style={{ fontWeight: 600, color: "#475569", fontVariantNumeric: "tabular-nums" }}>{(+pctItem.value).toFixed(2)}%</span>
                             </div>
                           )}
