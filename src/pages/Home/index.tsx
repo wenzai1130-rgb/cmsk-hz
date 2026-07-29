@@ -224,6 +224,9 @@ const ONSALE_WATERFALL_ACHIEVE: WFRaw[] = [
 function buildWaterfall(rows: WFRaw[]) {
   let acc = 0;
   const startVal = rows[0]?.value ?? 0;
+  const subTotal = rows
+    .filter((r) => r.type === "sub")
+    .reduce((sum, r) => sum + r.value, 0);
   const out = rows.map((r) => {
     if (r.type === "start") {
       acc = r.value;
@@ -240,11 +243,18 @@ function buildWaterfall(rows: WFRaw[]) {
       return { name: r.name, base, bar: r.value, barTop: 0, delta: -r.value, type: r.type };
     }
     // end
-    const netDiff = +(r.value - startVal).toFixed(2);
-    if (netDiff > 0) {
-      return { name: r.name, base: 0, bar: startVal, barTop: netDiff, delta: r.value, type: r.type, netDiff };
-    }
-    return { name: r.name, base: 0, bar: r.value, barTop: 0, delta: r.value, type: r.type, netDiff };
+    const beginningRemaining = +Math.max(0, startVal - subTotal).toFixed(2);
+    const currentFromNew = +Math.max(0, r.value - beginningRemaining).toFixed(2);
+    return {
+      name: r.name,
+      base: 0,
+      bar: beginningRemaining,
+      barTop: currentFromNew,
+      delta: r.value,
+      type: r.type,
+      beginningRemaining,
+      currentFromNew,
+    };
   });
   return out;
 }
@@ -255,8 +265,8 @@ const WF_COLOR: Record<WFType, string> = {
   sub: "#4ADE80",
   end: TOKEN_BRAND.primary,
 };
-// 终止柱净增部分（红加绿减，高亮浅红）
-const WF_END_TOP_COLOR = "#FCA5A5";
+// 终止柱上半段：本年新取证/新达售剩余
+const WF_END_TOP_COLOR = WF_COLOR.add;
 
 // 终止柱下半段（与起始柱一致的暗灰主色）
 const WF_END_BASE_COLOR = TOKEN_BRAND.primary;
@@ -851,7 +861,7 @@ function OnSaleWaterfallCard({
             单位：{unit}
           </div>
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={rows} margin={{ top: 42, right: 16, left: -8, bottom: 8 }}>
+            <BarChart data={rows} margin={{ top: 42, right: 76, left: -8, bottom: 8 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#EEF2F7" vertical={false} />
               <XAxis
                 dataKey="name"
@@ -874,7 +884,7 @@ function OnSaleWaterfallCard({
                   const d = r.delta as number;
                   const color = r.type === "add" ? TOKEN_TREND.up : r.type === "sub" ? TOKEN_TREND.down : "#334155";
                   const isEnd = r.type === "end";
-                  const netDiff: number = r.netDiff ?? 0;
+                  const newRemainLabel = mode === "取证" ? "本年新取证剩余" : "本年新达售剩余";
                   return (
                     <div style={CHART_TOOLTIP_STYLE}>
                       <div className={chartTooltipTitleClass}>{r.name}</div>
@@ -887,13 +897,15 @@ function OnSaleWaterfallCard({
                             </span>
                           </div>
                           <div className={chartTooltipRowClass}>
-                            <span className="text-[#475569]">较年初净增</span>
-                            <span
-                              className="tabular-nums font-medium"
-                              style={{ color: netDiff >= 0 ? TOKEN_TREND.up : TOKEN_TREND.down }}
-                            >
-                              {netDiff >= 0 ? "+" : ""}
-                              {netDiff.toFixed(2)} {unit}
+                            <span className="text-[#475569]">年初在售剩余</span>
+                            <span className="tabular-nums font-medium text-[#1677FF]">
+                              {(r.beginningRemaining ?? 0).toFixed(2)} {unit}
+                            </span>
+                          </div>
+                          <div className={chartTooltipRowClass}>
+                            <span className="text-[#475569]">{newRemainLabel}</span>
+                            <span className="tabular-nums font-medium text-[#F97066]">
+                              {(r.currentFromNew ?? 0).toFixed(2)} {unit}
                             </span>
                           </div>
                         </>
@@ -919,9 +931,9 @@ function OnSaleWaterfallCard({
                 shape={(props: any) => {
                   const { x, y, width, height, index } = props;
                   const r = rows[index];
-                  const isEndGain = r?.type === "end" && (r as any).barTop > 0;
-                  const fill = isEndGain ? WF_END_BASE_COLOR : WF_COLOR[r?.type as keyof typeof WF_COLOR];
-                  const rad = isEndGain ? 0 : 4;
+                  const isEnd = r?.type === "end";
+                  const fill = isEnd ? WF_END_BASE_COLOR : WF_COLOR[r?.type as keyof typeof WF_COLOR];
+                  const rad = isEnd ? 0 : 4;
                   const w = Math.max(0, Math.min(width, 38));
                   const h = Math.max(0, height);
                   const dx = x + (width - w) / 2;
@@ -939,7 +951,22 @@ function OnSaleWaterfallCard({
                     const { x, y, width, index } = props;
                     const r = rows[index];
                     if (!r) return null;
-                    if (r.type === "end") return null;
+                    if (r.type === "end") {
+                      const val = (r as any).beginningRemaining ?? r.bar;
+                      if (!val) return null;
+                      return (
+                        <text
+                          x={x + width / 2 + 24}
+                          y={y + 14}
+                          textAnchor="start"
+                          fontSize={10}
+                          fontWeight={600}
+                          fill={TOKEN_BRAND.primary}
+                        >
+                          {val.toFixed(2)}{unit}
+                        </text>
+                      );
+                    }
                     const val = r.delta;
                     const txt =
                       r.type === "add"
@@ -978,19 +1005,13 @@ function OnSaleWaterfallCard({
                     const { x, y, width, index } = props;
                     const r = rows[index];
                     if (!r || r.type !== "end") return null;
-                    const netDiff: number = (r as any).netDiff ?? 0;
-                    const tagColor = netDiff >= 0 ? TOKEN_TREND.up : TOKEN_TREND.down;
-                    const tagBg = netDiff >= 0 ? "#FEF2F2" : "#ECFDF5";
-
-                    const tagText = `${netDiff >= 0 ? "+" : ""}${netDiff.toFixed(2)} ${unit}`;
+                    const currentFromNew: number = (r as any).currentFromNew ?? 0;
                     const cx = x + width / 2;
-                    // 估算胶囊宽度（按字符数近似）
-                    const tagW = Math.max(56, tagText.length * 6.5 + 12);
                     return (
                       <g>
                         <text
                           x={cx}
-                          y={y - 24}
+                          y={y - 8}
                           textAnchor="middle"
                           fontSize={13}
                           fontWeight={700}
@@ -998,25 +1019,18 @@ function OnSaleWaterfallCard({
                         >
                           {r.delta.toFixed(2)} {unit}
                         </text>
-                        <rect
-                          x={cx - tagW / 2}
-                          y={y - 18}
-                          width={tagW}
-                          height={14}
-                          rx={7}
-                          ry={7}
-                          fill={tagBg}
-                        />
-                        <text
-                          x={cx}
-                          y={y - 8}
-                          textAnchor="middle"
-                          fontSize={10}
-                          fontWeight={600}
-                          fill={tagColor}
-                        >
-                          {tagText}
-                        </text>
+                        {currentFromNew > 0 && (
+                          <text
+                            x={cx + 25}
+                            y={y + 14}
+                            textAnchor="start"
+                            fontSize={10}
+                            fontWeight={600}
+                            fill={WF_COLOR.add}
+                          >
+                            {currentFromNew.toFixed(2)}{unit}
+                          </text>
+                        )}
                       </g>
                     );
                   }}
@@ -1626,10 +1640,10 @@ function HomePage() {
       moduleId: "onsale-waterfall",
       title: "在售货值变动瀑布图",
       desc: [
-        '【展示内容】瀑布图从左至右依次展示：年初在售货值（起始柱，主题蓝）、本年新达售/新取证货值（增量柱，红色向上）、本年销售货值（减量柱，绿色向下）、货值折损（减量柱，绿色向下）、当前剩余在售（终止柱）；顶部提供"达售 / 取证"口径切换按钮；每根柱体上方标注具体数值与单位。终止柱采用"双色堆叠"形态：当剩余大于年初时，下半段沿用主题蓝、高度等于年初在售，上半段以浅红高亮显示净增量薄片；柱顶双行标注当前剩余总货值，第二行为带浅色底的胶囊 Tag 标出较年初净增。',
-        '【交互规则】顶部按钮切换"达售/取证"口径，图表数据即时刷新；鼠标悬停普通柱体触发 Tooltip，展示节点名称与变动金额；悬停终止柱时 Tooltip 额外展示两行，遵循"红加绿减"：正向增长为红色、负向减少为绿色。',
-        '【数据规则】跟随顶部口径（全口径/权益）与指标（金额/面积）联动；勾稽关系：年初货值 + 本年新增 − 本年销售 − 货值折损 = 当前剩余在售；金额单位"亿"、面积单位"万㎡"；数值统一保留 2 位小数并千分位分隔。',
-        '【边界处理】当"当前剩余在售"小于"年初在售"（净减少）时，终止柱恢复为单色主色柱，高度对应实际剩余值，柱顶 Tag 自动适配为负数与绿色；某节点数值为 0 时柱体不渲染、标签展示 0.00；无数据时展示空状态"暂无数据"。',
+        '【展示内容】瀑布图从左至右依次展示：年初在售货值（起始柱，主题蓝）、本年新达售/新取证货值（增量柱，红色向上）、本年销售货值（减量柱，绿色向下）、货值折损（减量柱，绿色向下）、当前剩余在售（终止柱）。终止柱改为双色堆积：下段为年初在售剩余，上段为本年新达售/新取证剩余；货值标注展示在对应色块旁边，柱顶展示当前剩余在售合计。',
+        '【交互规则】顶部按钮切换"达售/取证"口径，图表数据即时刷新；鼠标悬停普通柱体触发 Tooltip，展示节点名称与变动金额；悬停终止柱时 Tooltip 展示当前剩余在售、年初在售剩余、本年新达售/新取证剩余。',
+        '【数据规则】跟随顶部口径（全口径/权益）与指标（金额/面积）联动；勾稽关系：年初货值 + 本年新增 − 本年销售 − 货值折损 = 当前剩余在售；年初在售剩余 = 年初在售货值 − 本年销售货值 − 货值折损；本年新增剩余 = 当前剩余在售 − 年初在售剩余；金额单位"亿"、面积单位"万㎡"；数值统一保留 2 位小数并千分位分隔。',
+        '【边界处理】某节点数值为 0 时柱体不渲染、标签展示 0.00；本年新增剩余为 0 时终止柱仅展示年初在售剩余；无数据时展示空状态"暂无数据"。',
       ].join("\n"),
 
     },

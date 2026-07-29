@@ -1,7 +1,7 @@
 import { ExportButton } from "@/components/ui/export-button";
 import { SegmentedTabs } from "@/components/ui/segmented-tabs";
 
-import { Fragment, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import {
   ChevronLeft,
@@ -9,7 +9,6 @@ import {
   ChevronDown,
   Layers,
   BarChart3,
-  TrendingDown,
   TrendingUp,
   MoreHorizontal,
   Info,
@@ -519,11 +518,11 @@ export default function ProjectDetail() {
 
             {/* Row 1 - Right: SupplyCard + StageCard + Milestone */}
             <div className="flex flex-col gap-4">
-              <div className="grid grid-cols-[minmax(0,1.35fr)_minmax(0,1.15fr)] gap-4">
-                <ModuleBadge moduleId="pd-supply" className="block">
+              <div className="grid grid-cols-[minmax(0,1.35fr)_minmax(0,1.15fr)] items-stretch gap-4">
+                <ModuleBadge moduleId="pd-supply" className="block h-full">
                   <SupplyCard detail={detail} />
                 </ModuleBadge>
-                <ModuleBadge moduleId="pd-stage" className="block">
+                <ModuleBadge moduleId="pd-stage" className="block h-full">
                   <StageCard detail={detail} />
                 </ModuleBadge>
               </div>
@@ -880,10 +879,10 @@ function SignStat({
   );
 }
 
-// 金额自适应：< 1 亿时切换为「万」展示；≥ 1 亿保留 2 位小数展示为「亿」。
+// 金额自适应：< 0.01 亿时切换为「万」展示；其余保留 2 位小数展示为「亿」。
 function autoAmountFromYi(vInYi: number): { num: string; unit: string } {
   if (!Number.isFinite(vInYi)) return { num: "--", unit: "" };
-  if (Math.abs(vInYi) < 1) {
+  if (Math.abs(vInYi) < 0.01) {
     const wan = vInYi * 10000;
     return {
       num: wan.toLocaleString("zh-CN", { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
@@ -934,187 +933,174 @@ function SupplyCard({ detail }: { detail: DetailShape }) {
     </KpiTrendPopover>
   );
 
-  const TrendTag = ({
-    value,
-    label,
-    invert = false,
-  }: {
-    value: number;
-    label: string;
-    invert?: boolean;
-  }) => {
-    const isUp = value >= 0;
-    const color = invert ? (isUp ? "#059669" : "#DC2626") : (isUp ? "#DC2626" : "#059669");
-    const Icon = isUp ? TrendingUp : TrendingDown;
-    return (
-      <span className="inline-flex items-center gap-0.5 text-[11px] font-medium tabular-nums" style={{ color }}>
-        <Icon className="w-3 h-3" />
-        {label} {Math.abs(value).toFixed(2)}%
-      </span>
-    );
-  };
+  const StaticMetricLabel = ({ label }: { label: string }) => (
+    <div className="text-[11px] leading-4 text-[#64748B] truncate">{label}</div>
+  );
 
   return (
-    <section className="h-full flex flex-col bg-white rounded-xl border border-[#EEF2F7] shadow-[0_1px_2px_rgba(15,23,42,0.04)] px-4 py-3">
-      <div className="flex items-center gap-1.5 mb-4">
+    <section className="h-full bg-white rounded-xl border border-[#EEF2F7] shadow-[0_1px_2px_rgba(15,23,42,0.04)] px-4 py-3">
+      <div className="flex items-center gap-1.5 mb-3">
         <span className="w-1 h-3.5 rounded-sm bg-[var(--color-brand)]" />
         <span className="text-[14px] font-medium text-[#1E293B]">总货值</span>
       </div>
 
-      <div className="grid grid-cols-2 gap-x-6 gap-y-2 [grid-template-rows:auto_auto_auto] items-end">
-        {/* Row 1: Labels */}
-        <MetricLabel label="未售总货值" metric="未售总货值" />
-        <MetricLabel label="新拿地货值" metric="新拿地货值" />
-
-        {/* Row 2: Main values */}
+      <div className="grid grid-cols-2 gap-3 pb-3 border-b border-[#F0F0F0]">
         {(() => {
           const u = autoAmountFromYi(detail.unsoldValue);
+          const d = autoAmountFromYi(Math.abs(detail.beginningDeltaAmount));
+          const isUp = detail.beginningDeltaAmount >= 0;
           return (
-            <div className="flex items-baseline gap-1">
-              <span className="text-[22px] font-bold leading-none tabular-nums text-[#1677FF]">{u.num}</span>
-              <span className="text-[11px] font-medium text-[#6B7280]">{u.unit}</span>
+            <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,0.9fr)] items-center gap-3 rounded-lg bg-[#F8FAFC] px-3 py-2">
+              <div className="min-w-0 text-center">
+                <MetricLabel label="未售总货值" metric="未售总货值" />
+                <div className="mt-1.5 flex items-baseline justify-center gap-1 whitespace-nowrap">
+                  <span className="text-[18px] font-bold leading-none tabular-nums text-[#1677FF]">{u.num}</span>
+                  <span className="text-[10px] font-medium text-[#6B7280]">{u.unit}</span>
+                </div>
+              </div>
+              <div className="min-w-0 border-l border-[#E2E8F0] pl-3 text-center">
+                <StaticMetricLabel label="环比年初变化金额" />
+                <div className="mt-1.5 text-[13px] font-medium leading-none tabular-nums whitespace-nowrap" style={{ color: isUp ? "#DC2626" : "#059669" }}>
+                  {isUp ? "+" : "-"}{d.num} <span className="text-[10px] font-medium text-[#6B7280]">{d.unit}</span>
+                </div>
+              </div>
             </div>
           );
         })()}
         {(() => {
           const s = autoAmountFromYi(detail.newLandValue);
           return (
-            <div className="flex items-baseline gap-1">
-              <span className="text-[22px] font-bold leading-none tabular-nums text-[#1677FF]">{s.num}</span>
-              <span className="text-[11px] font-medium text-[#6B7280]">{s.unit}</span>
+            <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,0.9fr)] items-center gap-3 rounded-lg bg-[#F8FAFC] px-3 py-2">
+              <div className="min-w-0 text-center">
+                <MetricLabel label="新拿地货值" metric="新拿地货值" />
+                <div className="mt-1.5 flex items-baseline justify-center gap-1 whitespace-nowrap">
+                  <span className="text-[18px] font-bold leading-none tabular-nums text-[#1677FF]">{s.num}</span>
+                  <span className="text-[10px] font-medium text-[#6B7280]">{s.unit}</span>
+                </div>
+              </div>
+              <div className="min-w-0 border-l border-[#E2E8F0] pl-3 text-center">
+                <StaticMetricLabel label="新拿地项目平均权益比" />
+                <div className="mt-1.5 text-[13px] font-medium leading-none tabular-nums text-[#111827] whitespace-nowrap">
+                  {detail.newLandAvgEquity.toFixed(2)}%
+                </div>
+              </div>
             </div>
           );
         })()}
+      </div>
 
-        {/* Row 3: Footer (trends / progress) — bottom aligned */}
-        <div className="flex flex-col justify-end gap-1 pt-1">
-          <span className="text-[11px] text-[#6B7280]">环比年初变化金额</span>
+      <div className="pt-3">
+        <div className="-mx-1 overflow-x-auto overflow-y-hidden px-1 pb-1 [scrollbar-width:thin]">
           {(() => {
-            const d = autoAmountFromYi(Math.abs(detail.beginningDeltaAmount));
-            const isUp = detail.beginningDeltaAmount >= 0;
+            const unsold = detail.unsoldValue;
+            const roundAmount = (n: number) => Math.round(n * 100) / 100;
+            const landReserve = roundAmount(unsold * 0.28);
+            const building = roundAmount(unsold * 0.51);
+            const completed = roundAmount(Math.max(0, unsold - landReserve - building));
+            const startedNoPresell = roundAmount(building * 0.84);
+            const buildNoCert = roundAmount(building * 0.14);
+            const buildCertified = roundAmount(Math.max(0, building - startedNoPresell - buildNoCert));
+            const doneNoCert = roundAmount(completed * 0.8);
+            const doneCertified = roundAmount(Math.max(0, completed - doneNoCert));
+            const stages = [
+              {
+                step: 1,
+                label: "土储",
+                value: landReserve,
+                width: "basis-[20%] min-w-[92px]",
+                tint: "#64748B",
+                bg: "#F8FAFC",
+                itemTone: "bg-slate-50 text-slate-600",
+                valueTone: "text-slate-600",
+                items: [] as { label: string; value: number; pct: number }[],
+              },
+              {
+                step: 2,
+                label: "在建",
+                value: building,
+                width: "basis-[40%] min-w-[168px]",
+                tint: "#D97706",
+                bg: "#FFF7ED",
+                itemTone: "bg-orange-50 text-[#C2410C]",
+                valueTone: "text-[#C2410C]",
+                items: [
+                  { label: "开工未达预售", value: startedNoPresell, pct: unsold > 0 ? (startedNoPresell / unsold) * 100 : 0 },
+                  { label: "在建达售未取证", value: buildNoCert, pct: unsold > 0 ? (buildNoCert / unsold) * 100 : 0 },
+                  { label: "在建已取证", value: buildCertified, pct: unsold > 0 ? (buildCertified / unsold) * 100 : 0 },
+                ],
+              },
+              {
+                step: 3,
+                label: "竣工",
+                value: completed,
+                width: "basis-[40%] min-w-[168px]",
+                tint: "#1677FF",
+                bg: "#EFF6FF",
+                itemTone: "bg-blue-50 text-[#1D4ED8]",
+                valueTone: "text-[#1D4ED8]",
+                items: [
+                  { label: "已竣工未取证", value: doneNoCert, pct: unsold > 0 ? (doneNoCert / unsold) * 100 : 0 },
+                  { label: "已竣工已取证未售", value: doneCertified, pct: unsold > 0 ? (doneCertified / unsold) * 100 : 0 },
+                ],
+              },
+            ];
             return (
-              <span className="text-[12px] font-medium tabular-nums" style={{ color: isUp ? "#DC2626" : "#059669" }}>
-                {isUp ? "+" : "-"}{d.num} {d.unit}
-              </span>
+              <div className="flex w-full min-w-[452px] items-stretch gap-1.5">
+                {stages.map((s, index) => {
+                  const stageValue = autoAmountFromYi(s.value);
+                  return (
+                  <div key={s.step} className={`relative shrink grow min-w-0 rounded-lg border border-[#EEF2F7] bg-white px-2 py-2 ${s.width}`}>
+                    <div className="flex items-center justify-between gap-1.5 whitespace-nowrap">
+                      <div className="flex min-w-0 items-center gap-1 whitespace-nowrap">
+                        <span
+                          className="inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[10px] font-bold tabular-nums"
+                          style={{ background: s.bg, color: s.tint }}
+                        >
+                          {s.step}
+                        </span>
+                        <span className="shrink-0 text-[12px] font-medium text-[#475569]">{s.label}</span>
+                      </div>
+                      <span className="shrink-0 inline-flex items-baseline gap-0.5 text-[#111827]">
+                        <span className="text-[13px] font-bold tabular-nums">{stageValue.num}</span>
+                        <span className="text-[10px] font-medium text-[#64748B]">{stageValue.unit}</span>
+                      </span>
+                    </div>
+                    {s.items.length > 0 && (
+                      <div className="mt-2 space-y-0.5">
+                        {s.items.map((item) => {
+                          const itemValue = autoAmountFromYi(item.value);
+                          return (
+                            <div
+                              key={item.label}
+                              className={`grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-1 rounded px-1 py-0.5 ${s.itemTone}`}
+                            >
+                            <span className="min-w-0 text-[10.5px] leading-4">{item.label}</span>
+                            <span className="inline-flex shrink-0 items-baseline gap-1.5">
+                              <span className={`inline-flex items-baseline gap-0.5 text-[10.5px] font-semibold tabular-nums ${s.valueTone}`}>
+                                <span>{itemValue.num}</span>
+                                <span className="text-[9px] font-medium opacity-75">{itemValue.unit}</span>
+                              </span>
+                              <span className="text-[10px] tabular-nums opacity-70">
+                                {item.pct.toFixed(2)}%
+                              </span>
+                            </span>
+                          </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                    {index < stages.length - 1 && (
+                      <span className="absolute -right-4 top-1/2 z-10 inline-flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded-full bg-white ring-1 ring-[#DBEAFE]">
+                        <ChevronRight className="h-3 w-3 text-[#1677FF]" strokeWidth={2.6} />
+                      </span>
+                    )}
+                  </div>
+                  );
+                })}
+              </div>
             );
           })()}
         </div>
-        <div className="flex flex-col justify-end gap-1 pt-1">
-          <span className="text-[11px] text-[#6B7280]">新拿地项目平均权益比</span>
-          <span className="text-[12px] font-medium tabular-nums text-[#111827]">
-            {detail.newLandAvgEquity.toFixed(2)}%
-          </span>
-        </div>
-      </div>
-
-
-      {/* 底部：总货值阶段分布 */}
-      <div className="mt-4 pt-4 border-t border-[#F1F5F9]">
-        {(() => {
-          const unsold = detail.unsoldValue;
-          const roundAmount = (n: number) => Math.round(n * 100) / 100;
-          const landReserve = roundAmount(unsold * 0.28);
-          const building = roundAmount(unsold * 0.51);
-          const completed = roundAmount(Math.max(0, unsold - landReserve - building));
-          const startedNoPresell = roundAmount(building * 0.84);
-          const buildNoCert = roundAmount(building * 0.14);
-          const buildCertified = roundAmount(Math.max(0, building - startedNoPresell - buildNoCert));
-          const doneNoCert = roundAmount(completed * 0.8);
-          const doneCertified = roundAmount(Math.max(0, completed - doneNoCert));
-          const stages = [
-            {
-              step: 1,
-              label: "土储",
-              value: landReserve,
-              tint: "#64748B",
-              bg: "#FFF7ED",
-              itemTone: "bg-slate-50 text-slate-600",
-              valueTone: "text-slate-600",
-              cols: "grid-cols-1",
-              items: [] as { label: string; value: number; pct: number }[],
-            },
-            {
-              step: 2,
-              label: "在建",
-              value: building,
-              tint: "#D97706",
-              bg: "#FFF7ED",
-              itemTone: "bg-orange-50 text-[#C2410C]",
-              valueTone: "text-[#C2410C]",
-              cols: "grid-cols-1",
-              items: [
-                { label: "开工未达预售", value: startedNoPresell, pct: unsold > 0 ? (startedNoPresell / unsold) * 100 : 0 },
-                { label: "在建达售未取证", value: buildNoCert, pct: unsold > 0 ? (buildNoCert / unsold) * 100 : 0 },
-                { label: "在建已取证", value: buildCertified, pct: unsold > 0 ? (buildCertified / unsold) * 100 : 0 },
-              ],
-            },
-            {
-              step: 3,
-              label: "竣工",
-              value: completed,
-              tint: "#1677FF",
-              bg: "#EFF6FF",
-              itemTone: "bg-blue-50 text-[#1D4ED8]",
-              valueTone: "text-[#1D4ED8]",
-              cols: "grid-cols-1",
-              items: [
-                { label: "已竣工未取证", value: doneNoCert, pct: unsold > 0 ? (doneNoCert / unsold) * 100 : 0 },
-                { label: "已竣工已取证未售", value: doneCertified, pct: unsold > 0 ? (doneCertified / unsold) * 100 : 0 },
-              ],
-            },
-          ];
-          return (
-            <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)_auto_minmax(0,1fr)] gap-1.5 items-start overflow-hidden">
-              {stages.map((s, i, arr) => (
-                <Fragment key={s.step}>
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-1.5 whitespace-nowrap">
-                      <span
-                        className="inline-flex items-center justify-center w-4 h-4 rounded-full text-[10px] font-bold tabular-nums"
-                        style={{ background: s.bg, color: s.tint }}
-                      >
-                        {s.step}
-                      </span>
-                      <span className="text-[12px] font-semibold text-[#64748B]">{s.label}</span>
-                    </div>
-                    <div className="mt-2 flex items-baseline gap-1 whitespace-nowrap">
-                      <span className="text-xl font-bold tabular-nums text-[#1E293B] leading-none">
-                        {s.value.toFixed(2)}
-                      </span>
-                      <span className="text-[12px] font-medium text-[#64748B]">亿</span>
-                    </div>
-                    <div className={`mt-2.5 grid ${s.cols} gap-1.5 min-w-0`}>
-                      {s.items.map((item) => (
-                        <div
-                          key={item.label}
-                          className={`min-h-6 rounded-md px-2 py-1 flex items-center justify-between gap-1.5 min-w-0 ${s.itemTone}`}
-                        >
-                          <span className="text-[11px] leading-tight truncate min-w-0">{item.label}</span>
-                          <span className="inline-flex items-baseline gap-2 shrink-0">
-                            <span className={`text-right text-[11px] font-bold tabular-nums whitespace-nowrap ${s.valueTone}`}>
-                              {item.value.toFixed(2)}
-                            </span>
-                            <span className="text-[10px] tabular-nums whitespace-nowrap opacity-75">
-                              {item.pct.toFixed(2)}%
-                            </span>
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  {i < arr.length - 1 && (
-                    <div className="pt-1">
-                      <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-[#EFF6FF]">
-                        <ChevronRight className="w-3 h-3 text-[#1677FF]" strokeWidth={2.6} />
-                      </span>
-                    </div>
-                  )}
-                </Fragment>
-              ))}
-            </div>
-
-          );
-        })()}
       </div>
 
     </section>
