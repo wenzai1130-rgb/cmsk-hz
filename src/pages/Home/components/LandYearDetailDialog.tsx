@@ -28,6 +28,15 @@ const LAND_YEAR_COLORS: Record<string, string> = {
   "2026拿地": TOKEN_DONUT_PALETTE[5],
 };
 const LAND_YEAR_KEYS = ["2021及之前拿地", "2022拿地", "2023拿地", "2024拿地", "2025拿地", "2026拿地"];
+const LAND_YEAR_DISPLAY_NAME: Record<string, string> = {
+  "2021及之前拿地": "2021年及之前拿地",
+  "2022拿地": "2022年拿地",
+  "2023拿地": "2023年拿地",
+  "2024拿地": "2024年拿地",
+  "2025拿地": "2025年拿地",
+  "2026拿地": "2026年拿地",
+};
+const landYearDisplayName = (key: string) => LAND_YEAR_DISPLAY_NAME[key] ?? key;
 const PCT_2021_KEY = "__pct2021";
 const PCT_2021_LEGEND_NAME = "2021年及之前拿地占比";
 const LEGEND_KEY_ALIAS: Record<string, string> = {
@@ -209,6 +218,8 @@ export function LandYearDetailDialog({
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
 
   const clickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const structureTableTitle = caliber === "full" ? "货值结构明细表" : "权益货值结构明细表";
+  const soldMetricLabel = `${caliber === "full" ? "已售" : "已售权益"}${metricMode === "area" ? "面积" : "货值"}`;
   const clickTimerRef2 = useRef<ReturnType<typeof setTimeout> | null>(null);
 
 
@@ -370,13 +381,13 @@ export function LandYearDetailDialog({
     ];
     const ws = XLSX.utils.aoa_to_sheet([header, ...body, totalRow]);
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "权益货值结构明细表");
+    XLSX.utils.book_append_sheet(wb, ws, structureTableTitle);
     const caliberLabel = caliber === "full" ? "全口径" : "权益";
     const now = new Date();
     const pad = (n: number) => String(n).padStart(2, "0");
     const ts = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
     const safeDate = (date || "").replace(/[^0-9]/g, "") || `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}`;
-    const filename = `权益货值结构明细表_${org}_${caliberLabel}_${safeDate}_${ts}.xlsx`;
+    const filename = `${structureTableTitle}_${org}_${caliberLabel}_${safeDate}_${ts}.xlsx`;
     XLSX.writeFile(wb, filename);
     toast.success("明细表已导出");
   };
@@ -427,7 +438,7 @@ export function LandYearDetailDialog({
     else if (LAND_YEAR_COLORS[key]) activeColor = LAND_YEAR_COLORS[key];
     return (
       <span style={{ color: isHidden ? "#94A3B8" : activeColor, transition: "color 0.2s" }}>
-        {value}
+        {landYearDisplayName(value)}
       </span>
     );
   };
@@ -465,7 +476,7 @@ export function LandYearDetailDialog({
     else if (LAND_YEAR_COLORS[key]) activeColor = LAND_YEAR_COLORS[key];
     return (
       <span style={{ color: isHidden ? "#94A3B8" : activeColor, transition: "color 0.2s" }}>
-        {value}
+        {landYearDisplayName(value)}
       </span>
     );
   };
@@ -562,7 +573,7 @@ export function LandYearDetailDialog({
                                 >
                                   <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: "#475569" }}>
                                     <span style={{ width: 8, height: 8, borderRadius: 2, background: LAND_YEAR_COLORS[p.dataKey], display: "inline-block" }} />
-                                    {p.dataKey}
+                                    {landYearDisplayName(p.dataKey)}
                                   </div>
                                   <div style={{ fontSize: 12, color: "#1E293B", fontVariantNumeric: "tabular-nums" }}>
                                     <span style={{ fontWeight: 500 }}>{(+p.value).toFixed(2)}{unit}</span>
@@ -595,7 +606,7 @@ export function LandYearDetailDialog({
                     onClick={(e: any) => onLegendClick(e, trendLegendKeys)}
                     payload={[
                       ...visibleYearKeys.map((k) => ({
-                        value: k,
+                        value: landYearDisplayName(k),
                         type: "rect" as const,
                         id: k,
                         color: LAND_YEAR_COLORS[k],
@@ -618,6 +629,7 @@ export function LandYearDetailDialog({
                       key={k}
                       yAxisId="left"
                       dataKey={k}
+                      name={landYearDisplayName(k)}
                       fill={`url(#g-${k})`}
                       stroke={LAND_YEAR_COLORS[k]}
                       strokeOpacity={0}
@@ -705,7 +717,7 @@ export function LandYearDetailDialog({
                         <TipShell title={`${label}月`}>
                           <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
                             {visBars.map((k) => (
-                              <TipRow key={k} color={LAND_YEAR_COLORS[k]} name={k} value={`${(+map[k].value).toFixed(2)}${unit}`} />
+                              <TipRow key={k} color={LAND_YEAR_COLORS[k]} name={landYearDisplayName(k)} value={`${(+map[k].value).toFixed(2)}${unit}`} />
                             ))}
                           </div>
                           <div style={{ height: 1, background: "#EEF1F6", margin: "8px 0 6px" }} />
@@ -731,7 +743,7 @@ export function LandYearDetailDialog({
                     onClick={(e: any) => onLegendClick2(e, monthlyLegendKeys)}
                     payload={[
                       ...LAND_YEAR_KEYS.map((k) => ({
-                        value: k,
+                        value: landYearDisplayName(k),
                         type: "rect" as const,
                         id: k,
                         color: LAND_YEAR_COLORS[k],
@@ -754,7 +766,7 @@ export function LandYearDetailDialog({
                       key={k}
                       yAxisId="left"
                       dataKey={k}
-                      name={k}
+                      name={landYearDisplayName(k)}
                       stackId="m"
                       fill={`url(#g-${k})`}
                       radius={[3, 3, 0, 0]}
@@ -812,13 +824,13 @@ export function LandYearDetailDialog({
           </ModuleBadge>
 
 
-          {/* Block 3: 权益货值结构明细表 */}
+          {/* Block 3: 货值结构明细表 */}
           <ModuleBadge moduleId="land-year-equity-table">
           <section className="bg-white rounded-xl border border-[#E2E8F0] shadow-[0_1px_2px_rgba(15,23,42,0.04)] p-4">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
                 <span className="w-1 h-4 rounded bg-[var(--color-brand)]" />
-                <span className="t-section-title leading-tight">权益货值结构明细表</span>
+                <span className="t-section-title leading-tight">{structureTableTitle}</span>
               </div>
               <ExportButton onClick={handleExport} />
             </div>
@@ -858,7 +870,7 @@ export function LandYearDetailDialog({
                       </button>
                     </th>
                     <th colSpan={visibleSaleCols.length} className="text-center px-2.5 py-2 font-semibold whitespace-nowrap border-b border-[#E2E8F0] bg-[#F1F5F9] text-[#1E293B]">
-                      已售权益{metricMode === "area" ? "面积" : "货值"}（{unit}）
+                      {soldMetricLabel}（{unit}）
                     </th>
                   </tr>
                   <tr className="bg-[#F1F5F9] text-[#1E293B]">
