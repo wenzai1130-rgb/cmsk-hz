@@ -1795,7 +1795,7 @@ function HomePage() {
       {/* Page content */}
       <main className="px-6 py-5 space-y-4">
         {/* Core metrics — 首屏视觉重点 */}
-        <section className="grid grid-cols-[minmax(320px,28fr)_minmax(520px,44fr)_minmax(320px,28fr)] gap-4 items-stretch overflow-x-auto pb-1">
+        <section className="grid grid-cols-[minmax(320px,3fr)_minmax(640px,6fr)_minmax(320px,3fr)] gap-4 items-stretch overflow-x-auto pb-1">
           {/* Card 1: 总货值及供货 — 蓝色系 */}
           <ModuleBadge moduleId="total-value-kpi" className="h-full min-w-0">
             <KpiCard accent={KPI_ACCENTS.blue}>
