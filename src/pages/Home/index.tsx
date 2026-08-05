@@ -1716,6 +1716,7 @@ function HomePage() {
 
 
   const [activeType, setActiveType] = useState<string | null>(null);
+  const [waterfallMode, setWaterfallMode] = useState<"取证" | "达售">("取证");
   const [rateMode, setRateMode] = useState<"取证" | "达售">("取证");
   const [ratePeriod, setRatePeriod] = useState<"月度" | "年度">("月度");
   const [hiddenRateSeries, setHiddenRateSeries] = useState<Record<string, boolean>>({});
@@ -2187,7 +2188,7 @@ function HomePage() {
         {/* Row 2: 在售货值变动瀑布图 / 取证达售去化率 */}
         <div className="grid grid-cols-12 gap-4">
           <ModuleBadge moduleId="onsale-waterfall" className="col-span-6 h-full block">
-            <OnSaleWaterfallCard mode={rateMode} setMode={setRateMode} factor={factor} unit={unit} />
+            <OnSaleWaterfallCard mode={waterfallMode} setMode={setWaterfallMode} factor={factor} unit={unit} />
           </ModuleBadge>
 
           <ModuleBadge moduleId="rate-trend" className="col-span-6 h-full block">
