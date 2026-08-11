@@ -2253,14 +2253,14 @@ function HomePage() {
                         </div>
                       </div>
                       <div>
-                        <div className="text-[11px] text-muted-foreground mb-0.5">已售金额</div>
+                        <div className="text-[11px] text-muted-foreground mb-0.5">{unit.includes("㎡") ? "已售面积" : "已售金额"}</div>
                         <div className="text-[15px] font-semibold tabular-nums text-foreground leading-none">
                           {num.toFixed(2)}
                           <span className="text-[11px] text-muted-foreground ml-1 font-normal">{unit}</span>
                         </div>
                       </div>
                       <div>
-                        <div className="text-[11px] text-muted-foreground mb-0.5">{rateMode}未售货值</div>
+                        <div className="text-[11px] text-muted-foreground mb-0.5">{rateMode}{unit.includes("㎡") ? "未售面积" : "未售货值"}</div>
                         <div className="text-[15px] font-semibold tabular-nums text-foreground leading-none">
                           {den.toFixed(2)}
                           <span className="text-[11px] text-muted-foreground ml-1 font-normal">{unit}</span>
