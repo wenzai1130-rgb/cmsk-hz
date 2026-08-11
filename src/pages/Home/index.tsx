@@ -834,10 +834,19 @@ function OnSaleWaterfallCard({
 }) {
   const raw = mode === "取证" ? ONSALE_WATERFALL_CERT : ONSALE_WATERFALL_ACHIEVE;
   const scaled = raw.map((r) => ({ ...r, value: +(r.value * factor).toFixed(2) }));
-  const rows = buildWaterfall(scaled);
+  const rows = buildWaterfall(scaled).map((r) => ({
+    ...r,
+    name: unit.includes("㎡") ? r.name.replace(/货值/g, "面积") : r.name,
+  }));
+  const title = unit.includes("㎡") ? "在售面积变动" : "在售货值变动";
+  const currentRemainLabel = unit.includes("㎡") ? "当前剩余在售面积" : "当前剩余在售货值";
+  const beginningRemainLabel = unit.includes("㎡") ? "年初在售面积剩余" : "年初在售货值剩余";
+  const newRemainLabel = mode === "取证"
+    ? (unit.includes("㎡") ? "本年新取证剩余面积" : "本年新取证剩余")
+    : (unit.includes("㎡") ? "本年新达售剩余面积" : "本年新达售剩余");
   return (
     <Card className="flex flex-col h-full">
-      <CardHead title="在售货值变动" icon={<BarChart3 className="w-3.5 h-3.5" />} />
+      <CardHead title={title} icon={<BarChart3 className="w-3.5 h-3.5" />} />
       <div className="px-4 pt-3 pb-3 flex-1 flex flex-col">
         <div className="flex items-center justify-between mb-2">
           <div className="inline-flex h-8 rounded-md bg-[#F1F5F9] p-0.5 text-[12px]">
@@ -884,20 +893,19 @@ function OnSaleWaterfallCard({
                   const d = r.delta as number;
                   const color = r.type === "add" ? TOKEN_TREND.up : r.type === "sub" ? TOKEN_TREND.down : "#334155";
                   const isEnd = r.type === "end";
-                  const newRemainLabel = mode === "取证" ? "本年新取证剩余" : "本年新达售剩余";
                   return (
                     <div style={CHART_TOOLTIP_STYLE}>
                       <div className={chartTooltipTitleClass}>{r.name}</div>
                       {isEnd ? (
                         <>
                           <div className={chartTooltipRowClass}>
-                            <span className="text-[#475569]">当前剩余在售</span>
+                            <span className="text-[#475569]">{currentRemainLabel}</span>
                             <span className="tabular-nums font-medium text-foreground">
                               {r.delta.toFixed(2)} {unit}
                             </span>
                           </div>
                           <div className={chartTooltipRowClass}>
-                            <span className="text-[#475569]">年初在售剩余</span>
+                            <span className="text-[#475569]">{beginningRemainLabel}</span>
                             <span className="tabular-nums font-medium text-[#1677FF]">
                               {(r.beginningRemaining ?? 0).toFixed(2)} {unit}
                             </span>
@@ -911,7 +919,7 @@ function OnSaleWaterfallCard({
                         </>
                       ) : (
                         <div className={chartTooltipRowClass}>
-                          <span className="text-[#475569]">变动金额</span>
+                          <span className="text-[#475569]">{unit.includes("㎡") ? "变动面积" : "变动金额"}</span>
                           <span className="tabular-nums font-medium" style={{ color }}>
                             {d >= 0 && r.type === "add" ? "+" : ""}
                             {d.toFixed(2)} {unit}
