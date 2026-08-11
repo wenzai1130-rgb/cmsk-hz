@@ -764,18 +764,18 @@ export function RateDetailDialog({
                 {leafSortable("remainOld", `月初库存${u}`, true, "monthRemainOld")}
                 {leafSortable("remainNew", `本月新供${u}`, true, "monthRemainNew")}
                 {leafSortable("remainNew", `小计${u}`, true, "monthRemainTotal")}
-                {leafSortable("rateOldStock", "月度取证", true, "monthRateOldStock")}
+                {leafSortable("rateOldStock", "月初库存", true, "monthRateOldStock")}
                 {leafSortable("rateCurTarget", "本月取证", true, "monthRateCur")}
-                {leafSortable("rateCurTarget", "月初库存", true, "monthRateTotal")}
+                {leafSortable("rateCurTarget", "月度取证", true, "monthRateTotal")}
                 {leafSortable("soldOld", `年初库存${u}`, true, "yearSoldOld")}
                 {leafSortable("soldNew", `本年新供${u}`, true, "yearSoldNew")}
                 {leafSortable("soldNew", `小计${u}`, true, "yearSoldTotal")}
                 {leafSortable("remainOld", `年初库存${u}`, true, "yearRemainOld")}
                 {leafSortable("remainNew", `本年新供${u}`, true, "yearRemainNew")}
                 {leafSortable("remainNew", `小计${u}`, true, "yearRemainTotal")}
-                {leafSortable("rateOldStock", "年度取证", true, "yearRateOldStock")}
+                {leafSortable("rateOldStock", "年初库存", true, "yearRateOldStock")}
                 {leafSortable("rateCurTarget", "当年取证", true, "yearRateCur")}
-                {leafSortable("rateYearTarget", "年初库存", true, "yearRateTotal")}
+                {leafSortable("rateYearTarget", "年度取证", true, "yearRateTotal")}
               </tr>
             </thead>
             <tbody>
