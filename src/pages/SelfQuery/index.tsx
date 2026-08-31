@@ -879,7 +879,7 @@ function Index() {
               <span className="mt-1.5 inline-block w-1 h-6 rounded bg-gradient-to-b from-[oklch(0.7_0.18_240)] to-[oklch(0.55_0.22_255)]" />
               <div>
                 <h1 className="text-[22px] font-semibold leading-tight text-foreground">自助查询</h1>
-                <p className="mt-1 text-[13px] text-[#64748B]">
+                <p className="mt-1 text-[12px] text-[#64748B]">
                   支持按组织、时间、产品、状态等维度灵活组合查询，并自动生成重点指标与趋势分析。
                 </p>
               </div>

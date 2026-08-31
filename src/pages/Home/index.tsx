@@ -2843,18 +2843,18 @@ function LandYearCard({
           <div className="rounded-md border border-[#EEF1F6] overflow-hidden text-[12px] flex flex-col">
             <div className="grid grid-cols-[1fr_68px] bg-[#F1F5F9]">
               <div className="px-2.5 py-1.5 font-semibold text-foreground border-r border-[#EEF1F6]">指标</div>
-              <div className="px-2.5 py-1.5 font-semibold text-foreground text-right">数值</div>
+              <div className="px-2.5 py-1.5 font-semibold text-foreground text-right">数值（{unit}）</div>
             </div>
 
             {[
-              { label: `已售+未售（${unit}）`, value: curTotal.toFixed(2) },
-              { label: `已售货值（${unit}）`, value: curSold.toFixed(2) },
+              { label: "已售+未售", value: curTotal.toFixed(2) },
+              { label: "已售货值", value: curSold.toFixed(2) },
               {
                 label: "累计去化率",
                 value: `${dehua.toFixed(2)}%`,
                 tip: "累计去化率 = 已售货值 /（已售+未售）",
               },
-              { label: `剩余未售（${unit}）`, value: curUnsold.toFixed(2) },
+              { label: "剩余未售", value: curUnsold.toFixed(2) },
               {
                 label: "未售货值占比",
                 value: `${unsoldShare.toFixed(2)}%`,
@@ -2893,7 +2893,7 @@ function LandYearCard({
         <div className="flex flex-col min-h-0 min-w-0">
           <div className="mb-1 flex items-center gap-2">
             <span className="w-1 h-4 rounded bg-[var(--color-brand)]" />
-            <span className="text-[13px] font-semibold text-foreground">已售货值分解</span>
+            <span className="text-[13px] font-semibold text-foreground">{selectedLabel}已售货值分解</span>
           </div>
           <div className="mb-2 pl-2.5 text-[11px] text-[#64748B]">
             对应当前拿地年份的销售年份拆分

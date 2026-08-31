@@ -642,7 +642,7 @@ export function RateDetailDialog({
         <div className="h-[60px] px-6 flex items-center justify-between border-b border-slate-200">
           <div className="flex items-center gap-3">
             <span className="block w-1 h-5 rounded bg-[#1677FF]" />
-            <span className="text-[20px] font-semibold text-slate-800">去化率明细表</span>
+            <span className="text-[16px] leading-6 font-semibold text-slate-800">去化率明细表</span>
           </div>
           <button
             className="w-8 h-8 rounded-md hover:bg-slate-100 flex items-center justify-center text-slate-500"

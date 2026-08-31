@@ -16,4 +16,5 @@ export const NAV_ITEMS: NavItem[] = [
   { key: "grading", label: "多维分析", path: "/grading" },
   { key: "query", label: "自助查询", path: "/query" },
   { key: "map", label: "项目分析", path: "/projects" },
+  { key: "sales-forecast", label: "智能预测", path: "/sales-forecast" },
 ];

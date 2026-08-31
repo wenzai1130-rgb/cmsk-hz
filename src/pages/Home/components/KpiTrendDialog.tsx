@@ -74,6 +74,22 @@ function buildMonthLabels(current = new Date()) {
   return list;
 }
 
+function buildFromPreviousYearJanuary(current = new Date()) {
+  const list: { key: string; label: string; isCurrent: boolean }[] = [];
+  const start = new Date(current.getFullYear() - 1, 0, 1);
+  const end = new Date(current.getFullYear(), current.getMonth(), 1);
+  for (const d = new Date(start); d <= end; d.setMonth(d.getMonth() + 1)) {
+    const year = d.getFullYear();
+    const month = d.getMonth() + 1;
+    list.push({
+      key: `${year}-${String(month).padStart(2, "0")}`,
+      label: month === 1 ? `${String(year).slice(2)}年1月` : `${month}月`,
+      isCurrent: year === end.getFullYear() && month === end.getMonth() + 1,
+    });
+  }
+  return list;
+}
+
 
 export function KpiTrendPopover({
   metric,
@@ -90,7 +106,7 @@ export function KpiTrendPopover({
   const unit = UNIT_BY_METRIC[metric];
 
   const data = useMemo(() => {
-    const months = buildMonthLabels();
+    const months = metric === "当月签约" ? buildFromPreviousYearJanuary() : buildMonthLabels();
     const series12 = SERIES_BY_METRIC[metric] ?? [];
     // 在最前面补一位"去年同月"值：由当前月值按确定性因子（0.72~0.92）推导，
     // 保证同一指标稳定复现，将序列拓展到 13 个月。
@@ -100,7 +116,9 @@ export function KpiTrendPopover({
     const lyValue = +(currentVal * factor).toFixed(2);
     const series13 = [lyValue, ...series12];
     return months.map((m, i) => {
-      const value = series13[i] ?? 0;
+      const value = metric === "当月签约"
+        ? (series12[i % series12.length] ?? 0)
+        : (series13[i] ?? 0);
       return {
         month: m.label,
         isCurrent: m.isCurrent,
@@ -141,7 +159,7 @@ export function KpiTrendPopover({
         side={side}
         align={align}
         sideOffset={10}
-        className="w-[720px] p-0 border-[#E2E8F0] shadow-[0_20px_50px_-15px_rgba(15,23,42,0.25)] rounded-xl overflow-hidden"
+        className={`${metric === "当月签约" ? "w-[820px]" : "w-[720px]"} p-0 border-[#E2E8F0] shadow-[0_20px_50px_-15px_rgba(15,23,42,0.25)] rounded-xl overflow-hidden`}
       >
         {/* Header —— 135° 渐变 */}
         <div

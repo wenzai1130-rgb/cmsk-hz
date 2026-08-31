@@ -715,7 +715,7 @@ export function DoneUnsoldDetailDialog({ open, onOpenChange }: { open: boolean; 
             <span className="w-7 h-7 rounded-md bg-[#E8F1FF] text-[#3B82F6] flex items-center justify-center">
               <PackageCheck className="w-4 h-4" />
             </span>
-            <span className="text-[20px] font-semibold text-[#1E293B]">已竣未售业态分析</span>
+            <span className="text-[16px] leading-6 font-semibold text-[#1E293B]">已竣未售业态分析</span>
           </div>
           <button
             onClick={() => onOpenChange(false)}
