@@ -33,6 +33,8 @@ type RecordItem = {
   created: string;
   result: string;
   params?: string;
+  opening?: string;
+  price?: string;
 };
 
 function displayRecordResult(item: RecordItem) {
@@ -316,6 +318,8 @@ export default function SalesForecast() {
       project: project.name,
       created: new Date().toISOString(),
       result: model === "new" ? "中去化" : "下月46套",
+      opening: model === "new" ? opening : undefined,
+      price,
       params:
         model === "new"
           ? `销售单价 ${Number(price).toLocaleString()} 元/㎡ · 开盘 ${opening.replaceAll("-", "/")}`
@@ -328,7 +332,10 @@ export default function SalesForecast() {
       ["模型", title],
       ["销售单价", price],
       ["预测结果", model === "new" ? "前三月累计中去化" : "下月46套"],
-      ...features.map(([name, category, iv]) => [`影响特征-${name}`, `${category} / ${model === "new" ? "SHAP值" : "IV值"} ${iv}`]),
+      ...features.map(([name, category, iv]) => [
+        `影响特征-${name}`,
+        `${category} / ${model === "new" ? "SHAP值" : "IV值"} ${iv}`,
+      ]),
     ];
     const csv =
       "\uFEFF" +
@@ -345,7 +352,9 @@ export default function SalesForecast() {
     model === "new"
       ? [["前三月累计去化档位", "中去化", "中去化：累计去化率20%-80%"]]
       : [["下月销售套数", "46套", ""]];
-  const projectRecords = records.filter((item) => item.project === project.name && item.model === model);
+  const projectRecords = records.filter(
+    (item) => item.project === project.name && item.model === model,
+  );
   const recordPageCount = Math.max(1, Math.ceil(projectRecords.length / 10));
   const visibleProjectRecords = projectRecords.slice((recordPage - 1) * 10, recordPage * 10);
 
@@ -686,7 +695,9 @@ export default function SalesForecast() {
                     <b>92.7%</b>
                   </div>
                   <div className="accuracy overview-auc">
-                    <span className="overview-metric-label">AUC值 <MetricHelp label="AUC值" /></span>
+                    <span className="overview-metric-label">
+                      AUC值 <MetricHelp label="AUC值" />
+                    </span>
                     <b>0.85</b>
                   </div>
                 </div>
@@ -801,10 +812,18 @@ export default function SalesForecast() {
                   ) : (
                     <>
                       <div className="project-record-table-wrap">
-                        <table className="project-record-table">
+                        <table className={`project-record-table project-record-table-${model}`}>
                           <thead>
                             <tr>
                               <th>预测时间</th>
+                              {model === "new" ? (
+                                <>
+                                  <th>销售单价</th>
+                                  <th>计划开盘时间</th>
+                                </>
+                              ) : (
+                                <th>销售单价</th>
+                              )}
                               <th>预测结果</th>
                               <th>操作</th>
                             </tr>
@@ -813,9 +832,25 @@ export default function SalesForecast() {
                             {visibleProjectRecords.map((item) => (
                               <tr key={item.id}>
                                 <td>{new Date(item.created).toLocaleString("zh-CN")}</td>
-                                <td className="record-result-cell">
-                                  {displayRecordResult(item)}
-                                </td>
+                                {model === "new" ? (
+                                  <>
+                                    <td>
+                                      {item.price
+                                        ? `${Number(item.price).toLocaleString()} 元/㎡`
+                                        : "--"}
+                                    </td>
+                                    <td>
+                                      {item.opening ? item.opening.replaceAll("-", "/") : "--"}
+                                    </td>
+                                  </>
+                                ) : (
+                                  <td>
+                                    {item.price
+                                      ? `${Number(item.price).toLocaleString()} 元/㎡`
+                                      : "--"}
+                                  </td>
+                                )}
+                                <td className="record-result-cell">{displayRecordResult(item)}</td>
                                 <td>
                                   <button
                                     type="button"

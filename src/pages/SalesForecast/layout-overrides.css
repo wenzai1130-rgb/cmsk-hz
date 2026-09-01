@@ -50,10 +50,10 @@
 .project-record-item button{margin-top:9px;border:1px solid #c7dcec;background:#fff;color:var(--brand);border-radius:4px;padding:5px 9px;font-size:11px;cursor:pointer}
 .project-record-item button:hover{background:var(--color-brand-soft)}
 .project-record-table-wrap{overflow-x:auto;border:1px solid #e2eaf2;border-radius:6px}
-.project-record-table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:11px;color:#526980}
+.project-record-table{width:100%;border-collapse:collapse;table-layout:auto;font-size:11px;color:#526980}
 .project-record-table th{height:34px;background:#f0f7fd;color:#71869b;text-align:left;font-weight:600;white-space:nowrap}
 .project-record-table th,.project-record-table td{padding:0 9px}
-.project-record-table th:nth-child(1){width:128px}.project-record-table th:nth-child(2){width:120px}.project-record-table th:nth-child(3){width:50px}
+.project-record-table th:nth-child(1){min-width:128px}.project-record-table-new th:nth-child(2){min-width:125px}.project-record-table-new th:nth-child(3){min-width:120px}.project-record-table-new th:nth-child(4){min-width:110px}.project-record-table-stock th:nth-child(2){min-width:125px}.project-record-table-stock th:nth-child(3){min-width:120px}.project-record-table-stock th:nth-child(4){min-width:50px}
 .project-record-table td{height:44px;border-top:1px solid #edf2f6;vertical-align:middle}
 .project-record-table td:first-child{color:#8998a7;white-space:nowrap}
 .project-record-table .record-result-cell{font-weight:600;color:#234867}
