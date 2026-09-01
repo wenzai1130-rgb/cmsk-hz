@@ -44,6 +44,16 @@ function displayRecordResult(item: RecordItem) {
   return "中去化";
 }
 
+function recordResultClass(item: RecordItem) {
+  if (item.model !== "new") return "";
+  const result = displayRecordResult(item);
+  return result === "低去化"
+    ? "record-result-low"
+    : result === "高去化"
+      ? "record-result-high"
+      : "record-result-medium";
+}
+
 const projects: Project[] = [
   {
     name: "观潮府",
@@ -234,7 +244,15 @@ function MetricHelp({ label }: { label: string }) {
       </button>
       <span className="metric-help-popover">
         <strong>{label}说明</strong>
-        <span>{content}</span>
+        {label.includes("去化") ? (
+          <span style={{ color: "#1E293B" }}>
+            <span><b style={{ color: "#DC2626" }}>低去化</b>:累计去化率&lt;20%;</span>
+            <span><b style={{ color: "#F59E0B" }}>中去化</b>:累计去化率20%-80%;</span>
+            <span><b style={{ color: "#10B981" }}>高去化</b>:累计去化率&gt;=80%</span>
+          </span>
+        ) : (
+          <span>{content}</span>
+        )}
       </span>
     </span>
   );
@@ -786,7 +804,19 @@ export default function SalesForecast() {
               <div className={`metric-grid metric-count-${resultMetrics.length}`}>
                 {resultMetrics.map(([label, value, note], index) => (
                   <article
-                    className={`metric ${index === 0 ? "primary" : index === 1 ? "green" : ""}`}
+                    className={`metric ${
+                      model === "new"
+                        ? value === "低去化"
+                          ? "category-low"
+                          : value === "高去化"
+                            ? "category-high"
+                            : "category-medium"
+                        : index === 0
+                          ? "primary"
+                          : index === 1
+                            ? "green"
+                            : ""
+                    }`}
                     key={label}
                   >
                     <span className="metric-label">
@@ -803,7 +833,7 @@ export default function SalesForecast() {
                   <div className="forecast-card-title">
                     <h2>
                       <History />
-                      项目预测记录 · {project.name}
+                      {project.name}预测记录
                     </h2>
                     <span>{projectRecords.length} 条</span>
                   </div>
@@ -825,7 +855,6 @@ export default function SalesForecast() {
                                 <th>销售单价</th>
                               )}
                               <th>预测结果</th>
-                              <th>操作</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -850,17 +879,8 @@ export default function SalesForecast() {
                                       : "--"}
                                   </td>
                                 )}
-                                <td className="record-result-cell">{displayRecordResult(item)}</td>
-                                <td>
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      setModel(item.model);
-                                      setResult(true);
-                                    }}
-                                  >
-                                    查看
-                                  </button>
+                                <td className={`record-result-cell ${recordResultClass(item)}`}>
+                                  {displayRecordResult(item)}
                                 </td>
                               </tr>
                             ))}

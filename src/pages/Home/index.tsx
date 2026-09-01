@@ -1847,7 +1847,9 @@ function HomePage() {
                     <span className="text-[12px] text-muted-foreground">{unit}</span>
                   </div>
                   <div className="mt-auto pt-4 min-h-[46px] flex flex-col justify-end gap-1">
-                    <span className="text-[11px] text-muted-foreground">环比年初变化金额</span>
+                    <span className="text-[11px] text-muted-foreground">
+                      {metricMode === "area" ? "较年初变化面积" : "较年初变化金额"}
+                    </span>
                     <span className="text-[12px] font-medium tabular-nums text-emerald-500">-23.46 {unit}</span>
                   </div>
                 </div>
@@ -2860,7 +2862,12 @@ function LandYearCard({
                 value: `${unsoldShare.toFixed(2)}%`,
                 tip: "未售货值占比 = 该拿地年份未售货值 / 全部拿地年份未售货值合计；反映该年份在总未售货值结构中的占比。",
               },
-            ].map((row, i) => (
+            ]
+              .map((row, i) => ({
+                ...row,
+                value: effectiveSelected === "2021及以前" && i < 3 ? "-" : row.value,
+              }))
+              .map((row, i) => (
               <div
                 key={row.label}
                 className={`grid grid-cols-[1fr_68px] ${i % 2 === 0 ? "bg-white" : "bg-[#F8FAFC]"}`}
@@ -2884,7 +2891,7 @@ function LandYearCard({
                   {row.value}
                 </div>
               </div>
-            ))}
+              ))}
           </div>
         </div>
 
