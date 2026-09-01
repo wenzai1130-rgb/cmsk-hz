@@ -292,8 +292,8 @@ export function RateDetailDialog({
   const [mode, setMode] = useState<RateMode>("取证");
   const [keyword, setKeyword] = useState("");
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
-  const [sortKey, setSortKey] = useState<SortKey>("rateOldStock");
-  const [sortColumn, setSortColumn] = useState("yearRateOldStock");
+  const [sortKey, setSortKey] = useState<SortKey>("rateYearTarget");
+  const [sortColumn, setSortColumn] = useState("yearRateTotal");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
@@ -335,8 +335,8 @@ export function RateDetailDialog({
     const ids = collectIdsUpToLevel(buildProjectTree(), DIM_LEVEL[dim]);
     setExpanded(new Set(ids));
     setPage(1);
-    setSortKey("rateOldStock");
-    setSortColumn("yearRateOldStock");
+    setSortKey("rateYearTarget");
+    setSortColumn("yearRateTotal");
     setSortDir("desc");
   }, [dim]);
   useEffect(() => { setPage(1); }, [keyword, pageSize, sortKey, sortDir]);
@@ -384,6 +384,7 @@ export function RateDetailDialog({
   const filtered = useMemo(() => filterTree(topRows, keyword.trim()), [topRows, keyword]);
 
   const sorted = useMemo(() => {
+    if (dim === "业态") return filtered;
     if (!sortKey) return filtered;
     if (sortKey === "openDate") {
       // 仅在"上一层级内"对子项排序：项目级兄弟节点按开盘时间排序，
@@ -421,7 +422,7 @@ export function RateDetailDialog({
         .map((r) => (r.children ? { ...r, children: sortRec(r.children) } : r))
         .sort(cmp);
     return sortRec(filtered);
-  }, [filtered, sortKey, sortDir]);
+  }, [dim, filtered, sortKey, sortDir]);
 
   const total = sorted.length;
   const pageCount = Math.max(1, Math.ceil(total / pageSize));
@@ -442,6 +443,7 @@ export function RateDetailDialog({
   };
 
   const onSort = (k: NonNullable<SortKey>, columnId = String(k)) => {
+    if (dim === "业态") return;
     if (sortKey === k && sortColumn === columnId) setSortDir(sortDir === "asc" ? "desc" : "asc");
     else {
       setSortKey(k);
@@ -556,7 +558,7 @@ export function RateDetailDialog({
   const W_NAME = 190;
   const NAME_LEFT = W_IDX;
 
-  const isSortColumn = (columnId: string) => sortColumn === columnId;
+  const isSortColumn = (columnId: string) => dim !== "业态" && sortColumn === columnId;
   const sortIcon = (k: SortKey, columnId = String(k)) => {
     if (sortKey !== k || !isSortColumn(columnId)) return <ArrowUpDown className="w-3 h-3 text-slate-400" />;
     return sortDir === "asc"

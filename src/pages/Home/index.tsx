@@ -12,8 +12,6 @@ import {
   MapPin,
   Building,
   Check,
-  TrendingUp,
-  TrendingDown,
   Wallet,
   PieChart as PieIcon,
   CalendarRange,
@@ -451,8 +449,7 @@ function DeltaTag({ value }: { value: number }) {
         up ? "bg-rose-50 text-rose-600" : "bg-emerald-50 text-emerald-600"
       }`}
     >
-      {up ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-      {formatPercent(Math.abs(value), { withSign: false })}
+      {value >= 0 ? "+" : "-"}{Math.abs(value).toFixed(2)}百分点
     </span>
   );
 }
@@ -1328,23 +1325,56 @@ function DoneUnsoldDistributionCard({
   onDetail?: () => void;
 }) {
   const [activeBiz, setActiveBiz] = useState("全部业态");
-  const [chartMode, setChartMode] = useState<"age" | "year">("age");
   const scaledBiz = DONE_UNSOLD_BIZ.map((d) => ({ ...d, value: +(d.value * factor).toFixed(2) }));
   const total = +scaledBiz.reduce((s, d) => s + d.value, 0).toFixed(2);
   const activeBizData = activeBiz === "全部业态" ? null : scaledBiz.find((d) => d.name === activeBiz);
   const selectedColor = activeBiz === "全部业态"
     ? SUMMARY_COLOR
     : colorOf(activeBiz, DONE_UNSOLD_BIZ.findIndex((d) => d.name === activeBiz));
-  const selectedValues = chartMode === "age"
-    ? DONE_UNSOLD_AGE_BY_BIZ[activeBiz] ?? DONE_UNSOLD_AGE_BY_BIZ["全部业态"]
-    : DONE_UNSOLD_YEAR_BY_BIZ[activeBiz] ?? DONE_UNSOLD_YEAR_BY_BIZ["全部业态"];
-  const chartLabels = chartMode === "age"
-    ? ["24个月以上", "18-24个月", "12-18个月", "12个月以内"]
-    : ["2021及之前", "2022", "2023", "2024", "2025", "2026"];
-  const barData = chartLabels.map((name, i) => ({
-    name,
-    value: +((selectedValues[chartMode === "age" ? selectedValues.length - 1 - i : i] ?? 0) * factor).toFixed(2),
-  }));
+  const ageLabels = ["24个月以上", "18-24个月", "12-18个月", "12个月以内"];
+  const yearLabels = ["2021及之前", "2022", "2023", "2024", "2025", "2026"];
+  const ageValues = DONE_UNSOLD_AGE_BY_BIZ[activeBiz] ?? DONE_UNSOLD_AGE_BY_BIZ["全部业态"];
+  const yearValues = DONE_UNSOLD_YEAR_BY_BIZ[activeBiz] ?? DONE_UNSOLD_YEAR_BY_BIZ["全部业态"];
+  const ageBarData = ageLabels.map((name, i) => ({ name, value: +((ageValues[ageValues.length - 1 - i] ?? 0) * factor).toFixed(2) }));
+  const yearBarData = yearLabels.map((name, i) => ({ name, value: +((yearValues[i] ?? 0) * factor).toFixed(2) }));
+
+  const renderDistributionChart = (title: string, data: { name: string; value: number }[]) => (
+    <div className="flex min-w-0 flex-1 flex-col">
+      <div className="mb-1 flex items-center gap-2 text-[12px] text-[#64748B]">
+        <span className="w-1 h-4 rounded" style={{ background: selectedColor }} />
+        <span className="font-semibold text-[#1E293B]">{title}</span>
+      </div>
+      <div className="relative min-h-[220px] flex-1">
+        <div className="absolute left-0 top-0 z-10 text-[11px] text-[#64748B]">单位：{unit}</div>
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={data} margin={{ top: 30, right: 8, left: -10, bottom: 4 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#E8EEF7" vertical={false} />
+            <XAxis dataKey="name" tick={{ fontSize: 11, fill: "#64748B" }} axisLine={{ stroke: "#E2E8F0" }} tickLine={false} />
+            <YAxis tick={{ fontSize: 11, fill: "#64748B" }} axisLine={false} tickLine={false} />
+            <RTooltip
+              cursor={{ fill: "rgba(91,141,239,0.06)" }}
+              content={({ active, payload, label }) => {
+                if (!active || !payload?.length) return null;
+                const value = Number(payload[0]?.value ?? 0);
+                return (
+                  <div style={CHART_TOOLTIP_STYLE}>
+                    <div className={chartTooltipTitleClass}>{label}</div>
+                    <div className={chartTooltipRowClass}>
+                      <span className="inline-flex items-center gap-1.5 text-[#475569]"><span className="w-2 h-2 rounded-sm" style={{ background: selectedColor }} />已竣未售-{activeBiz}</span>
+                      <span className="tabular-nums font-medium text-[#111827]">{value.toFixed(2)} {unit}</span>
+                    </div>
+                  </div>
+                );
+              }}
+            />
+            <Bar dataKey="value" fill={selectedColor} fillOpacity={0.88} radius={[4, 4, 0, 0]} maxBarSize={28}>
+              <LabelList dataKey="value" position="top" formatter={(v: any) => Number(v).toFixed(2)} style={{ fill: "#334155", fontSize: 11, fontWeight: 600 }} />
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
+  );
 
   const listRows = [
     { name: "全部业态", value: total, pct: 100, color: SUMMARY_COLOR },
@@ -1443,94 +1473,9 @@ function DoneUnsoldDistributionCard({
           </div>
         </div>
 
-        <div className="flex flex-col min-w-0 min-h-0">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2 text-[12px] text-[#64748B]">
-              <span className="w-1 h-4 rounded" style={{ background: selectedColor }} />
-              <span className="font-semibold text-[#1E293B]">已竣未售 - {activeBiz}</span>
-            </div>
-            <div className="inline-flex h-8 rounded-md bg-[#F1F5F9] p-0.5 text-[12px]">
-              <button
-                type="button"
-                onClick={() => setChartMode("age")}
-                className={`px-3 rounded-[4px] transition-colors ${
-                  chartMode === "age"
-                    ? "bg-white text-[var(--color-brand)] shadow-sm"
-                    : "text-[#64748B] hover:text-[#334155]"
-                }`}
-              >
-                按货龄
-              </button>
-              <button
-                type="button"
-                onClick={() => setChartMode("year")}
-                className={`px-3 rounded-[4px] transition-colors ${
-                  chartMode === "year"
-                    ? "bg-white text-[var(--color-brand)] shadow-sm"
-                    : "text-[#64748B] hover:text-[#334155]"
-                }`}
-              >
-                按形成年份
-              </button>
-            </div>
-          </div>
-
-          <div className="relative flex-1 min-h-[220px]">
-            <div className="absolute left-0 top-0 z-10 text-[11px] text-[#64748B]">
-              单位：{unit}
-            </div>
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={barData} margin={{ top: 30, right: 8, left: -10, bottom: 4 }}>
-                <defs>
-                  <linearGradient id="done-unsold-bar-gradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor={selectedColor} stopOpacity={0.82} />
-                    <stop offset="100%" stopColor={selectedColor} stopOpacity={1} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#E8EEF7" vertical={false} />
-                <XAxis
-                  dataKey="name"
-                  tick={{ fontSize: 11, fill: "#64748B" }}
-                  axisLine={{ stroke: "#E2E8F0" }}
-                  tickLine={false}
-                />
-                <YAxis
-                  tick={{ fontSize: 11, fill: "#64748B" }}
-                  axisLine={false}
-                  tickLine={false}
-                />
-                <RTooltip
-                  cursor={{ fill: "rgba(91,141,239,0.06)" }}
-                  content={({ active, payload, label }) => {
-                    if (!active || !payload?.length) return null;
-                    const value = Number(payload[0]?.value ?? 0);
-                    return (
-                      <div style={CHART_TOOLTIP_STYLE}>
-                        <div className={chartTooltipTitleClass}>{label}</div>
-                        <div className={chartTooltipRowClass}>
-                          <span className="inline-flex items-center gap-1.5 text-[#475569]">
-                            <span className="w-2 h-2 rounded-sm" style={{ background: selectedColor }} />
-                            已竣未售-{activeBiz}
-                          </span>
-                          <span className="tabular-nums font-medium text-[#111827]">
-                            {value.toFixed(2)} {unit}
-                          </span>
-                        </div>
-                      </div>
-                    );
-                  }}
-                />
-                <Bar dataKey="value" fill="url(#done-unsold-bar-gradient)" radius={[4, 4, 0, 0]} maxBarSize={28}>
-                  <LabelList
-                    dataKey="value"
-                    position="top"
-                    formatter={(v: any) => Number(v).toFixed(2)}
-                    style={{ fill: "#334155", fontSize: 11, fontWeight: 600 }}
-                  />
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
+        <div className="grid min-w-0 min-h-0 flex-1 grid-cols-1 gap-4 lg:grid-cols-2">
+          {renderDistributionChart("按货龄", ageBarData)}
+          {renderDistributionChart("按形成年份", yearBarData)}
         </div>
       </div>
     </Card>
@@ -2348,7 +2293,7 @@ function HomePage() {
                             )}
                             {diff != null && (
                               <div className={chartTooltipRowClass}>
-                                <span className="text-[#475569]">同比差额</span>
+                                <span className="text-[#475569]">同比</span>
                                 <span
                                   className={`tabular-nums ${diff > 0 ? "text-rose-600" : diff < 0 ? "text-emerald-600" : "text-slate-500"}`}
                                 >
@@ -2410,23 +2355,9 @@ function HomePage() {
 
         </div>
 
-        {/* Row 2b: 在建货值结构分析 / 竣工货值结构分析 */}
+        {/* Row 2b: 竣工货值结构分析 */}
         <div className="grid grid-cols-12 gap-4">
-          <ModuleBadge moduleId="in-build-structure" className="col-span-4 h-full block">
-            <AgeStackStructureCard
-              title="在建货值结构分析"
-              icon={<Building2 className="w-3.5 h-3.5" />}
-              factor={factor}
-              unit={unit}
-              accentBg="#FFF4E6"
-              accentFg="#C2410C"
-              buckets={IN_BUILD_AGE_BUCKETS}
-              firstLabel="在建达售未取证"
-              secondLabel="在建取证未售"
-              colors={[TOKEN_BRAND.primary, TOKEN_STATUS.warning.fg]}
-            />
-          </ModuleBadge>
-          <ModuleBadge moduleId="done-structure" className="col-span-8 h-full block">
+          <ModuleBadge moduleId="done-structure" className="col-span-12 h-full block">
             <DoneUnsoldDistributionCard factor={factor} unit={unit} onDetail={() => onDetail("已竣未售分布")} />
           </ModuleBadge>
         </div>
@@ -2843,9 +2774,9 @@ function LandYearCard({
             当前选中拿地年份的核心指标
           </div>
           <div className="rounded-md border border-[#EEF1F6] overflow-hidden text-[12px] flex flex-col">
-            <div className="grid grid-cols-[1fr_68px] bg-[#F1F5F9]">
+            <div className="grid grid-cols-[minmax(0,1fr)_82px] bg-[#F1F5F9]">
               <div className="px-2.5 py-1.5 font-semibold text-foreground border-r border-[#EEF1F6]">指标</div>
-              <div className="px-2.5 py-1.5 font-semibold text-foreground text-right">数值（{unit}）</div>
+              <div className="px-2.5 py-1.5 font-semibold text-foreground text-right whitespace-nowrap">数值（{unit}）</div>
             </div>
 
             {[
@@ -2870,7 +2801,7 @@ function LandYearCard({
               .map((row, i) => (
               <div
                 key={row.label}
-                className={`grid grid-cols-[1fr_68px] ${i % 2 === 0 ? "bg-white" : "bg-[#F8FAFC]"}`}
+                className={`grid grid-cols-[minmax(0,1fr)_82px] ${i % 2 === 0 ? "bg-white" : "bg-[#F8FAFC]"}`}
               >
                 <div className="px-2.5 py-1.5 text-muted-foreground border-r border-[#EEF1F6] flex items-center gap-1 min-w-0">
                   <span className="truncate">{row.label}</span>
@@ -3355,9 +3286,10 @@ function CityRankCard({
 // ====== Row 3: 综合分析（多 Tab + KPI + 趋势/明细） ======
 const VALUE_TABS = [
   "总货值分析",
-  "供货详情",
+  "供货分析",
   "在售货值分析",
   "去化周期分析",
+  "去化率分析",
   "销售分析",
   "营销分析",
 ] as const;
@@ -3381,10 +3313,10 @@ const KPI_TOOLTIPS: Record<string, string> = {
 const BIZ_TYPES = ["全部业态", "住宅", "公寓", "车位", "商业", "写字楼", "其他"] as const;
 type BizType = (typeof BIZ_TYPES)[number];
 
-// 当前为 2026 年 5 月
+// 当前为 2026 年 9 月
 const CURRENT_YEAR = 2026;
-const CURRENT_MONTH = 5;
-// 本年 12 个月（用于总货值/供货详情，未来月份只显示计划值轮廓）
+const CURRENT_MONTH = 9;
+// 本年 12 个月（用于总货值/供货分析，未来月份只显示计划值轮廓）
 const FULL_YEAR_MONTHS = Array.from({ length: 12 }, (_, i) =>
   `${String(i + 1).padStart(2, "0")}月`
 );
@@ -3406,9 +3338,7 @@ function rollingMonths(endYear: number, endMonth: number, count: number) {
 }
 
 const ROLL_12_TO_NOW = rollingMonths(CURRENT_YEAR, CURRENT_MONTH, 12);
-const PREV_YEAR = (CURRENT_MONTH as number) === 1 ? CURRENT_YEAR - 1 : CURRENT_YEAR;
-const PREV_MONTH = (CURRENT_MONTH as number) === 1 ? 12 : CURRENT_MONTH - 1;
-const ROLL_12_TO_PREV = rollingMonths(PREV_YEAR, PREV_MONTH, 12);
+const formatRollingMonth = (value: string) => `${value.slice(-2)}月`;
 
 const VALUE_KPIS: Record<ValueTab, { label: string; value: number; unit: string }[]> = {
   总货值分析: [
@@ -3417,7 +3347,7 @@ const VALUE_KPIS: Record<ValueTab, { label: string; value: number; unit: string 
     { label: "本年度累计供货货值", value: 92.36, unit: "亿元" },
     { label: "年度累计签约金额", value: 76.82, unit: "亿元" },
   ],
-  供货详情: [
+  供货分析: [
     { label: "年度计划供货", value: 178.50, unit: "亿元" },
     { label: "年累计实际", value: 92.36, unit: "亿元" },
     { label: "达成率", value: 51.74, unit: "%" },
@@ -3431,6 +3361,10 @@ const VALUE_KPIS: Record<ValueTab, { label: string; value: number; unit: string 
     { label: "去化周期", value: 11.71, unit: "月" },
     { label: "剩余未售面积", value: 286.40, unit: "万㎡" },
     { label: "滚动12个月月均销售面积", value: 24.46, unit: "万㎡" },
+  ],
+  去化率分析: [
+    { label: "年度取证去化率", value: 14.75, unit: "%" },
+    { label: "年度达售去化率", value: 12.98, unit: "%" },
   ],
   销售分析: [
     { label: "年度累计签约金额", value: 286.40, unit: "亿元" },
@@ -3465,10 +3399,10 @@ function pseudo(seed: number) {
 
 // —— 各 Tab 数据生成 ——
 function buildTab1Data() {
-  // 12 个月：已过去月份显示全部数据；未来月份仅显示"计划供货货值"的轮廓柱
-  return FULL_YEAR_MONTHS.map((m, i) => {
+  // 使用含当前月的滚动 12 个月，保留原始月份值供 tooltip、表格和导出使用。
+  return ROLL_12_TO_NOW.map((m, i) => {
     const r = pseudo(i + 1);
-    const isFuture = i + 1 > CURRENT_MONTH;
+    const isFuture = false;
     const plan = +(38 + r * 12).toFixed(2);
     return {
       month: m,
@@ -3512,6 +3446,15 @@ function buildTab3Data(biz: BizType) {
   });
 }
 
+function buildTab7Data(biz: BizType) {
+  const f = BIZ_FACTOR[biz];
+  return ROLL_12_TO_NOW.map((month, i) => ({
+    month,
+    取证去化率: +(Math.max(0, 10.8 + i * 0.7 + pseudo(i + 51) * 3) * (0.9 + f * 0.1)).toFixed(2),
+    达售去化率: +(Math.max(0, 9.6 + i * 0.65 + pseudo(i + 61) * 2.6) * (0.9 + f * 0.1)).toFixed(2),
+  }));
+}
+
 function buildTab4Data(biz: BizType) {
   const f = BIZ_FACTOR[biz];
   return ROLL_12_TO_NOW.map((m, i) => ({
@@ -3522,7 +3465,7 @@ function buildTab4Data(biz: BizType) {
 }
 
 function buildTab5Data() {
-  return ROLL_12_TO_PREV.map((m, i) => {
+  return ROLL_12_TO_NOW.map((m, i) => {
     const sign = +(20 + pseudo(i + 3) * 18).toFixed(2);
     const gap = +(4 + pseudo(i + 13) * 8).toFixed(2);
     return {
@@ -3628,6 +3571,7 @@ function ValueAnalysisCard({
   const tab2 = buildTab2Data(biz);
   const tab3 = buildTab3Data(biz);
   const tab4 = buildTab4Data(biz);
+  const tab7 = buildTab7Data(biz);
   const tab5 = buildTab5Data();
   const tab6 = buildTab6Data(biz);
   // 营销分析：到访量/到访转认购率不拆业态；认购/签约/认购转签约率按业态刷新
@@ -3661,7 +3605,7 @@ function ValueAnalysisCard({
       { label: "认购转签约率", value: buyToSign, unit: "%" },
     ];
   })();
-  const showBizFilter = tab === "供货详情" || tab === "在售货值分析" || tab === "去化周期分析" || tab === "营销分析";
+  const showBizFilter = tab === "供货分析" || tab === "在售货值分析" || tab === "去化周期分析" || tab === "去化率分析" || tab === "营销分析";
 
 
 
@@ -3669,7 +3613,7 @@ function ValueAnalysisCard({
   const leftUnitLabel =
     tab === "去化周期分析" ? "万㎡" : tab === "营销分析" ? "数量" : "亿";
   const rightUnitLabel =
-    tab === "供货详情" || tab === "去化周期分析" || tab === "销售分析" || tab === "营销分析" ? "%" : null;
+    tab === "供货分析" || tab === "去化周期分析" || tab === "去化率分析" || tab === "销售分析" || tab === "营销分析" ? "%" : null;
 
 
 
@@ -3732,7 +3676,7 @@ function ValueAnalysisCard({
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart data={tab1} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
             <CartesianGrid stroke="#EEF1F6" strokeDasharray="3 3" vertical={false} />
-            <XAxis dataKey="month" tick={{ fontSize: 11, fill: "#64748B" }} axisLine={{ stroke: "#E2E8F0" }} tickLine={false} />
+            <XAxis dataKey="month" tickFormatter={formatRollingMonth} tick={{ fontSize: 11, fill: "#64748B" }} axisLine={{ stroke: "#E2E8F0" }} tickLine={false} />
             <YAxis tick={{ fontSize: 11, fill: "#64748B" }} axisLine={false} tickLine={false} width={48} />
             <RTooltip content={<CustomTooltip />} cursor={{ fill: "rgba(91,141,239,0.06)" }} />
             <Legend
@@ -3761,7 +3705,7 @@ function ValueAnalysisCard({
         </ResponsiveContainer>
       );
     }
-    if (tab === "供货详情") {
+    if (tab === "供货分析") {
       return (
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart data={tab2} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
@@ -3808,7 +3752,7 @@ function ValueAnalysisCard({
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart data={tab4} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
             <CartesianGrid stroke="#EEF1F6" strokeDasharray="3 3" vertical={false} />
-            <XAxis dataKey="month" tick={{ fontSize: 11, fill: "#64748B" }} axisLine={{ stroke: "#E2E8F0" }} tickLine={false} />
+            <XAxis dataKey="month" tickFormatter={formatRollingMonth} tick={{ fontSize: 11, fill: "#64748B" }} axisLine={{ stroke: "#E2E8F0" }} tickLine={false} />
             <YAxis yAxisId="left" tick={{ fontSize: 11, fill: "#64748B" }} axisLine={false} tickLine={false} width={48} />
             <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11, fill: "#64748B" }} axisLine={false} tickLine={false} width={40} />
             <RTooltip content={<CustomTooltip />} cursor={{ fill: "rgba(91,141,239,0.06)" }} />
@@ -3819,12 +3763,27 @@ function ValueAnalysisCard({
         </ResponsiveContainer>
       );
     }
+    if (tab === "去化率分析") {
+      return (
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart data={tab7} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+            <CartesianGrid stroke="#EEF1F6" strokeDasharray="3 3" vertical={false} />
+            <XAxis dataKey="month" padding={{ left: 16, right: 16 }} tickFormatter={formatRollingMonth} tick={{ fontSize: 11, fill: "#64748B" }} axisLine={{ stroke: "#E2E8F0" }} tickLine={false} />
+            <YAxis tick={{ fontSize: 11, fill: "#64748B" }} axisLine={false} tickLine={false} width={48} unit="%" />
+            <RTooltip content={<CustomTooltip />} cursor={{ fill: "rgba(91,141,239,0.06)" }} />
+            <Legend wrapperStyle={{ fontSize: 11 }} iconSize={10} />
+            <Line type="monotone" dataKey="取证去化率" stroke={C.yellow} strokeWidth={2} dot={{ r: 3, fill: C.yellow }} />
+            <Line type="monotone" dataKey="达售去化率" stroke={C.blue} strokeWidth={2} dot={{ r: 3, fill: C.blue }} />
+          </LineChart>
+        </ResponsiveContainer>
+      );
+    }
     if (tab === "销售分析") {
       return (
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart data={tab5} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
             <CartesianGrid stroke="#EEF1F6" strokeDasharray="3 3" vertical={false} />
-            <XAxis dataKey="month" tick={{ fontSize: 11, fill: "#64748B" }} axisLine={{ stroke: "#E2E8F0" }} tickLine={false} />
+            <XAxis dataKey="month" tickFormatter={formatRollingMonth} tick={{ fontSize: 11, fill: "#64748B" }} axisLine={{ stroke: "#E2E8F0" }} tickLine={false} />
             <YAxis yAxisId="left" tick={{ fontSize: 11, fill: "#64748B" }} axisLine={false} tickLine={false} width={48} />
             <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11, fill: "#64748B" }} axisLine={false} tickLine={false} width={40} />
             <RTooltip content={<CustomTooltip />} cursor={{ fill: "rgba(91,141,239,0.06)" }} />
@@ -3842,7 +3801,7 @@ function ValueAnalysisCard({
       <ResponsiveContainer width="100%" height="100%">
         <ComposedChart data={tab6} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
           <CartesianGrid stroke="#EEF1F6" strokeDasharray="3 3" vertical={false} />
-          <XAxis dataKey="month" tick={{ fontSize: 11, fill: "#64748B" }} axisLine={{ stroke: "#E2E8F0" }} tickLine={false} />
+          <XAxis dataKey="month" tickFormatter={formatRollingMonth} tick={{ fontSize: 11, fill: "#64748B" }} axisLine={{ stroke: "#E2E8F0" }} tickLine={false} />
           <YAxis yAxisId="left" tick={{ fontSize: 11, fill: "#64748B" }} axisLine={false} tickLine={false} width={48} />
           <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11, fill: "#64748B" }} axisLine={false} tickLine={false} width={40} />
           <RTooltip content={<CustomTooltip />} cursor={{ fill: "rgba(91,141,239,0.06)" }} />
@@ -3867,7 +3826,7 @@ function ValueAnalysisCard({
       { key: "总货值", label: "总货值(亿)" },
       { key: "年度累计签约金额", label: "年度累计签约金额(亿)" },
     ], rows: tab1 };
-    if (tab === "供货详情") return { cols: [
+    if (tab === "供货分析") return { cols: [
       { key: "month", label: "月份", xKey: true },
       { key: "计划供货", label: "计划供货(亿)" },
       { key: "实际供货", label: "实际供货(亿)" },
@@ -3883,6 +3842,11 @@ function ValueAnalysisCard({
       { key: "库存面积", label: "库存面积(万㎡)" },
       { key: "去化周期", label: "去化周期(月)" },
     ], rows: tab4 };
+    if (tab === "去化率分析") return { cols: [
+      { key: "month", label: "月份", xKey: true },
+      { key: "取证去化率", label: "取证去化率(%)" },
+      { key: "达售去化率", label: "达售去化率(%)" },
+    ], rows: tab7 };
     if (tab === "销售分析") return { cols: [
       { key: "month", label: "月份", xKey: true },
       { key: "签约金额", label: "签约金额(亿)" },
@@ -3964,9 +3928,9 @@ function ValueAnalysisCard({
           {VALUE_TABS.map((t) => {
             const active = t === tab;
             const tone: "blue" | "orange" | "violet" =
-              t === "总货值分析" || t === "供货详情"
+              t === "总货值分析" || t === "供货分析"
                 ? "blue"
-                : t === "在售货值分析" || t === "去化周期分析"
+                : t === "在售货值分析" || t === "去化周期分析" || t === "去化率分析"
                 ? "orange"
                 : "violet";
             const grad =

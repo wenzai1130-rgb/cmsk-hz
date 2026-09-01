@@ -22,6 +22,7 @@ type Row = {
   monthSigned: number;
   monthAchieve: number; // %
   unsold: number;
+  reachUnsold: number;
 };
 
 const GROUPS = [
@@ -82,13 +83,14 @@ function buildRows(base: { name: string; group: string }[]): Row[] {
     const monthTarget = +(monthSigned / (0.5 + seeded(i, 4) * 0.45)).toFixed(2);
     const monthAchieve = +((monthSigned / monthTarget) * 100).toFixed(2);
     const unsold = +Math.max(20, Math.min(180, 180 - i * 6 + (seeded(i, 5) - 0.5) * 18)).toFixed(2);
-    return { name: b.name, group: b.group, yearTarget, yearSigned, yearAchieve, monthTarget, monthSigned, monthAchieve, unsold };
+    const reachUnsold = +(unsold * (0.58 + seeded(i, 6) * 0.16)).toFixed(2);
+    return { name: b.name, group: b.group, yearTarget, yearSigned, yearAchieve, monthTarget, monthSigned, monthAchieve, unsold, reachUnsold };
   });
 }
 
 const CITY_ROWS = buildRows(CITY_BASE);
 
-type NumKey = Exclude<keyof Row, "name" | "group"> | "unsoldPct";
+type NumKey = Exclude<keyof Row, "name" | "group"> | "unsoldPct" | "reachUnsoldPct";
 
 type ColDef = {
   key: NumKey;
@@ -97,7 +99,7 @@ type ColDef = {
   scale?: boolean; // amount/area metric scaled by factor
 };
 
-function getColumns(unit: string): { year: ColDef[]; month: ColDef[]; unsold: ColDef[] } {
+function getColumns(unit: string): { year: ColDef[]; month: ColDef[]; unsold: ColDef[]; reachUnsold: ColDef[] } {
   return {
     year: [
       { key: "yearTarget", label: `目标(${unit})`, fmt: fmtNum, scale: true },
@@ -110,8 +112,12 @@ function getColumns(unit: string): { year: ColDef[]; month: ColDef[]; unsold: Co
       { key: "monthAchieve", label: "完成率", fmt: fmtPct },
     ],
     unsold: [
-      { key: "unsold", label: `未售货值(${unit})`, fmt: fmtNum, scale: true },
+      { key: "unsold", label: `货值(${unit})`, fmt: fmtNum, scale: true },
       { key: "unsoldPct", label: "占比", fmt: fmtPct },
+    ],
+    reachUnsold: [
+      { key: "reachUnsold", label: `货值(${unit})`, fmt: fmtNum, scale: true },
+      { key: "reachUnsoldPct", label: "占比", fmt: fmtPct },
     ],
   };
 }
@@ -148,7 +154,7 @@ export function CityRankDetailDialog({
   const [pageSize, setPageSize] = useState(50);
 
   const cols = useMemo(() => getColumns(unit), [unit]);
-  const allCols: ColDef[] = [...cols.year, ...cols.month, ...cols.unsold];
+  const allCols: ColDef[] = [...cols.year, ...cols.month, ...cols.unsold, ...cols.reachUnsold];
 
   // Project mode: build rows from project pool prefixed by org
   const sourceRows = useMemo<Row[]>(() => {
@@ -181,7 +187,12 @@ export function CityRankDetailDialog({
       (keyword.trim() === "" || r.name.includes(keyword.trim()))
     );
     const totalUnsold = arr.reduce((s, r) => s + r.unsold, 0) || 1;
-    const withPct = arr.map((r) => ({ ...r, unsoldPct: +((r.unsold / totalUnsold) * 100).toFixed(2) }));
+    const totalReachUnsold = arr.reduce((s, r) => s + r.reachUnsold, 0) || 1;
+    const withPct = arr.map((r) => ({
+      ...r,
+      unsoldPct: +((r.unsold / totalUnsold) * 100).toFixed(2),
+      reachUnsoldPct: +((r.reachUnsold / totalReachUnsold) * 100).toFixed(2),
+    }));
     withPct.sort((a, b) => {
       const av = (a as any)[sortKey] as number;
       const bv = (b as any)[sortKey] as number;
@@ -215,19 +226,22 @@ export function CityRankDetailDialog({
       "排名", ...(isProject ? [] : ["城市群组"]), nameLabel,
       `年度目标(${unit})`, `年度完成额(${unit})`, "年度完成率(%)",
       `月度目标(${unit})`, `月度完成额(${unit})`, "月度完成率(%)",
-      `未售货值(${unit})`, "未售占比(%)",
+      `货值(${unit})`, "未售占比(%)",
+      `货值(${unit})`, "占比(%)",
     ];
     const body = filtered.map((r, i) => [
       i + 1, ...(isProject ? [] : [r.group]), r.name,
       +(r.yearTarget * factor).toFixed(2), +(r.yearSigned * factor).toFixed(2), +r.yearAchieve.toFixed(2),
       +(r.monthTarget * factor).toFixed(2), +(r.monthSigned * factor).toFixed(2), +r.monthAchieve.toFixed(2),
       +(r.unsold * factor).toFixed(2), +r.unsoldPct.toFixed(2),
+      +(r.reachUnsold * factor).toFixed(2), +r.reachUnsoldPct.toFixed(2),
     ]);
     const avgRow = [
       "均值", ...(isProject ? [] : [group]), "全部平均",
       +(avg("yearTarget") * factor).toFixed(2), +(avg("yearSigned") * factor).toFixed(2), +avg("yearAchieve").toFixed(2),
       +(avg("monthTarget") * factor).toFixed(2), +(avg("monthSigned") * factor).toFixed(2), +avg("monthAchieve").toFixed(2),
       +(avg("unsold") * factor).toFixed(2), +avg("unsoldPct").toFixed(2),
+      +(avg("reachUnsold") * factor).toFixed(2), +avg("reachUnsoldPct").toFixed(2),
     ];
     const ws = XLSX.utils.aoa_to_sheet([headers, avgRow, ...body]);
     const wb = XLSX.utils.book_new();
@@ -314,27 +328,28 @@ export function CityRankDetailDialog({
                         <th rowSpan={2} className="h-8 px-2 text-left font-medium border-b border-[#E2E8F0] whitespace-nowrap" style={{ width: 110 }}>城市群组</th>
                       )}
                       <th rowSpan={2} className="h-8 px-2 text-left font-medium border-b border-[#E2E8F0] whitespace-nowrap" style={{ width: isProject ? 180 : 120 }}>{nameLabel}</th>
-                      <th colSpan={3} className="h-7 px-2 text-center font-medium border-l border-b border-[#E2E8F0] bg-[#E6EEFB] text-[var(--color-brand)]">年度</th>
-                      <th colSpan={3} className="h-7 px-2 text-center font-medium border-l border-b border-[#E2E8F0] bg-[#ECFDF5] text-[#047857]">月度</th>
-                      <th colSpan={2} className="h-7 px-2 text-center font-medium border-l border-b border-[#E2E8F0] bg-[#FFF7ED] text-[#C2410C]">未售</th>
+                      <th colSpan={3} className="h-7 px-1.5 text-center font-medium border-l border-b border-[#E2E8F0] bg-[#E6EEFB] text-[var(--color-brand)]">年度</th>
+                      <th colSpan={3} className="h-7 px-1.5 text-center font-medium border-l border-b border-[#E2E8F0] bg-[#ECFDF5] text-[#047857]">月度</th>
+                      <th colSpan={2} className="h-7 px-1.5 text-center font-medium border-l border-b border-[#E2E8F0] bg-[#FFF7ED] text-[#C2410C]">未售</th>
+                      <th colSpan={2} className="h-7 px-1.5 text-center font-medium border-l border-b border-[#E2E8F0] bg-[#FFF7ED] text-[#C2410C]">达售未售</th>
                     </tr>
                     <tr className="text-[#475569]">
                       {cols.year.map((c) => (
-                        <th key={c.key} className="h-7 px-2 text-right font-normal border-b border-l border-[#E2E8F0] whitespace-nowrap bg-[#F5F9FF]">
+                        <th key={c.key} className="h-7 px-1.5 text-right font-normal border-b border-l border-[#E2E8F0] whitespace-nowrap bg-[#F5F9FF]">
                           <button onClick={() => toggleSort(c.key)} className="inline-flex items-center gap-1 cursor-pointer">
                             {c.label}<SortIcon k={c.key} />
                           </button>
                         </th>
                       ))}
                       {cols.month.map((c) => (
-                        <th key={c.key} className="h-7 px-2 text-right font-normal border-b border-l border-[#E2E8F0] whitespace-nowrap bg-[#F0FDF4]">
+                        <th key={c.key} className="h-7 px-1.5 text-right font-normal border-b border-l border-[#E2E8F0] whitespace-nowrap bg-[#F0FDF4]">
                           <button onClick={() => toggleSort(c.key)} className="inline-flex items-center gap-1 cursor-pointer">
                             {c.label}<SortIcon k={c.key} />
                           </button>
                         </th>
                       ))}
                       {cols.unsold.map((c) => (
-                        <th key={c.key} className="h-7 px-2 text-right font-normal border-b border-l border-[#E2E8F0] whitespace-nowrap bg-[#FFF7ED]">
+                        <th key={c.key} className="h-7 px-1.5 text-right font-normal border-b border-l border-[#E2E8F0] whitespace-nowrap bg-[#FFF7ED]">
                           <span className="inline-flex items-center gap-1">
                             <button onClick={() => toggleSort(c.key)} className="inline-flex items-center gap-1 cursor-pointer">
                               {c.label}<SortIcon k={c.key} />
@@ -352,6 +367,13 @@ export function CityRankDetailDialog({
                           </span>
                         </th>
                       ))}
+                      {cols.reachUnsold.map((c) => (
+                        <th key={c.key} className="h-7 px-1.5 text-right font-normal border-b border-l border-[#E2E8F0] whitespace-nowrap bg-[#FFF7ED]">
+                          <button onClick={() => toggleSort(c.key)} className="inline-flex items-center gap-1 cursor-pointer">
+                            {c.label}<SortIcon k={c.key} />
+                          </button>
+                        </th>
+                      ))}
                     </tr>
                     {/* Average row (in thead so it sticks with header, no gap) */}
                     <tr className="bg-[#F8FAFC] text-[#1E293B]" style={{ height: 32 }}>
@@ -365,7 +387,7 @@ export function CityRankDetailDialog({
                       {allCols.map((c) => {
                         const v = c.scale ? +(avg(c.key) * factor).toFixed(2) : avg(c.key);
                         return (
-                          <td key={c.key} className="px-2 text-right border-l border-t border-[#E2E8F0]">
+                          <td key={c.key} className="px-1.5 text-right border-l border-t border-[#E2E8F0]">
                             <span className="tabular-nums font-semibold">
                               {filtered.length === 0 ? "--" : c.fmt(v)}
                             </span>
@@ -404,10 +426,10 @@ export function CityRankDetailDialog({
                             return (
                               <td
                                 key={c.key}
-                                className={`px-2 text-right border-l border-[#EEF1F6] ${active ? "bg-[#F5F9FF]" : ""}`}
+                                className={`px-1.5 text-right border-l border-[#EEF1F6] ${active ? "bg-[#F5F9FF]" : ""}`}
                               >
                                 <span
-                                  className={`tabular-nums ${active ? "font-semibold text-[var(--color-brand)]" : isUnsoldCol ? "font-medium text-[#C2410C]" : "text-[#1E293B]"}`}
+                                  className={`tabular-nums ${isUnsoldCol ? "font-normal text-[#1E293B]" : active ? "font-semibold text-[var(--color-brand)]" : "text-[#1E293B]"}`}
                                 >
                                   {c.fmt(v)}
                                 </span>

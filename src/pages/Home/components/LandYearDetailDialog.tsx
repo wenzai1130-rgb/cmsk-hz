@@ -896,9 +896,9 @@ export function LandYearDetailDialog({
                         <td className={`sticky left-0 z-[1] ${baseBg} px-2.5 py-2 text-left whitespace-nowrap border-b border-r border-[#EEF1F6] ${sortCellClass("year")}`}>
                           {r.year}
                         </td>
-                        <td className={`px-2.5 py-2 text-right tabular-nums whitespace-nowrap border-b border-r border-[#EEF1F6] ${sortCellClass("total")}`}>{fmtNum(r.total == null ? null : r.total * factor)}</td>
-                        <td className={`px-2.5 py-2 text-right tabular-nums whitespace-nowrap border-b border-r border-[#EEF1F6] ${sortCellClass("sold")}`}>{fmtNum(r.sold == null ? null : r.sold * factor)}</td>
-                        <td className={`px-2.5 py-2 text-right tabular-nums whitespace-nowrap border-b border-r border-[#EEF1F6] ${sortCellClass("rate")} font-medium`}>{r.rate.toFixed(2)}%</td>
+                        <td className={`px-2.5 py-2 text-right tabular-nums whitespace-nowrap border-b border-r border-[#EEF1F6] ${sortCellClass("total")}`}>{r.year === "2021年及之前" ? "-" : fmtNum(r.total == null ? null : r.total * factor)}</td>
+                        <td className={`px-2.5 py-2 text-right tabular-nums whitespace-nowrap border-b border-r border-[#EEF1F6] ${sortCellClass("sold")}`}>{r.year === "2021年及之前" ? "-" : fmtNum(r.sold == null ? null : r.sold * factor)}</td>
+                        <td className={`px-2.5 py-2 text-right tabular-nums whitespace-nowrap border-b border-r border-[#EEF1F6] ${sortCellClass("rate")} font-medium`}>{r.year === "2021年及之前" ? "-" : `${r.rate.toFixed(2)}%`}</td>
                         <td className={`px-2.5 py-2 text-right tabular-nums whitespace-nowrap border-b border-r border-[#EEF1F6] ${sortCellClass("remain")}`}>{fmtNum(r.remain == null ? null : r.remain * factor)}</td>
                         <td className={`px-2.5 py-2 text-right tabular-nums whitespace-nowrap border-b border-r border-[#EEF1F6] ${sortCellClass("remainPct")}`}>{r.remainPct.toFixed(2)}%</td>
                         {visibleSaleCols.map((c) => {

@@ -2,11 +2,14 @@ import { ExportButton } from "@/components/ui/export-button";
 import { Input } from "@/components/ui/input";
 import { SegmentedTabs } from "@/components/ui/segmented-tabs";
 import { useEffect, useMemo, useState } from "react";
+import * as XLSX from "xlsx";
 import {
   X,
   Download,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
+  ChevronUp,
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
@@ -133,8 +136,23 @@ type ProjectRow = {
   name: string;
   doneStart: number; doneNew: number;
   soldStart: number; soldNew: number;
-  rateStart: number; rateNew: number;
+  rateStart: number | null; rateNew: number | null;
 };
+
+function splitProjects(rows: ProjectRow[]) {
+  const foldList = rows.filter((row) => row.doneStart + row.doneNew < 0.1 && row.soldStart + row.soldNew < 0.1);
+  const showList = rows.filter((row) => !foldList.includes(row));
+  const other = foldList.length === 0 ? null : {
+    name: "其他",
+    doneStart: foldList.reduce((sum, row) => sum + row.doneStart, 0),
+    doneNew: foldList.reduce((sum, row) => sum + row.doneNew, 0),
+    soldStart: foldList.reduce((sum, row) => sum + row.soldStart, 0),
+    soldNew: foldList.reduce((sum, row) => sum + row.soldNew, 0),
+    rateStart: null,
+    rateNew: null,
+  } satisfies ProjectRow;
+  return { showList, foldList, other };
+}
 
 function genProjects(seed: string, base: number, count: number): ProjectRow[] {
   const out: ProjectRow[] = [];
@@ -179,6 +197,9 @@ const PROJECTS: Record<YeType, ProjectRow[]> = {
     { name: "重庆江湾城", doneStart: 10.50, doneNew: 6.80, soldStart: 5.70, soldNew: 3.95, rateStart: 54.29, rateNew: 58.09 },
     { name: "佛山公园大道", doneStart: 9.80, doneNew: 6.40, soldStart: 5.40, soldNew: 3.65, rateStart: 55.10, rateNew: 57.03 },
     { name: "广州金山谷", doneStart: 17.90, doneNew: 11.80, soldStart: 10.85, soldNew: 7.20, rateStart: 60.61, rateNew: 61.02 },
+    { name: "招商观澜府零星货源", doneStart: 0.04, doneNew: 0.03, soldStart: 0.02, soldNew: 0.01, rateStart: 50, rateNew: 33.33 },
+    { name: "招商雍华府尾盘", doneStart: 0.03, doneNew: 0.02, soldStart: 0.01, soldNew: 0.01, rateStart: 33.33, rateNew: 50 },
+    { name: "招商臻府零星产品", doneStart: 0.02, doneNew: 0.01, soldStart: 0.01, soldNew: 0.004, rateStart: 50, rateNew: 40 },
     ...genProjects("住宅", 8, 14),
   ],
   公寓: [
@@ -186,21 +207,25 @@ const PROJECTS: Record<YeType, ProjectRow[]> = {
     { name: "北京臻悦公寓", doneStart: 10.30, doneNew: 6.80, soldStart: 5.60, soldNew: 3.70, rateStart: 54.37, rateNew: 54.41 },
     { name: "上海前滩公寓", doneStart: 11.50, doneNew: 7.40, soldStart: 6.20, soldNew: 4.10, rateStart: 53.91, rateNew: 55.41 },
     { name: "杭州未来公寓", doneStart: 8.40, doneNew: 5.50, soldStart: 4.50, soldNew: 3.00, rateStart: 53.57, rateNew: 54.55 },
+    ...genProjects("公寓零星", 0.05, 1),
     ...genProjects("公寓", 5, 10),
   ],
   车位: [
     { name: "深圳车位组团A", doneStart: 6.20, doneNew: 4.10, soldStart: 2.90, soldNew: 1.80, rateStart: 46.77, rateNew: 43.90 },
     { name: "广州车位组团B", doneStart: 5.40, doneNew: 3.50, soldStart: 2.50, soldNew: 1.50, rateStart: 46.30, rateNew: 42.86 },
+    ...genProjects("车位零星", 0.05, 1),
     ...genProjects("车位", 4, 12),
   ],
   商业: [
     { name: "广州天玺商业", doneStart: 8.40, doneNew: 6.10, soldStart: 3.60, soldNew: 2.50, rateStart: 42.86, rateNew: 40.98 },
     { name: "武汉招商花园城", doneStart: 7.20, doneNew: 5.20, soldStart: 3.10, soldNew: 2.10, rateStart: 43.06, rateNew: 40.38 },
+    ...genProjects("商业零星", 0.05, 1),
     ...genProjects("商业", 5, 10),
   ],
   写字楼: [
     { name: "上海招商局大厦", doneStart: 9.50, doneNew: 6.40, soldStart: 3.70, soldNew: 2.40, rateStart: 38.95, rateNew: 37.50 },
     { name: "深圳招商前海大厦", doneStart: 6.80, doneNew: 4.50, soldStart: 2.70, soldNew: 1.70, rateStart: 39.71, rateNew: 37.78 },
+    ...genProjects("写字楼零星", 0.05, 1),
     ...genProjects("写字楼", 5, 8),
   ],
   配套及其他: [
@@ -378,7 +403,7 @@ function SectionCard({
       {(unit || hint) && (
         <div className="text-[12px] text-[#64748B] mb-4 flex items-center gap-2">
           {unit && <span>单位：{unit}</span>}
-          {hint && <span className="text-[#94A3B8]">· {hint}</span>}
+          {hint && <span className="text-[#94A3B8]">{hint.startsWith("*") ? hint : `· ${hint}`}</span>}
         </div>
       )}
       {children}
@@ -431,7 +456,7 @@ function sortRows<T extends ProjectRow>(rows: T[], key: SortKey | null, dir: Sor
 
 
 function SortIcon({ active, dir }: { active: boolean; dir: SortDir }) {
-  if (!active || !dir) return <ArrowUpDown className="w-3 h-3 text-[#CBD5E1]" />;
+  if (!active || !dir) return <ArrowUpDown className="w-3 h-3 text-[#94A3B8]" />;
   return dir === "asc"
     ? <ArrowUp className="w-3 h-3 text-[#3B82F6]" />
     : <ArrowDown className="w-3 h-3 text-[#3B82F6]" />;
@@ -463,6 +488,13 @@ function GroupedTable({
   sortDir,
   onSort,
   showRemainColumns = true,
+  otherRow,
+  otherChildren = [],
+  otherExpanded = false,
+  onToggleOther,
+  highlightedNames,
+  sortable = true,
+  neutralRateHeader = false,
 }: {
   rows: ProjectRow[];
   withIndex: boolean;
@@ -471,18 +503,25 @@ function GroupedTable({
   sortDir: SortDir;
   onSort: (k: SortKey) => void;
   showRemainColumns?: boolean;
+  otherRow?: ProjectRow | null;
+  otherChildren?: ProjectRow[];
+  otherExpanded?: boolean;
+  onToggleOther?: () => void;
+  highlightedNames?: Set<string>;
+  sortable?: boolean;
+  neutralRateHeader?: boolean;
 }) {
   const sortedTextClass = (k: SortKey, fallback = "text-[#1E293B]") => (
     sortKey === k ? "text-[#3B82F6] font-medium" : fallback
   );
   const Th = ({ k, children, leftBorder }: { k: SortKey; children: React.ReactNode; leftBorder?: boolean }) => (
     <th
-      onClick={() => onSort(k)}
-      className={`bg-[#F1F5F9] px-3 py-2 text-right font-semibold whitespace-nowrap cursor-pointer select-none border-b border-[#E2E8F0] ${sortKey === k ? "text-[#3B82F6]" : "text-[#1E293B]"} ${leftBorder ? "border-l border-[#E2E8F0]" : ""}`}
+      onClick={sortable ? () => onSort(k) : undefined}
+      className={`bg-[#F1F5F9] px-3 py-2 text-right font-semibold whitespace-nowrap ${sortable ? "cursor-pointer select-none" : ""} border-b border-[#E2E8F0] ${sortable && sortKey === k ? "text-[#3B82F6]" : "text-[#1E293B]"} ${leftBorder ? "border-l border-[#E2E8F0]" : ""}`}
     >
       <span className="inline-flex items-center gap-1 justify-end">
         {children}
-        <SortIcon active={sortKey === k} dir={sortDir} />
+        {sortable && <SortIcon active={sortKey === k} dir={sortDir} />}
       </span>
     </th>
   );
@@ -498,12 +537,12 @@ function GroupedTable({
             <th rowSpan={2} className="bg-[#F1F5F9] px-3 py-2 text-left font-semibold whitespace-nowrap border-b border-r border-[#E2E8F0]" style={{ minWidth: 200 }}>
               {withIndex ? "项目名称" : "业态"}
             </th>
-            <th colSpan={3} className="bg-[#F1F5F9] px-3 py-2 text-center font-semibold border-b border-r border-[#E2E8F0]">已竣未售</th>
+            <th colSpan={3} className="bg-[#F1F5F9] px-3 py-2 text-center font-semibold border-b border-r border-[#E2E8F0]">当前已竣未售</th>
             <th colSpan={3} className="bg-[#F1F5F9] px-3 py-2 text-center font-semibold border-b border-r border-[#E2E8F0]">本年已售</th>
             {showRemainColumns && (
               <th colSpan={3} className="bg-[#F1F5F9] px-3 py-2 text-center font-semibold border-b border-r border-[#E2E8F0]">剩余已竣未售</th>
             )}
-            <th colSpan={3} className="bg-[#E8F1FF] text-[#3B82F6] px-3 py-2 text-center font-semibold border-b border-[#E2E8F0]">去化率</th>
+            <th colSpan={3} className={`${neutralRateHeader ? "bg-[#F1F5F9] text-[#1E293B]" : "bg-[#E8F1FF] text-[#3B82F6]"} px-3 py-2 text-center font-semibold border-b border-[#E2E8F0]`}>去化率</th>
           </tr>
           <tr className="bg-[#F1F5F9] text-[#475569]">
             <Th k="doneStart" leftBorder>年初库存(亿)</Th>
@@ -540,7 +579,7 @@ function GroupedTable({
                     {String(i + 1).padStart(2, "0")}
                   </td>
                 )}
-                <td className={`px-3 py-2.5 text-left text-[#1E293B] border-b border-r border-[#EEF1F6] whitespace-nowrap`}>{r.name}</td>
+                <td className={`px-3 py-2.5 text-left text-[#1E293B] border-b border-r border-[#EEF1F6] whitespace-nowrap ${highlightedNames?.has(r.name) ? "bg-[#FFF7D6]" : ""}`}>{r.name}</td>
                 <MoneyTd value={r.doneStart} className={`border-b border-l border-[#EEF1F6] ${sortedTextClass("doneStart")}`} />
                 <MoneyTd value={r.doneNew} className={`border-b border-[#EEF1F6] ${sortedTextClass("doneNew")}`} />
                 <MoneyTd value={doneSub} className={`border-b border-r border-[#EEF1F6] ${sortedTextClass("doneSub", "text-[#1E293B] font-medium")}`} />
@@ -560,6 +599,65 @@ function GroupedTable({
               </tr>
             );
           })}
+          {otherRow && (() => {
+            const r = otherRow;
+            const doneSub = r.doneStart + r.doneNew;
+            const soldSub = r.soldStart + r.soldNew;
+            const remainStart = r.doneStart - r.soldStart;
+            const remainNew = r.doneNew - r.soldNew;
+            const remainSub = doneSub - soldSub;
+            return (
+              <>
+                <tr className="bg-[#F8FAFC] hover:bg-[#F1F5F9] transition-colors">
+                  {withIndex && <td className="px-3 py-2.5 text-center text-[#94A3B8] border-b border-r border-[#EEF1F6]">-</td>}
+                  <td className="px-3 py-2.5 text-left text-[#475569] border-b border-r border-[#EEF1F6] whitespace-nowrap">
+                    <button type="button" onClick={onToggleOther} className="inline-flex items-center gap-1.5 text-left text-[#3B82F6] hover:text-[#2563EB]" aria-expanded={otherExpanded}>
+                      {otherExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                      其他
+                    </button>
+                  </td>
+                  <MoneyTd value={r.doneStart} className="border-b border-l border-[#EEF1F6] text-[#475569]" />
+                  <MoneyTd value={r.doneNew} className="border-b border-[#EEF1F6] text-[#475569]" />
+                  <MoneyTd value={doneSub} className="border-b border-r border-[#EEF1F6] text-[#475569]" />
+                  <MoneyTd value={r.soldStart} className="border-b border-[#EEF1F6] text-[#475569]" />
+                  <MoneyTd value={r.soldNew} className="border-b border-[#EEF1F6] text-[#475569]" />
+                  <MoneyTd value={soldSub} className="border-b border-r border-[#EEF1F6] text-[#475569]" />
+                  {showRemainColumns && <>
+                    <MoneyTd value={remainStart} className="border-b border-l border-[#EEF1F6] text-[#475569]" />
+                    <MoneyTd value={remainNew} className="border-b border-[#EEF1F6] text-[#475569]" />
+                    <MoneyTd value={remainSub} className="border-b border-r border-[#EEF1F6] text-[#475569]" />
+                  </>}
+                  <td className="px-3 py-2.5 text-right text-[#94A3B8] border-b border-[#EEF1F6]">--</td>
+                  <td className="px-3 py-2.5 text-right text-[#94A3B8] border-b border-[#EEF1F6]">--</td>
+                  <td className="px-3 py-2.5 text-right text-[#94A3B8] border-b border-[#EEF1F6]">--</td>
+                </tr>
+                {otherExpanded && otherChildren.map((child, childIndex) => {
+                  const childDoneSub = child.doneStart + child.doneNew;
+                  const childSoldSub = child.soldStart + child.soldNew;
+                  return (
+                    <tr key={`fold-${child.name}`} className={`${childIndex % 2 === 0 ? "bg-white" : "bg-[#FAFBFD]"} text-[12px] text-[#94A3B8]`}>
+                      {withIndex && <td className="px-3 py-2.5 border-b border-r border-[#F1F5F9]" />}
+                      <td className="px-3 py-2.5 pl-8 text-left text-[#1E293B] border-b border-r border-[#F1F5F9] whitespace-nowrap">{child.name}</td>
+                      <MoneyTd value={child.doneStart} className="border-b border-l border-[#F1F5F9]" />
+                      <MoneyTd value={child.doneNew} className="border-b border-[#F1F5F9]" />
+                      <MoneyTd value={childDoneSub} className="border-b border-r border-[#F1F5F9]" />
+                      <MoneyTd value={child.soldStart} className="border-b border-[#F1F5F9]" />
+                      <MoneyTd value={child.soldNew} className="border-b border-[#F1F5F9]" />
+                      <MoneyTd value={childSoldSub} className="border-b border-r border-[#F1F5F9]" />
+                      {showRemainColumns && <>
+                        <MoneyTd value={child.doneStart - child.soldStart} className="border-b border-l border-[#F1F5F9]" />
+                        <MoneyTd value={child.doneNew - child.soldNew} className="border-b border-[#F1F5F9]" />
+                        <MoneyTd value={childDoneSub - childSoldSub} className="border-b border-r border-[#F1F5F9]" />
+                      </>}
+                      <td className="px-3 py-2.5 text-right tabular-nums border-b border-[#F1F5F9]">{pct2(child.rateStart)}</td>
+                      <td className="px-3 py-2.5 text-right tabular-nums border-b border-[#F1F5F9]">{pct2(child.rateNew)}</td>
+                      <td className="px-3 py-2.5 text-right tabular-nums border-b border-[#F1F5F9]">{pct2(childDoneSub > 0 ? childSoldSub / childDoneSub * 100 : null)}</td>
+                    </tr>
+                  );
+                })}
+              </>
+            );
+          })()}
           {totalRow && (() => {
             const r = totalRow;
             const doneSub = r.doneStart + r.doneNew;
@@ -645,11 +743,10 @@ export function DoneUnsoldDetailDialog({ open, onOpenChange }: { open: boolean; 
   const [activeYe, setActiveYe] = useState<YeType>("住宅");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-  const [sortKey, setSortKey] = useState<SortKey | null>("rateStart");
+  const [sortKey, setSortKey] = useState<SortKey | null>("doneSub");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
-  const [sumSortKey, setSumSortKey] = useState<SortKey | null>("rateStart");
-  const [sumSortDir, setSumSortDir] = useState<SortDir>("desc");
   const [projectKeyword, setProjectKeyword] = useState("");
+  const [otherExpanded, setOtherExpanded] = useState(false);
 
   // independent legend / hover state per chart
   const [yHidden, setYHidden] = useState<Record<string, boolean>>({});
@@ -666,17 +763,25 @@ export function DoneUnsoldDetailDialog({ open, onOpenChange }: { open: boolean; 
 
   useEffect(() => {
     setPage(1);
-    // 切换业态 tab 时恢复默认排序：年初库存去化率降序
-    setSortKey("rateStart");
+    setOtherExpanded(false);
+    // 切换业态 tab 时恢复默认排序：当前已竣未售小计降序
+    setSortKey("doneSub");
     setSortDir("desc");
   }, [activeYe]);
   useEffect(() => { setPage(1); }, [pageSize, projectKeyword]);
-
+  const { showList, foldList, other } = useMemo(() => splitProjects(PROJECTS[activeYe]), [activeYe]);
+  const foldMatches = useMemo(() => {
+    const keyword = projectKeyword.trim().toLowerCase();
+    return !keyword || foldList.some((row) => row.name.toLowerCase().includes(keyword));
+  }, [foldList, projectKeyword]);
   const projectsAll = useMemo(() => {
     const keyword = projectKeyword.trim().toLowerCase();
-    if (!keyword) return PROJECTS[activeYe];
-    return PROJECTS[activeYe].filter((row) => row.name.toLowerCase().includes(keyword));
-  }, [activeYe, projectKeyword]);
+    return !keyword ? showList : showList.filter((row) => row.name.toLowerCase().includes(keyword));
+  }, [showList, projectKeyword]);
+  useEffect(() => {
+    const keyword = projectKeyword.trim();
+    if (keyword && foldMatches) setOtherExpanded(true);
+  }, [foldMatches, projectKeyword]);
 
   if (!open) return null;
 
@@ -686,21 +791,33 @@ export function DoneUnsoldDetailDialog({ open, onOpenChange }: { open: boolean; 
     else if (sortDir === "asc") { setSortKey(null); setSortDir(null); }
     else setSortDir("desc");
   };
-  const onSortSummary = (k: SortKey) => {
-    if (sumSortKey !== k) { setSumSortKey(k); setSumSortDir("desc"); return; }
-    if (sumSortDir === "desc") setSumSortDir("asc");
-    else if (sumSortDir === "asc") { setSumSortKey(null); setSumSortDir(null); }
-    else setSumSortDir("desc");
-  };
-
   const sorted = sortRows(projectsAll, sortKey, sortDir);
   const total = sorted.length;
   const pageCount = Math.max(1, Math.ceil(total / pageSize));
   const curPage = Math.min(page, pageCount);
   const pageStart = (curPage - 1) * pageSize;
   const pageRows = sorted.slice(pageStart, pageStart + pageSize);
+  const displayedOtherChildren = otherExpanded && foldMatches ? foldList : [];
 
-  const summarySorted = sortRows(SUMMARY as any, sumSortKey, sumSortDir) as SummaryRow[];
+  const exportProjects = () => {
+    const rows = PROJECTS[activeYe].map((row) => ({
+      项目名称: row.name,
+      "已竣未售年初库存(亿)": row.doneStart,
+      "已竣未售本年新增(亿)": row.doneNew,
+      "已竣未售小计(亿)": +(row.doneStart + row.doneNew).toFixed(2),
+      "本年已售年初库存(亿)": row.soldStart,
+      "本年已售本年新增(亿)": row.soldNew,
+      "本年已售小计(亿)": +(row.soldStart + row.soldNew).toFixed(2),
+      "剩余已竣未售(亿)": +(row.doneStart + row.doneNew - row.soldStart - row.soldNew).toFixed(2),
+    }));
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "项目明细");
+    XLSX.writeFile(wb, `已竣未售项目明细_${activeYe}.xlsx`);
+    toast.success("各业态项目明细已导出");
+  };
+
+  const summaryRows = SUMMARY;
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/30">
@@ -774,18 +891,21 @@ export function DoneUnsoldDetailDialog({ open, onOpenChange }: { open: boolean; 
             right={<ExportBtn onClick={() => toast.success("各业态去化追踪已导出")} />}
           >
             <GroupedTable
-              rows={summarySorted as unknown as ProjectRow[]}
+              rows={summaryRows as unknown as ProjectRow[]}
               withIndex={false}
               totalRow={SUMMARY_TOTAL}
-              sortKey={sumSortKey}
-              sortDir={sumSortDir}
-              onSort={onSortSummary}
+              sortKey={null}
+              sortDir={null}
+              onSort={() => undefined}
+              sortable={false}
+              neutralRateHeader
             />
           </SectionCard>
 
           {/* 4. 各业态项目明细表 */}
           <SectionCard
             title="各业态项目明细表"
+            hint="*其他为小额项目聚合，不参与排序，固定置于表尾"
             right={
               <div className="flex items-center gap-2">
                 <div className="relative">
@@ -803,7 +923,7 @@ export function DoneUnsoldDetailDialog({ open, onOpenChange }: { open: boolean; 
                   items={YE_TYPES}
                   size="md"
                 />
-                <ExportBtn onClick={() => toast.success("各业态项目明细已导出")} />
+                <ExportBtn onClick={exportProjects} />
               </div>
             }
           >
@@ -814,6 +934,12 @@ export function DoneUnsoldDetailDialog({ open, onOpenChange }: { open: boolean; 
               sortDir={sortDir}
               onSort={onSortDetail}
               showRemainColumns={false}
+              otherRow={other}
+              otherChildren={displayedOtherChildren}
+              otherExpanded={otherExpanded}
+              onToggleOther={() => setOtherExpanded((expanded) => !expanded)}
+              highlightedNames={new Set(displayedOtherChildren.map((row) => row.name))}
+              neutralRateHeader
             />
 
             {/* pager */}
