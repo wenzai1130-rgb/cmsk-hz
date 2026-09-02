@@ -86,6 +86,9 @@
 .record-date-range .parameter-date-picker{min-width:0;flex:1}.record-date-range .parameter-date{width:100%;min-width:0;white-space:nowrap}.record-date-range .date-placeholder{color:#8291a2}
 .record-date-range .parameter-date-picker:first-child .forecast-calendar{left:0;right:auto;transform:none}.record-date-range .parameter-date-picker:last-child .forecast-calendar{left:auto;right:0;transform:none}
 @media(max-width:560px){.record-date-range .forecast-calendar{width:min(260px,calc(100vw - 44px))}}
+.forecast-drawer .record-list article>p{font-size:12px}.forecast-drawer .record-snapshot,.forecast-drawer .record-snapshot b,.forecast-drawer .record-snapshot span{font-size:12px}.forecast-drawer .record-actions>button:first-child{font-size:12px}
+.forecast-page .parameter-grid label{font-size:12px}.forecast-page .parameter-grid input,.forecast-page .parameter-picker-trigger{font-size:12px}.forecast-page .parameter-date-picker .parameter-date{font-size:12px}.forecast-page .forecast-tip{font-size:12px}.forecast-page .forecast-info .info-grid span{font-size:12px}.forecast-page .accuracy span{font-size:12px}.forecast-page .overview-card dt,.forecast-page .overview-card dd{font-size:12px}
+.forecast-page .forecast-filter label{font-size:12px}.forecast-page .forecast-filter .project-picker>button{font-size:12px}
 @media(max-width:560px){.overview-metrics{grid-template-columns:1fr}.overview-metrics .accuracy{margin-bottom:0}}
 .result-title-group{display:flex;align-items:flex-start;gap:12px}.result-header .result-title-group h2{font-size:22px;line-height:30px;margin:3px 0 5px;font-weight:650}.result-header .result-title-group p{margin:0;color:var(--token-text-tertiary);font-size:12px}
 .forecast-filter .project-picker .project-popover .org-tree-projects button{justify-content:flex-start}
