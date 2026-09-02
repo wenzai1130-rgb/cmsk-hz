@@ -23,6 +23,8 @@ import {
 } from "lucide-react";
 import { HeaderNav } from "@/components/layout/HeaderNav";
 import { ORG_TREE } from "@/components/filters/home-filters";
+import { ModuleBadge, usePageRequirements, useRegisterModuleOpener } from "@/components/requirements";
+import { PAGE_REQUIREMENTS } from "./config/pageRequirements";
 import "./styles.css";
 import "./layout-overrides.css";
 import "./final-overrides.css";
@@ -357,6 +359,8 @@ export default function SalesForecast() {
   const [recordTo, setRecordTo] = useState("");
   const features = useMemo(() => (model === "new" ? newFeatures : stockFeatures), [model]);
   const title = model === "new" ? "新盘去化分类预测" : "存盘短期销量预测";
+  usePageRequirements("智能预测", PAGE_REQUIREMENTS);
+  useRegisterModuleOpener("sales-forecast-records", () => setHistory(true), []);
 
   useEffect(() => {
     try {
@@ -496,6 +500,7 @@ export default function SalesForecast() {
       <HeaderNav activeKey="sales-forecast" />
       <main className="forecast-layout">
         <aside className="forecast-sidebar">
+          <ModuleBadge moduleId="sales-forecast-model" className="block">
           <div className="forecast-sidebar-title">预测模型</div>
           <button
             className={`model-tab ${model === "new" ? "active" : ""}`}
@@ -518,10 +523,13 @@ export default function SalesForecast() {
             </span>
           </button>
           <div className="sidebar-divider" />
+          <ModuleBadge moduleId="sales-forecast-records" className="block">
           <button className="sidebar-history" onClick={() => setHistory(true)}>
             <History />
             预测记录 <b>{records.length || 12}</b>
           </button>
+          </ModuleBadge>
+          </ModuleBadge>
         </aside>
         <section className="forecast-content">
           <div className="forecast-heading">
@@ -541,6 +549,7 @@ export default function SalesForecast() {
               模型服务正常
             </span>
           </div>
+          <ModuleBadge moduleId="sales-forecast-filter" className="block">
           <section className="forecast-card forecast-filter">
             <label className="forecast-biz-picker">
               <span>业态筛选</span>
@@ -688,6 +697,8 @@ export default function SalesForecast() {
               )}
             </label>
           </section>
+          </ModuleBadge>
+          <ModuleBadge moduleId="sales-forecast-filter" className="block">
           <section className="forecast-card forecast-info">
             <div className="forecast-card-title">
               <h2>
@@ -707,7 +718,9 @@ export default function SalesForecast() {
               ))}
             </div>
           </section>
+          </ModuleBadge>
           <div className="forecast-work">
+            <ModuleBadge moduleId="sales-forecast-parameters" className="block">
             <section className="forecast-card parameter-card">
               <div className="forecast-card-title">
                 <div>
@@ -813,6 +826,8 @@ export default function SalesForecast() {
                 {loading ? "模型计算中…" : "开始预测"}
               </button>
             </section>
+            </ModuleBadge>
+            <ModuleBadge moduleId="sales-forecast-model" className="block">
             <section className="forecast-card overview-card">
               <div className="forecast-card-title">
                 <h2>
@@ -895,8 +910,10 @@ export default function SalesForecast() {
                 </div>
               )}
             </section>
+            </ModuleBadge>
           </div>
           {result && (
+            <ModuleBadge moduleId="sales-forecast-result" className="block">
             <section ref={resultRef} className="forecast-result">
               <div className="result-header">
                 <div className="result-title-group">
@@ -950,6 +967,7 @@ export default function SalesForecast() {
                 ))}
               </div>
               <div className="analysis-grid analysis-grid-collapsed">
+                <ModuleBadge moduleId="sales-forecast-records" className="block">
                 <article className="forecast-card sales-card">
                   <div className="forecast-card-title">
                     <h2>
@@ -1032,8 +1050,10 @@ export default function SalesForecast() {
                     </>
                   )}
                 </article>
+                </ModuleBadge>
               </div>
             </section>
+            </ModuleBadge>
           )}
         </section>
       </main>

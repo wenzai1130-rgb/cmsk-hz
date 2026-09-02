@@ -76,3 +76,60 @@
 .forecast-result .metric.primary {
   background: linear-gradient(to top right, transparent 58%, #EAF3FF 100%), #FFFFFF;
 }
+
+/* 改动点：需求角标容器成为网格子项后，显式保持原有左右顺序。 */
+.forecast-work > :first-child {
+  order: 2;
+}
+
+.forecast-work > :nth-child(2) {
+  order: 1;
+}
+
+.forecast-work > div {
+  display: flex;
+}
+
+.forecast-work > div > .forecast-card {
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+}
+
+.project-record-table {
+  table-layout: fixed;
+}
+
+.project-record-table-new th,
+.project-record-table-new td {
+  width: 25%;
+}
+
+.project-record-table-stock th,
+.project-record-table-stock td {
+  width: 33.333%;
+}
+
+.project-record-table-new th:nth-child(1),
+.project-record-table-new td:nth-child(1),
+.project-record-table-new th:nth-child(2),
+.project-record-table-new td:nth-child(2),
+.project-record-table-new th:nth-child(3),
+.project-record-table-new td:nth-child(3) {
+  width: 17%;
+}
+
+.project-record-table-new th:nth-child(4),
+.project-record-table-new td:nth-child(4) {
+  width: 49%;
+}
+
+.project-record-table .record-probability-result {
+  flex-wrap: nowrap;
+  white-space: nowrap;
+}
+
+.project-record-table-stock .record-result-cell .record-result-value {
+  color: #1E293B;
+  font-weight: 400;
+}
