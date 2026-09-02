@@ -1,6 +1,7 @@
 .forecast-layout{display:grid;grid-template-columns:236px minmax(0,1fr);min-height:calc(100vh - 64px)}
-.forecast-sidebar{background:#fff;border-right:1px solid var(--token-border-default);padding:24px 14px;position:sticky;top:64px;height:calc(100vh - 64px)}
-.forecast-sidebar-title{padding:0 10px 11px;color:#8493a4;font-size:12px;font-weight:600}
+.forecast-sidebar{background:#fff;border-right:1px solid var(--token-border-default);padding:24px 14px;position:fixed;z-index:30;left:0;top:64px;width:236px;height:calc(100vh - 64px);box-sizing:border-box;overflow-y:auto}
+.forecast-content{grid-column:2;min-width:0}
+.forecast-sidebar-title{padding:10px 0;color:#8493a4;font-size:12px;font-weight:600}
 .model-tab{width:100%;display:flex;align-items:center;gap:10px;text-align:left;border:1px solid #d2e7fa;background:#f2f9ff;color:#3479a9;border-radius:7px;padding:12px 10px;margin-bottom:9px}
 .model-tab.active{background:linear-gradient(135deg,#07528f,#0876cf);border-color:#075d9f;color:#fff;box-shadow:0 7px 16px #086cb526}
 .model-tab b,.model-tab small{display:block}.model-tab b{font-size:13px}.model-tab small{font-size:11px;opacity:.78;margin-top:4px}
@@ -11,7 +12,7 @@
 .forecast-title-group{display:flex;align-items:flex-start;gap:12px}.forecast-title-mark{display:block;width:4px;height:24px;margin-top:4px;border-radius:999px;background:linear-gradient(180deg,oklch(0.7 0.18 240),oklch(0.55 0.22 255));flex:none}
 .forecast-work{grid-template-columns:minmax(300px,.75fr) minmax(0,1.25fr)}.forecast-work .overview-card{order:1}.forecast-work .parameter-card{order:2}
 .forecast-filter{grid-template-columns:110px minmax(360px,1fr);column-gap:16px}.forecast-biz-picker>div{width:110px}.org-tree-root,.org-tree-group,.org-tree-company,.org-tree-projects button{display:flex;align-items:center;gap:8px;width:100%;font-size:12px}.org-tree-root{height:34px;padding:0 9px;color:var(--token-text-primary);font-weight:600}.org-tree-root svg{width:14px;color:var(--brand)}.org-tree-group{height:32px;padding:0 9px 0 16px;color:var(--token-text-secondary);cursor:pointer;border-radius:4px}.org-tree-group:hover,.org-tree-company:hover{background:#f6f8fb}.org-tree-group>span,.org-tree-company>span:first-child{display:flex;align-items:center;gap:7px}.org-tree-group svg,.org-tree-company svg{width:14px;color:#8294a7}.org-tree-company{height:30px;padding:0 9px 0 42px;justify-content:space-between;color:var(--token-text-secondary);cursor:pointer;border-radius:4px}.org-tree-company.has-children{padding-left:42px}.org-tree-indent{width:14px}.org-tree-dot{width:4px;height:4px;border-radius:50%;background:#8294a7}.org-tree-count{font-size:11px;color:#94a3b8}.org-tree-projects{padding-bottom:3px}.org-tree-projects button{height:32px;border:0;background:#fff;text-align:left;padding:0 9px 0 72px;color:var(--token-text-secondary);cursor:pointer}.org-tree-projects button:hover,.org-tree-projects button.selected{background:#eff6ff;color:var(--brand)}.org-tree-projects button svg{width:14px;flex:none;color:#8294a7}.org-tree-projects button.selected svg{color:var(--brand)}
-@media(max-width:700px){.forecast-layout{display:block}.forecast-sidebar{position:static;height:auto;display:flex;align-items:center;gap:8px;overflow:auto;padding:10px 14px}.forecast-sidebar-title,.sidebar-divider{display:none}.model-tab{min-width:210px;margin:0}.sidebar-history{width:auto;min-width:100px;white-space:nowrap}}
+@media(max-width:700px){.forecast-layout{display:block}.forecast-sidebar{position:static;width:auto;height:auto;display:flex;align-items:center;gap:8px;overflow:auto;padding:10px 14px}.forecast-content{grid-column:auto}.forecast-sidebar-title,.sidebar-divider{display:none}.model-tab{min-width:210px;margin:0}.sidebar-history{width:auto;min-width:100px;white-space:nowrap}}
 @media(max-width:900px){.forecast-work{grid-template-columns:1fr}}
 .forecast-filter .project-picker>button{height:35px;border:1px solid #cdd9e5;border-radius:5px;background:#fff;padding:0 11px;color:var(--token-text-primary)}
 .forecast-filter .project-picker .project-popover button{box-sizing:border-box}
@@ -26,16 +27,19 @@
 .metric-help:hover .metric-help-popover{display:none}.metric-help button:hover + .metric-help-popover{display:block}
 .forecast-filter .parameter-date-picker .parameter-date{height:35px}
 .parameter-date-picker .parameter-date{height:35px!important;min-height:35px;box-sizing:border-box}
-.metric-grid.metric-count-1{grid-template-columns:minmax(0,360px)}
+.metric-grid.metric-count-1{grid-template-columns:minmax(0,100%)}
+.forecast-result .metric.primary{border-top:1px solid var(--token-border-default);background:#fff}
 .metric-grid.metric-count-2{grid-template-columns:repeat(2,minmax(0,360px))}
 .metric.category-low,.metric.category-medium,.metric.category-high{position:relative;border-top:1px solid var(--token-border-default);overflow:visible}
-.metric.category-low::before,.metric.category-medium::before,.metric.category-high::before{content:"";position:absolute;top:0;left:0;right:0;height:3px}
+.metric.category-low::before,.metric.category-medium::before,.metric.category-high::before{display:none}
 .metric.category-low::before{background:linear-gradient(90deg,#DC2626,#DC2626)}
 .metric.category-medium::before{background:linear-gradient(90deg,#F59E0B,#F59E0B)}
 .metric.category-high::before{background:linear-gradient(90deg,#10B981,#10B981)}
 .metric.category-low b{color:#DC2626}.metric.category-medium b{color:#F59E0B}.metric.category-high b{color:#10B981}
 .metric-help-popover b{display:inline;font-size:inherit;line-height:inherit;margin:0;font-weight:400}
 .project-record-table td.record-result-low{color:#DC2626}.project-record-table td.record-result-medium{color:#F59E0B}.project-record-table td.record-result-high{color:#10B981}
+.record-probability-result{display:flex;align-items:center;flex-wrap:wrap;gap:4px 10px;color:#1E293B;font-weight:400;line-height:1.5}.record-probability-item{display:inline-flex;align-items:center;gap:4px;white-space:nowrap}.record-probability-item strong{font-weight:500;color:#1E293B}.record-probability-separator{color:#1E293B}.record-probability-low{color:#DC2626}.record-probability-medium{color:#F59E0B}.record-probability-high{color:#10B981}
+.project-record-table .record-probability-low,.project-record-table .record-probability-medium,.project-record-table .record-probability-high{color:#1E293B;font-weight:400}.project-record-table .record-probability-item strong{color:#1E293B;font-weight:400}
 .overview-metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
 .overview-metrics .accuracy{margin-bottom:11px;padding:0 13px}
 .overview-metric-label{display:flex!important;align-items:center;gap:4px}
@@ -58,15 +62,15 @@
 .project-record-item button{margin-top:9px;border:1px solid #c7dcec;background:#fff;color:var(--brand);border-radius:4px;padding:5px 9px;font-size:11px;cursor:pointer}
 .project-record-item button:hover{background:var(--color-brand-soft)}
 .project-record-table-wrap{overflow-x:auto;border:1px solid #e2eaf2;border-radius:6px}
-.project-record-table{width:100%;border-collapse:collapse;table-layout:auto;font-size:11px;color:#1E293B}
+.project-record-table{width:100%;border-collapse:collapse;table-layout:auto;font-size:12px;color:#1E293B}
 .project-record-table th{height:34px;background:#f0f7fd;color:#71869b;text-align:left;font-weight:600;white-space:nowrap}
 .project-record-table th,.project-record-table td{padding:0 9px}
 .project-record-table th:nth-child(1){min-width:128px}.project-record-table-new th:nth-child(2){min-width:125px}.project-record-table-new th:nth-child(3){min-width:120px}.project-record-table-new th:nth-child(4){min-width:110px}.project-record-table-stock th:nth-child(2){min-width:125px}.project-record-table-stock th:nth-child(3){min-width:120px}.project-record-table-stock th:nth-child(4){min-width:50px}
 .project-record-table td{height:44px;border-top:1px solid #edf2f6;vertical-align:middle}
 .project-record-table td:first-child{color:#1E293B;white-space:nowrap}
-.project-record-table .record-result-cell{font-weight:600;color:#234867}
+.project-record-table .record-result-cell{font-weight:600;color:#234867}.project-record-table .record-result-cell .record-probability-result{font-weight:400}.project-record-table .record-result-cell .record-probability-item{white-space:nowrap}
 .project-record-table button{border:1px solid #c7dcec;background:#fff;color:var(--brand);border-radius:4px;padding:4px 7px;font-size:11px;cursor:pointer}
-.project-record-table td:last-child{white-space:nowrap}
+.project-record-table td:last-child{white-space:normal}
 .project-record-table td:last-child button{white-space:nowrap}
 .project-record-table button:hover{background:var(--color-brand-soft)}
 .record-pagination{display:flex;justify-content:flex-end;align-items:center;gap:10px;margin-top:12px;color:#8291a2;font-size:11px}
@@ -80,15 +84,25 @@
 .record-status{display:inline-flex;align-items:center;width:max-content;margin-top:5px;padding:2px 8px;border-radius:4px;font-size:11px;line-height:18px}.record-status-completed{color:#389e0d;background:#f6ffed;border:1px solid #b7eb8f}.record-status-running{color:#1677ff;background:#e6f4ff;border:1px solid #91caff}.record-status-failed{color:#cf1322;background:#fff1f0;border:1px solid #ffa39e}
 .record-list article>span.record-model-stock{color:#d46b08;background:#fff7e6;border:1px solid #ffd591}.record-list article>span.record-model-new{color:var(--brand);background:#e8f3ff;border:1px solid #bae0ff}
 .record-snapshot{display:flex;gap:6px;min-width:0;margin-top:7px;color:#8291a2;font-size:11px;line-height:18px}.record-snapshot b{flex:none;color:#526980;font-weight:500}.record-snapshot span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.record-actions{display:flex;align-items:center;gap:6px;margin-top:9px}.record-actions button{margin-top:0}.record-icon-button{display:inline-grid;place-items:center;width:28px;height:27px;padding:0!important}.record-icon-button svg{width:14px;height:14px}
-@media(max-width:900px){.metric-grid.metric-count-1,.metric-grid.metric-count-2{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:900px){.metric-grid.metric-count-1{grid-template-columns:1fr}.metric-grid.metric-count-2{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:560px){.metric-grid.metric-count-1,.metric-grid.metric-count-2{grid-template-columns:1fr}.project-record-meta{align-items:flex-start;flex-direction:column;gap:4px}.project-record-item small{white-space:normal}}
+.probability-stack-track{overflow:hidden}.probability-stack-segment{min-width:28px;flex-shrink:1}.probability-stack-detail{font-size:14px}.probability-stack-detail>span:nth-child(2){font-size:14px}.probability-stack-detail:first-child>span:nth-child(2){font-size:15px}.probability-stack-detail strong{font-size:12px}
+.metric.category-low .probability-stack-bar,.metric.category-medium .probability-stack-bar,.metric.category-high .probability-stack-bar{width:100%;max-width:100%;min-width:0;box-sizing:border-box}.probability-stack-track{height:22px}.probability-stack-segment{height:22px;opacity:.86}.probability-stack-details{gap:8px 14px}
+.probability-stack-details{align-items:center;flex-wrap:nowrap;gap:0}.probability-stack-detail{font-size:15px;gap:6px}.probability-stack-detail>span:nth-child(2),.probability-stack-detail:first-child>span:nth-child(2){font-size:15px}.probability-stack-detail strong{font-size:13px}.probability-stack-divider{display:block;width:1px;height:18px;margin:0 14px;background:#E2E8F0}
+@media(max-width:560px){.probability-stack-details{flex-wrap:wrap;gap:8px 0}.probability-stack-divider{margin:0 10px}}
 .record-date-range input{appearance:none;-webkit-appearance:none;border-radius:5px;box-shadow:none}.record-date-range input:focus{border-color:var(--brand);box-shadow:0 0 0 2px rgba(22,119,255,.1)}
 .record-date-range .parameter-date-picker{min-width:0;flex:1}.record-date-range .parameter-date{width:100%;min-width:0;white-space:nowrap}.record-date-range .date-placeholder{color:#8291a2}
 .record-date-range .parameter-date-picker:first-child .forecast-calendar{left:0;right:auto;transform:none}.record-date-range .parameter-date-picker:last-child .forecast-calendar{left:auto;right:0;transform:none}
 @media(max-width:560px){.record-date-range .forecast-calendar{width:min(260px,calc(100vw - 44px))}}
-.forecast-drawer .record-list article>p{font-size:12px}.forecast-drawer .record-snapshot,.forecast-drawer .record-snapshot b,.forecast-drawer .record-snapshot span{font-size:12px}.forecast-drawer .record-actions>button:first-child{font-size:12px}
+@media(max-width:560px){.forecast-drawer .record-probability-result{flex-wrap:wrap;white-space:normal}}
+.forecast-drawer .record-list article>p{font-size:12px}.forecast-drawer .record-snapshot,.forecast-drawer .record-snapshot b,.forecast-drawer .record-snapshot span{font-size:12px}.forecast-drawer .record-actions>button:first-child{font-size:12px}.forecast-drawer .record-result-prefix{display:block;margin-bottom:2px;color:#526980;font-weight:500}.forecast-drawer .record-probability-result{gap:3px 8px}.forecast-drawer .record-probability-item{font-size:12px}.forecast-drawer .record-probability-low,.forecast-drawer .record-probability-medium,.forecast-drawer .record-probability-high{color:#1E293B}.forecast-drawer .record-probability-item strong{color:#1E293B;font-weight:400}
+.forecast-drawer .record-list article>h3{font-weight:500}
+.forecast-drawer{width:min(560px,92vw)}.forecast-drawer .record-probability-result{flex-wrap:nowrap;white-space:nowrap}
 .forecast-page .parameter-grid label{font-size:12px}.forecast-page .parameter-grid input,.forecast-page .parameter-picker-trigger{font-size:12px}.forecast-page .parameter-date-picker .parameter-date{font-size:12px}.forecast-page .forecast-tip{font-size:12px}.forecast-page .forecast-info .info-grid span{font-size:12px}.forecast-page .accuracy span{font-size:12px}.forecast-page .overview-card dt,.forecast-page .overview-card dd{font-size:12px}
 .forecast-page .forecast-filter label{font-size:12px}.forecast-page .forecast-filter .project-picker>button{font-size:12px}
+.forecast-page .depletion-thresholds{white-space:pre-line}.forecast-page .probability-results{display:flex!important;flex-direction:column;gap:4px;font-size:14px!important;line-height:1.45}.forecast-page .probability-low{color:#DC2626}.forecast-page .probability-medium{color:#F59E0B}.forecast-page .probability-high{color:#10B981}
+.probability-stack-bar{margin:8px 0 2px}.probability-stack-track{display:flex;width:100%;height:32px;overflow:visible;border-radius:5px;background:#F1F5F9}.probability-stack-segment{position:relative;display:flex;align-items:center;justify-content:center;min-width:34px;height:32px;flex:0 0 auto;overflow:visible;color:#fff;font-size:11px;font-weight:500;cursor:default}.probability-stack-segment:first-child{border-radius:5px 0 0 5px}.probability-stack-segment:last-child{border-radius:0 5px 5px 0}.probability-stack-segment>span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 6px}.probability-stack-tooltip{position:absolute;z-index:10;left:50%;bottom:calc(100% + 7px);transform:translateX(-50%);padding:6px 9px;border:1px solid #E2E8F0;border-radius:5px;background:#fff;color:#1E293B;box-shadow:0 5px 14px rgba(15,23,42,.14);font-size:11px;white-space:nowrap;pointer-events:none}.probability-stack-details{display:flex;flex-wrap:wrap;gap:10px 18px;margin-top:9px}.probability-stack-detail{display:flex;align-items:center;gap:5px;color:#526980;font-size:11px;white-space:nowrap}.probability-stack-dot{width:7px;height:7px;border-radius:50%;flex:none}.probability-stack-detail strong{font-weight:600;color:#1E293B}.probability-stack-detail em{font-style:normal;color:#fff;background:var(--brand);border-radius:3px;padding:1px 5px;font-size:10px}
+.record-filter-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:2px}.record-filter-actions button{height:30px;padding:0 13px;border-radius:5px;font-size:12px;cursor:pointer}.record-filter-search{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--brand);background:var(--brand);color:#fff}.record-filter-search svg{width:13px;height:13px}.record-filter-reset{border:1px solid #cdd9e5;background:#fff;color:#526980}.record-filter-reset:hover{border-color:var(--brand);color:var(--brand);background:var(--color-brand-soft)}
 @media(max-width:560px){.overview-metrics{grid-template-columns:1fr}.overview-metrics .accuracy{margin-bottom:0}}
 .result-title-group{display:flex;align-items:flex-start;gap:12px}.result-header .result-title-group h2{font-size:22px;line-height:30px;margin:3px 0 5px;font-weight:650}.result-header .result-title-group p{margin:0;color:var(--token-text-tertiary);font-size:12px}
 .forecast-filter .project-picker .project-popover .org-tree-projects button{justify-content:flex-start}

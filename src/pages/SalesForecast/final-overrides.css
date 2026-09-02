@@ -1,0 +1,78 @@
+/* 改动点：桌面端去除侧栏顶部空隙，并让抽屉预测结果与标题同排。 */
+@media (min-width: 701px) {
+  .forecast-layout {
+    background: linear-gradient(to right, #FFFFFF 0 236px, transparent 236px);
+  }
+
+  .forecast-sidebar {
+    padding-top: 0;
+    position: fixed;
+    top: 64px;
+    right: auto;
+    bottom: 0;
+    left: 0;
+    width: 236px;
+    height: auto;
+    min-height: 0;
+    align-self: auto;
+    overflow-y: auto;
+  }
+}
+
+@media (max-width: 700px) {
+  .forecast-layout {
+    background: none;
+  }
+}
+
+.forecast-drawer .record-list article > p {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.forecast-drawer .record-result-prefix {
+  display: inline-flex;
+  flex: none;
+  margin-bottom: 0;
+}
+
+.forecast-drawer .record-result-value {
+  display: inline-flex;
+  color: #1E293B;
+  white-space: nowrap;
+}
+
+.forecast-result .probability-stack-name {
+  color: #1E293B;
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.forecast-result .probability-stack-percent {
+  color: #8291A2;
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.forecast-result .metric.category-medium {
+  min-height: 114px;
+  box-sizing: border-box;
+}
+
+/* 改动点：结果卡片右侧使用当前判定色的轻量渐变，左侧保持白色。 */
+.forecast-result .metric.category-low {
+  background: linear-gradient(to top right, transparent 58%, #FEF2F2 100%), #FFFFFF;
+}
+
+.forecast-result .metric.category-medium {
+  background: linear-gradient(to top right, transparent 58%, #FEFCE8 100%), #FFFFFF;
+}
+
+.forecast-result .metric.category-high {
+  background: linear-gradient(to top right, transparent 58%, #ECFDF3 100%), #FFFFFF;
+}
+
+.forecast-result .metric.primary {
+  background: linear-gradient(to top right, transparent 58%, #EAF3FF 100%), #FFFFFF;
+}

@@ -25,6 +25,8 @@ import { HeaderNav } from "@/components/layout/HeaderNav";
 import { ORG_TREE } from "@/components/filters/home-filters";
 import "./styles.css";
 import "./layout-overrides.css";
+import "./final-overrides.css";
+import ProbabilityStackBar from "./components/ProbabilityStackBar";
 
 type Model = "new" | "stock";
 type Project = { name: string; area: string; open: string; rate: string; remaining: string };
@@ -41,6 +43,32 @@ type RecordItem = {
   status?: RecordStatus;
   failureReason?: string;
 };
+
+const recordProbabilities = [
+  { name: "低去化", percent: "32.35", className: "record-probability-low" },
+  { name: "中去化", percent: "64.09", className: "record-probability-medium" },
+  { name: "高去化", percent: "9.56", className: "record-probability-high" },
+] as const;
+const stockForecastRange = "下月35-46套";
+
+// 改动点：新盘历史记录同步展示三档去化概率，存盘记录仍展示原有套数结果。
+function RecordProbabilityResult({ item }: { item: RecordItem }) {
+  if (item.model !== "new") {
+    return <span className="record-result-value">{displayRecordResult(item)}</span>;
+  }
+
+  return (
+    <span className="record-probability-result">
+      {recordProbabilities.map((probability) => (
+        <span className="record-probability-item" key={probability.name}>
+          <span className={probability.className}>{probability.name}</span>
+          <strong>概率{probability.percent}%</strong>
+          {probability !== recordProbabilities[recordProbabilities.length - 1] && <span className="record-probability-separator">，</span>}
+        </span>
+      ))}
+    </span>
+  );
+}
 
 // 改动点：历史数据缺少新字段时统一降级，避免旧记录渲染报错。
 function recordStatus(item: RecordItem): RecordStatus {
@@ -61,7 +89,10 @@ function recordSnapshot(item: RecordItem) {
 }
 
 function displayRecordResult(item: RecordItem) {
-  if (item.model !== "new") return item.result.replace(/\s*[·；]\s*区间.*$/, "");
+  if (item.model !== "new") {
+    // 改动点：兼容旧历史记录，将原先的单值套数展示为mock区间。
+    return item.result.replace(/下月\d+套/, stockForecastRange).replace(/\s*[·；]\s*区间.*$/, "");
+  }
   if (item.result.includes("低去化")) return "低去化";
   if (item.result.includes("高去化")) return "高去化";
   return "中去化";
@@ -267,7 +298,7 @@ const infoMetricKeys = new Set([
 
 function MetricHelp({ label }: { label: string }) {
   const content = label.includes("去化")
-    ? "低去化：累计去化率 <20%；中去化：累计去化率 20%-80%；高去化：累计去化率 >=80%。"
+    ? "低去化：去化率 < 30%\n中去化：30% ≦ 去化率 < 70%\n高去化：去化率 ≧ 70%"
     : label === "AUC值"
       ? "AUC：衡量模型整体区分正负样本能力，值域0-1，越接近1判别效果越好。"
       : "KS：衡量好坏样本最大分离度，值越大两类样本区分拉开程度越强。";
@@ -279,10 +310,10 @@ function MetricHelp({ label }: { label: string }) {
       <span className="metric-help-popover">
         <strong>{label}说明</strong>
         {label.includes("去化") ? (
-          <span style={{ color: "#1E293B" }}>
-            <span><b style={{ color: "#DC2626" }}>低去化</b>:累计去化率&lt;20%;</span>
-            <span><b style={{ color: "#F59E0B" }}>中去化</b>:累计去化率20%-80%;</span>
-            <span><b style={{ color: "#10B981" }}>高去化</b>:累计去化率&gt;=80%</span>
+          <span className="depletion-thresholds" style={{ color: "#1E293B" }}>
+            <span><b style={{ color: "#DC2626" }}>低去化</b>：去化率 &lt; 30%</span>
+            <span><b style={{ color: "#F59E0B" }}>中去化</b>：30% ≦ 去化率 &lt; 70%</span>
+            <span><b style={{ color: "#10B981" }}>高去化</b>：去化率 ≧ 70%</span>
           </span>
         ) : (
           <span>{content}</span>
@@ -384,7 +415,7 @@ export default function SalesForecast() {
       model,
       project: project.name,
       created: new Date().toISOString(),
-      result: model === "new" ? "中去化" : "下月46套",
+      result: model === "new" ? "中去化" : stockForecastRange,
       status: "completed",
       opening: model === "new" ? opening : undefined,
       price,
@@ -399,7 +430,7 @@ export default function SalesForecast() {
       ["项目", project.name],
       ["模型", title],
       ["销售单价", price],
-      ["预测结果", model === "new" ? "前三月累计中去化" : "下月46套"],
+      ["预测结果", model === "new" ? "前三月累计中去化" : stockForecastRange],
       ...features.map(([name, category, iv]) => [
         `影响特征-${name}`,
         `${category} / ${model === "new" ? "SHAP值" : "IV值"} ${iv}`,
@@ -445,8 +476,8 @@ export default function SalesForecast() {
   const filtered = projects.filter((item) => item.name.includes(query.trim()));
   const resultMetrics =
     model === "new"
-      ? [["前三月累计去化档位", "中去化", "中去化：累计去化率20%-80%"]]
-      : [["下月销售套数", "46套", ""]];
+      ? [["前三月累计去化档位", "中去化", ""]]
+      : [["下月销售套数", "35-46套", "置信度90%的预测销量的区间"]];
   const projectRecords = records.filter(
     (item) => item.project === project.name && item.model === model,
   );
@@ -907,7 +938,13 @@ export default function SalesForecast() {
                       {label}
                       <MetricHelp label={label} />
                     </span>
-                    <b>{value}</b>
+                    {model === "new" ? (
+                      <ProbabilityStackBar data={[
+                        { name: "低去化", percent: 32.35, color: "#f53f3f", isMain: false },
+                        { name: "中去化", percent: 64.09, color: "#EAB308", isMain: true },
+                        { name: "高去化", percent: 9.56, color: "#00b42a", isMain: false },
+                      ]} />
+                    ) : <b>{value}</b>}
                     <em>{note}</em>
                   </article>
                 ))}
@@ -964,7 +1001,7 @@ export default function SalesForecast() {
                                   </td>
                                 )}
                                 <td className={`record-result-cell ${recordResultClass(item)}`}>
-                                  {displayRecordResult(item)}
+                                  <RecordProbabilityResult item={item} />
                                 </td>
                               </tr>
                             ))}
@@ -1026,6 +1063,7 @@ export default function SalesForecast() {
                 </div>}
               </div>
               <div className="record-date-range"><ForecastDatePicker value={recordFrom} onChange={(value) => { setRecordFrom(value); setRecordPage(1); }} placeholder="年 / 月 / 日" /><span>至</span><ForecastDatePicker value={recordTo} onChange={(value) => { setRecordTo(value); setRecordPage(1); }} placeholder="年 / 月 / 日" /></div>
+              <div className="record-filter-actions"><button type="button" className="record-filter-search" onClick={() => setRecordPage(1)}><Search />搜索</button><button type="button" className="record-filter-reset" onClick={() => { setRecordKeyword(""); setRecordModelFilter("all"); setRecordFrom(""); setRecordTo(""); setRecordModelOpen(false); setRecordPage(1); }}>重置</button></div>
             </div>
             {drawerRecords.length === 0 ? (
               <div className="drawer-empty">当天暂无预测记录</div>
@@ -1036,7 +1074,10 @@ export default function SalesForecast() {
                     <span className={`record-model-tag record-model-${item.model}`}>{item.model === "new" ? "新盘" : "存盘"}</span>
                     <time>{new Date(item.created).toLocaleString("zh-CN")}</time>
                     <h3>{item.project}</h3>
-                    <p className={recordResultClass(item)}>预测结果：{displayRecordResult(item)}</p>
+                    <p className={recordResultClass(item)}>
+                      <span className="record-result-prefix">预测结果</span>
+                      <RecordProbabilityResult item={item} />
+                    </p>
                     {(item.params || item.price || item.opening) && <div className="record-snapshot" title={recordSnapshot(item)}><b>关键参数</b><span>{recordSnapshot(item)}</span></div>}
                     <div className="record-actions">
                     <button
