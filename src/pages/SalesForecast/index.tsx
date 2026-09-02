@@ -18,6 +18,8 @@ import {
   Sparkles,
   Target,
   X,
+  RefreshCw,
+  FileDown,
 } from "lucide-react";
 import { HeaderNav } from "@/components/layout/HeaderNav";
 import { ORG_TREE } from "@/components/filters/home-filters";
@@ -26,6 +28,7 @@ import "./layout-overrides.css";
 
 type Model = "new" | "stock";
 type Project = { name: string; area: string; open: string; rate: string; remaining: string };
+type RecordStatus = "completed" | "running" | "failed";
 type RecordItem = {
   id: string;
   model: Model;
@@ -35,7 +38,27 @@ type RecordItem = {
   params?: string;
   opening?: string;
   price?: string;
+  status?: RecordStatus;
+  failureReason?: string;
 };
+
+// 改动点：历史数据缺少新字段时统一降级，避免旧记录渲染报错。
+function recordStatus(item: RecordItem): RecordStatus {
+  return item.status ?? "completed";
+}
+
+function recordStatusLabel(status: RecordStatus) {
+  return status === "running" ? "运行中" : status === "failed" ? "失败" : "已完成";
+}
+
+function recordSnapshot(item: RecordItem) {
+  if (item.params) return item.params;
+  if (item.price) {
+    const price = `${Number(item.price).toLocaleString()} 元/㎡`;
+    return item.model === "new" && item.opening ? `销售单价 ${price} · 开盘 ${item.opening.replaceAll("-", "/")}` : `销售单价 ${price}`;
+  }
+  return "-";
+}
 
 function displayRecordResult(item: RecordItem) {
   if (item.model !== "new") return item.result.replace(/\s*[·；]\s*区间.*$/, "");
@@ -133,12 +156,23 @@ function projectInfo(project: Project, model: Model) {
 function ForecastDatePicker({
   value,
   onChange,
+  placeholder = "选择日期",
 }: {
   value: string;
   onChange: (value: string) => void;
+  placeholder?: string;
 }) {
   const [open, setOpen] = useState(false);
-  const [month, setMonth] = useState(() => new Date(`${value}T00:00:00`));
+  const pickerRef = useRef<HTMLDivElement>(null);
+  const [month, setMonth] = useState(() => value ? new Date(`${value}T00:00:00`) : new Date());
+  useEffect(() => {
+    if (!open) return;
+    const closeOnOutsidePointer = (event: PointerEvent) => {
+      if (!pickerRef.current?.contains(event.target as Node)) setOpen(false);
+    };
+    document.addEventListener("pointerdown", closeOnOutsidePointer);
+    return () => document.removeEventListener("pointerdown", closeOnOutsidePointer);
+  }, [open]);
   const first = new Date(month.getFullYear(), month.getMonth(), 1);
   const days = Array.from(
     { length: new Date(month.getFullYear(), month.getMonth() + 1, 0).getDate() },
@@ -151,14 +185,14 @@ function ForecastDatePicker({
     setOpen(false);
   };
   return (
-    <div className="relative parameter-date-picker">
+    <div ref={pickerRef} className="relative parameter-date-picker">
       <button
         type="button"
         className="parameter-date"
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
       >
-        <span>{value.replaceAll("-", "/")}</span>
+        <span className={!value ? "date-placeholder" : ""}>{value ? value.replaceAll("-", "/") : placeholder}</span>
         <CalendarDays className="w-4 h-4" />
       </button>
       {open && (
@@ -191,7 +225,7 @@ function ForecastDatePicker({
             ))}
             {days.map((day) => {
               const selected =
-                value ===
+              value ===
                 `${month.getFullYear()}-${String(month.getMonth() + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
               return (
                 <button
@@ -283,6 +317,13 @@ export default function SalesForecast() {
   const [history, setHistory] = useState(false);
   const [records, setRecords] = useState<RecordItem[]>([]);
   const [recordPage, setRecordPage] = useState(1);
+  // 改动点：预测记录抽屉筛选状态。
+  const [recordKeyword, setRecordKeyword] = useState("");
+  const [recordModelFilter, setRecordModelFilter] = useState<"all" | Model>("all");
+  const [recordModelOpen, setRecordModelOpen] = useState(false);
+  const recordModelPickerRef = useRef<HTMLDivElement>(null);
+  const [recordFrom, setRecordFrom] = useState("");
+  const [recordTo, setRecordTo] = useState("");
   const features = useMemo(() => (model === "new" ? newFeatures : stockFeatures), [model]);
   const title = model === "new" ? "新盘去化分类预测" : "存盘短期销量预测";
 
@@ -319,6 +360,14 @@ export default function SalesForecast() {
     document.addEventListener("pointerdown", closeOnOutsidePointer);
     return () => document.removeEventListener("pointerdown", closeOnOutsidePointer);
   }, [projectOpen]);
+  useEffect(() => {
+    if (!recordModelOpen) return;
+    const closeOnOutsidePointer = (event: PointerEvent) => {
+      if (!recordModelPickerRef.current?.contains(event.target as Node)) setRecordModelOpen(false);
+    };
+    document.addEventListener("pointerdown", closeOnOutsidePointer);
+    return () => document.removeEventListener("pointerdown", closeOnOutsidePointer);
+  }, [recordModelOpen]);
   function saveRecord(item: RecordItem) {
     const next = [item, ...records].slice(0, 20);
     setRecords(next);
@@ -336,6 +385,7 @@ export default function SalesForecast() {
       project: project.name,
       created: new Date().toISOString(),
       result: model === "new" ? "中去化" : "下月46套",
+      status: "completed",
       opening: model === "new" ? opening : undefined,
       price,
       params:
@@ -365,6 +415,33 @@ export default function SalesForecast() {
     anchor.click();
     URL.revokeObjectURL(url);
   }
+  // 改动点：行内导出单条历史记录，不依赖详情页。
+  function exportRecord(item: RecordItem) {
+    const rows = [
+      ["项目", item.project],
+      ["盘类型", item.model === "new" ? "新盘" : "存盘"],
+      ["预测时间", new Date(item.created).toLocaleString("zh-CN")],
+      ["预测结果", displayRecordResult(item)],
+      ["关键参数快照", recordSnapshot(item)],
+      ["状态", recordStatusLabel(recordStatus(item))],
+    ];
+    const csv = "\uFEFF" + rows.map((row) => row.map((value) => `"${String(value).replaceAll('"', '""')}"`).join(",")).join("\n");
+    const anchor = document.createElement("a");
+    anchor.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+    anchor.download = `${item.project}-${item.model === "new" ? "新盘" : "存盘"}-预测记录.csv`;
+    anchor.click();
+    URL.revokeObjectURL(anchor.href);
+  }
+  // 改动点：复用历史记录参数，回填主页面预测表单。
+  function reuseRecord(item: RecordItem) {
+    const recordProject = projects.find((projectItem) => projectItem.name === item.project);
+    if (recordProject) setProject(recordProject);
+    setModel(item.model);
+    if (item.price) setPrice(item.price);
+    if (item.opening) setOpening(item.opening);
+    setHistory(false);
+    setResult(false);
+  }
   const filtered = projects.filter((item) => item.name.includes(query.trim()));
   const resultMetrics =
     model === "new"
@@ -375,6 +452,13 @@ export default function SalesForecast() {
   );
   const recordPageCount = Math.max(1, Math.ceil(projectRecords.length / 10));
   const visibleProjectRecords = projectRecords.slice((recordPage - 1) * 10, recordPage * 10);
+  // 改动点：抽屉记录按项目、盘类型、日期范围筛选。
+  const drawerRecords = records.filter((item) => {
+    const keywordMatch = !recordKeyword.trim() || item.project.toLowerCase().includes(recordKeyword.trim().toLowerCase());
+    const modelMatch = recordModelFilter === "all" || item.model === recordModelFilter;
+    const createdDate = item.created.slice(0, 10);
+    return keywordMatch && modelMatch && (!recordFrom || createdDate >= recordFrom) && (!recordTo || createdDate <= recordTo);
+  });
 
   return (
     <div className="forecast-page">
@@ -928,16 +1012,33 @@ export default function SalesForecast() {
                 <X />
               </button>
             </div>
-            {records.length === 0 ? (
+            {/* 改动点：轻量筛选栏，不改变抽屉尺寸。 */}
+            <div className="record-filters">
+              <div className="record-search"><Search /><input value={recordKeyword} onChange={(event) => { setRecordKeyword(event.target.value); setRecordPage(1); }} placeholder="搜索项目名称" /></div>
+              <div ref={recordModelPickerRef} className="record-model-picker">
+                <button type="button" className="record-model-trigger" onClick={() => setRecordModelOpen((open) => !open)} aria-expanded={recordModelOpen}>
+                  {recordModelFilter === "all" ? "全盘" : recordModelFilter === "stock" ? "存盘" : "新盘"}<ChevronDown />
+                </button>
+                {recordModelOpen && <div className="record-model-menu">
+                  {([['all', '全盘'], ['stock', '存盘'], ['new', '新盘']] as const).map(([value, label]) => (
+                    <button key={value} type="button" className={recordModelFilter === value ? "active" : ""} onClick={() => { setRecordModelFilter(value); setRecordModelOpen(false); setRecordPage(1); }}>{label}</button>
+                  ))}
+                </div>}
+              </div>
+              <div className="record-date-range"><ForecastDatePicker value={recordFrom} onChange={(value) => { setRecordFrom(value); setRecordPage(1); }} placeholder="年 / 月 / 日" /><span>至</span><ForecastDatePicker value={recordTo} onChange={(value) => { setRecordTo(value); setRecordPage(1); }} placeholder="年 / 月 / 日" /></div>
+            </div>
+            {drawerRecords.length === 0 ? (
               <div className="drawer-empty">当天暂无预测记录</div>
             ) : (
               <div className="record-list">
-                {records.map((item) => (
+                {drawerRecords.map((item) => (
                   <article key={item.id}>
-                    <span>{item.model === "new" ? "新盘" : "存盘"}</span>
+                    <span className={`record-model-tag record-model-${item.model}`}>{item.model === "new" ? "新盘" : "存盘"}</span>
                     <time>{new Date(item.created).toLocaleString("zh-CN")}</time>
                     <h3>{item.project}</h3>
-                    <p>{displayRecordResult(item)}</p>
+                    <p className={recordResultClass(item)}>预测结果：{displayRecordResult(item)}</p>
+                    {(item.params || item.price || item.opening) && <div className="record-snapshot" title={recordSnapshot(item)}><b>关键参数</b><span>{recordSnapshot(item)}</span></div>}
+                    <div className="record-actions">
                     <button
                       onClick={() => {
                         const recordProject = projects.find(
@@ -951,8 +1052,12 @@ export default function SalesForecast() {
                     >
                       打开结果
                     </button>
+                    <button className="record-icon-button" title="复用" aria-label="复用" onClick={() => reuseRecord(item)}><RefreshCw /></button>
+                    <button className="record-icon-button" title="导出" aria-label="导出" onClick={() => exportRecord(item)}><FileDown /></button>
+                    </div>
                   </article>
                 ))}
+                {drawerRecords.length > 10 && <div className="record-pagination"><button disabled={recordPage === 1} onClick={() => setRecordPage((page) => page - 1)}>上一页</button><span>第 {recordPage} / {Math.ceil(drawerRecords.length / 10)} 页</span><button disabled={recordPage >= Math.ceil(drawerRecords.length / 10)} onClick={() => setRecordPage((page) => page + 1)}>下一页</button></div>}
               </div>
             )}
           </aside>
