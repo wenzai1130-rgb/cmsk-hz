@@ -483,20 +483,18 @@ export default function SalesForecast() {
         : undefined,
       result: model === "new" ? "中去化" : stockForecastRange,
     };
-    const header = [
-      "预测时间",
-      "低去化概率",
-      "中去化概率",
-      "高去化概率",
-      "模型判定结果",
-    ];
-    const toRow = (item: { created: string; probabilities?: RecordProbabilities; result: string }) => [
-      new Date(item.created).toLocaleString("zh-CN"),
-      probabilityText(item.probabilities?.low),
-      probabilityText(item.probabilities?.medium),
-      probabilityText(item.probabilities?.high),
-      item.result,
-    ];
+    const summaryHeader = model === "new"
+      ? ["预测时间", "低去化概率", "中去化概率", "高去化概率", "模型判定结果"]
+      : ["预测时间", "下月销售套数(90%置信区间)"];
+    const summaryRow = model === "new"
+      ? [
+          new Date(current.created).toLocaleString("zh-CN"),
+          probabilityText(current.probabilities?.low),
+          probabilityText(current.probabilities?.medium),
+          probabilityText(current.probabilities?.high),
+          current.result,
+        ]
+      : [new Date(current.created).toLocaleString("zh-CN"), stockForecastRange.replace("下月", "")];
     const sheet2Header = model === "new"
       ? ["预测时间", "销售单价", "计划开盘时间", "预测结果"]
       : ["预测时间", "销售单价", "预测结果"];
@@ -514,7 +512,7 @@ export default function SalesForecast() {
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(
       workbook,
-      XLSX.utils.aoa_to_sheet([header, toRow(current)]),
+      XLSX.utils.aoa_to_sheet([summaryHeader, summaryRow]),
       "Sheet1",
     );
     XLSX.utils.book_append_sheet(
