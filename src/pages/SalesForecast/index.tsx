@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { HeaderNav } from "@/components/layout/HeaderNav";
 import { ORG_TREE } from "@/components/filters/home-filters";
+import * as XLSX from "xlsx";
 import { ModuleBadge, usePageRequirements, useRegisterModuleOpener } from "@/components/requirements";
 import { PAGE_REQUIREMENTS } from "./config/pageRequirements";
 import "./styles.css";
@@ -33,6 +34,11 @@ import ProbabilityStackBar from "./components/ProbabilityStackBar";
 type Model = "new" | "stock";
 type Project = { name: string; area: string; open: string; rate: string; remaining: string };
 type RecordStatus = "completed" | "running" | "failed";
+type RecordProbabilities = {
+  low: number;
+  medium: number;
+  high: number;
+};
 type RecordItem = {
   id: string;
   model: Model;
@@ -44,6 +50,16 @@ type RecordItem = {
   price?: string;
   status?: RecordStatus;
   failureReason?: string;
+  probabilities?: RecordProbabilities;
+};
+type PredictionResultState = {
+  visible: boolean;
+  coreFeaturesExpanded: boolean;
+};
+
+const initialPredictionResultState: PredictionResultState = {
+  visible: false,
+  coreFeaturesExpanded: false,
 };
 
 const recordProbabilities = [
@@ -51,6 +67,19 @@ const recordProbabilities = [
   { name: "中去化", percent: "64.09", className: "record-probability-medium" },
   { name: "高去化", percent: "9.56", className: "record-probability-high" },
 ] as const;
+
+function recordProbabilitiesOf(item: RecordItem): RecordProbabilities | undefined {
+  if (item.model !== "new") return undefined;
+  return item.probabilities ?? {
+    low: Number(recordProbabilities[0].percent),
+    medium: Number(recordProbabilities[1].percent),
+    high: Number(recordProbabilities[2].percent),
+  };
+}
+
+function probabilityText(probability?: number) {
+  return probability === undefined ? "--" : `${probability.toFixed(2)}%`;
+}
 const stockForecastRange = "下月35-46套";
 
 // 改动点：新盘历史记录同步展示三档去化概率，存盘记录仍展示原有套数结果。
@@ -345,8 +374,7 @@ export default function SalesForecast() {
   const [finishOpen, setFinishOpen] = useState(false);
   const [opening, setOpening] = useState("2026-10-18");
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState(false);
-  const [coreFeaturesExpanded, setCoreFeaturesExpanded] = useState(false);
+  const [resultStates, setResultStates] = useState<Record<string, PredictionResultState>>({});
   const [history, setHistory] = useState(false);
   const [records, setRecords] = useState<RecordItem[]>([]);
   const [recordPage, setRecordPage] = useState(1);
@@ -359,6 +387,9 @@ export default function SalesForecast() {
   const [recordTo, setRecordTo] = useState("");
   const features = useMemo(() => (model === "new" ? newFeatures : stockFeatures), [model]);
   const title = model === "new" ? "新盘去化分类预测" : "存盘短期销量预测";
+  const resultKey = `${project.name}:${model}`;
+  const resultState = resultStates[resultKey] ?? initialPredictionResultState;
+  const resultVisible = resultState.visible;
   usePageRequirements("智能预测", PAGE_REQUIREMENTS);
   useRegisterModuleOpener("sales-forecast-records", () => setHistory(true), []);
 
@@ -378,15 +409,11 @@ export default function SalesForecast() {
     }
   }, []);
   useEffect(() => {
-    setResult(false);
-    setCoreFeaturesExpanded(false);
-  }, [model]);
-  useEffect(() => {
     setRecordPage(1);
   }, [project.name]);
   useEffect(() => {
-    if (result) resultRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-  }, [result]);
+    if (resultVisible) resultRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [resultVisible]);
   useEffect(() => {
     if (!projectOpen) return;
     const closeOnOutsidePointer = (event: PointerEvent) => {
@@ -408,12 +435,24 @@ export default function SalesForecast() {
     setRecords(next);
     localStorage.setItem("sales-forecast-records", JSON.stringify(next));
   }
+  function updateResultState(
+    projectName: string,
+    targetModel: Model,
+    update: (state: PredictionResultState) => PredictionResultState,
+  ) {
+    const resultKey = `${projectName}:${targetModel}`;
+    setResultStates((current) => ({
+      ...current,
+      [resultKey]: update(current[resultKey] ?? initialPredictionResultState),
+    }));
+  }
   async function runPrediction() {
     setLoading(true);
-    setResult(false);
+    updateResultState(project.name, model, (state) => ({ ...state, visible: false }));
     await new Promise((resolve) => setTimeout(resolve, 650));
     setLoading(false);
-    setResult(true);
+    updateResultState(project.name, model, (state) => ({ ...state, visible: true }));
+    const newRecordProbabilities = { low: 32.35, medium: 64.09, high: 9.56 };
     saveRecord({
       id: crypto.randomUUID(),
       model,
@@ -421,6 +460,7 @@ export default function SalesForecast() {
       created: new Date().toISOString(),
       result: model === "new" ? "中去化" : stockForecastRange,
       status: "completed",
+      probabilities: model === "new" ? newRecordProbabilities : undefined,
       opening: model === "new" ? opening : undefined,
       price,
       params:
@@ -430,25 +470,68 @@ export default function SalesForecast() {
     });
   }
   function exportResult() {
-    const rows = [
-      ["项目", project.name],
-      ["模型", title],
-      ["销售单价", price],
-      ["预测结果", model === "new" ? "前三月累计中去化" : stockForecastRange],
-      ...features.map(([name, category, iv]) => [
-        `影响特征-${name}`,
-        `${category} / ${model === "new" ? "SHAP值" : "IV值"} ${iv}`,
-      ]),
+    const current = {
+      created: new Date().toISOString(),
+      probabilities: model === "new"
+        ? recordProbabilitiesOf({
+            id: "",
+            model: "new",
+            project: project.name,
+            created: new Date().toISOString(),
+            result: "中去化",
+          })
+        : undefined,
+      result: model === "new" ? "中去化" : stockForecastRange,
+    };
+    const header = [
+      "预测时间",
+      "低去化概率",
+      "中去化概率",
+      "高去化概率",
+      "模型判定结果",
     ];
-    const csv =
-      "\uFEFF" +
-      rows.map((row) => row.map((v) => `"${v.replaceAll('"', '""')}"`).join(",")).join("\n");
-    const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
-    const anchor = document.createElement("a");
-    anchor.href = url;
-    anchor.download = `${project.name}-${title}.csv`;
-    anchor.click();
-    URL.revokeObjectURL(url);
+    const toRow = (item: { created: string; probabilities?: RecordProbabilities; result: string }) => [
+      new Date(item.created).toLocaleString("zh-CN"),
+      probabilityText(item.probabilities?.low),
+      probabilityText(item.probabilities?.medium),
+      probabilityText(item.probabilities?.high),
+      item.result,
+    ];
+    const sheet2Header = model === "new"
+      ? ["预测时间", "销售单价", "计划开盘时间", "预测结果"]
+      : ["预测时间", "销售单价", "预测结果"];
+    const sheet2Rows = projectRecords.map((item) => {
+      const salePrice = item.price ? `${Number(item.price).toLocaleString()} 元/㎡` : "--";
+      const planOpening = item.opening ? item.opening.replaceAll("-", "/") : "--";
+      const probabilities = recordProbabilitiesOf(item);
+      const result = probabilities
+        ? `低去化概率${probabilities.low.toFixed(2)}%，中去化概率${probabilities.medium.toFixed(2)}%，高去化概率${probabilities.high.toFixed(2)}%`
+        : displayRecordResult(item);
+      return model === "new"
+        ? [new Date(item.created).toLocaleString("zh-CN"), salePrice, planOpening, result]
+        : [new Date(item.created).toLocaleString("zh-CN"), salePrice, result];
+    });
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(
+      workbook,
+      XLSX.utils.aoa_to_sheet([header, toRow(current)]),
+      "Sheet1",
+    );
+    XLSX.utils.book_append_sheet(
+      workbook,
+      XLSX.utils.aoa_to_sheet([sheet2Header, ...sheet2Rows]),
+      "Sheet2",
+    );
+    const now = new Date();
+    const pad = (value: number) => String(value).padStart(2, "0");
+    const timestamp = [
+      now.getFullYear(),
+      pad(now.getMonth() + 1),
+      pad(now.getDate()),
+      `_${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`,
+    ].join("");
+    const modelName = model === "new" ? "新盘" : "存盘";
+    XLSX.writeFile(workbook, `${project.name}_${modelName}_预测结果_${timestamp}.xlsx`);
   }
   // 改动点：行内导出单条历史记录，不依赖详情页。
   function exportRecord(item: RecordItem) {
@@ -475,7 +558,7 @@ export default function SalesForecast() {
     if (item.price) setPrice(item.price);
     if (item.opening) setOpening(item.opening);
     setHistory(false);
-    setResult(false);
+    updateResultState(item.project, item.model, (state) => ({ ...state, visible: false }));
   }
   const filtered = projects.filter((item) => item.name.includes(query.trim()));
   const resultMetrics =
@@ -705,7 +788,6 @@ export default function SalesForecast() {
                 <BarChart3 />
                 项目基本信息
               </h2>
-              <span>项目编码：SZ-{String(projects.indexOf(project) + 1).padStart(3, "0")}</span>
             </div>
             <div className="info-grid">
               {projectInfo(project, model).map(([key, value]) => (
@@ -877,12 +959,15 @@ export default function SalesForecast() {
                 <button
                   type="button"
                   className="feature-toggle-button"
-                  onClick={() => setCoreFeaturesExpanded((expanded) => !expanded)}
+                  onClick={() => updateResultState(project.name, model, (state) => ({
+                    ...state,
+                    coreFeaturesExpanded: !state.coreFeaturesExpanded,
+                  }))}
                 >
-                  {coreFeaturesExpanded ? "收起核心特征" : "展开核心特征"}
+                  {resultState.coreFeaturesExpanded ? "收起核心特征" : "展开核心特征"}
                 </button>
               )}
-              {coreFeaturesExpanded && (
+              {resultState.coreFeaturesExpanded && (
                 <div className="overview-feature-section">
                   <div className="forecast-card-title">
                     <h2>
@@ -912,7 +997,7 @@ export default function SalesForecast() {
             </section>
             </ModuleBadge>
           </div>
-          {result && (
+          {resultVisible && (
             <ModuleBadge moduleId="sales-forecast-result" className="block">
             <section ref={resultRef} className="forecast-result">
               <div className="result-header">
@@ -1108,7 +1193,10 @@ export default function SalesForecast() {
                         if (recordProject) setProject(recordProject);
                         setModel(item.model);
                         setHistory(false);
-                        setResult(true);
+                        updateResultState(recordProject.name, item.model, (state) => ({
+                          ...state,
+                          visible: true,
+                        }));
                       }}
                     >
                       打开结果

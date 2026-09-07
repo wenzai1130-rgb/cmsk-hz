@@ -22,7 +22,7 @@
 .forecast-filter .project-picker .org-tree-projects button{justify-content:flex-start}
 .analysis-grid .sales-card{order:1}.analysis-grid .feature-card{order:2}
 .forecast-filter .project-picker>button{border-color:var(--color-brand);background:var(--color-brand-soft);color:var(--color-brand);font-weight:500}
-.forecast-filter{grid-template-columns:110px minmax(0,410px)}
+.forecast-filter{grid-template-columns:110px minmax(0,1fr)}
 @media(max-width:560px){.forecast-filter{grid-template-columns:1fr}}
 .metric-help:hover .metric-help-popover{display:none}.metric-help button:hover + .metric-help-popover{display:block}
 .forecast-filter .parameter-date-picker .parameter-date{height:35px}
