@@ -380,6 +380,7 @@ export default function SalesForecast() {
   const [recordPage, setRecordPage] = useState(1);
   // 改动点：预测记录抽屉筛选状态。
   const [recordKeyword, setRecordKeyword] = useState("");
+  const [recordKeywordInput, setRecordKeywordInput] = useState("");
   const [recordModelFilter, setRecordModelFilter] = useState<"all" | Model>("all");
   const [recordModelOpen, setRecordModelOpen] = useState(false);
   const recordModelPickerRef = useRef<HTMLDivElement>(null);
@@ -1181,7 +1182,7 @@ export default function SalesForecast() {
             </div>
             {/* 改动点：轻量筛选栏，不改变抽屉尺寸。 */}
             <div className="record-filters">
-              <div className="record-search"><Search /><input value={recordKeyword} onChange={(event) => { setRecordKeyword(event.target.value); setRecordPage(1); }} placeholder="搜索项目名称" /></div>
+              <div className="record-search"><Search /><input value={recordKeywordInput} onChange={(event) => setRecordKeywordInput(event.target.value)} placeholder="搜索项目名称" /></div>
               <div ref={recordModelPickerRef} className="record-model-picker">
                 <button type="button" className="record-model-trigger" onClick={() => setRecordModelOpen((open) => !open)} aria-expanded={recordModelOpen}>
                   {recordModelFilter === "all" ? "全盘" : recordModelFilter === "stock" ? "存盘" : "新盘"}<ChevronDown />
@@ -1193,7 +1194,7 @@ export default function SalesForecast() {
                 </div>}
               </div>
               <div className="record-date-range"><ForecastDatePicker value={recordFrom} onChange={(value) => { setRecordFrom(value); setRecordPage(1); }} placeholder="年 / 月 / 日" /><span>至</span><ForecastDatePicker value={recordTo} onChange={(value) => { setRecordTo(value); setRecordPage(1); }} placeholder="年 / 月 / 日" /></div>
-              <div className="record-filter-actions"><button type="button" className="record-filter-search" onClick={() => setRecordPage(1)}><Search />搜索</button><button type="button" className="record-filter-reset" onClick={() => { setRecordKeyword(""); setRecordModelFilter("all"); setRecordFrom(""); setRecordTo(""); setRecordModelOpen(false); setRecordPage(1); }}>重置</button></div>
+              <div className="record-filter-actions"><button type="button" className="record-filter-search" onClick={() => { setRecordKeyword(recordKeywordInput); setRecordPage(1); }}><Search />搜索</button><button type="button" className="record-filter-reset" onClick={() => { setRecordKeyword(""); setRecordKeywordInput(""); setRecordModelFilter("all"); setRecordFrom(""); setRecordTo(""); setRecordModelOpen(false); setRecordPage(1); }}>重置</button></div>
             </div>
             {drawerRecords.length === 0 ? (
               <div className="drawer-empty">当天暂无预测记录</div>
