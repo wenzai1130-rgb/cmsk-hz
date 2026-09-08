@@ -470,31 +470,41 @@ export default function SalesForecast() {
     });
   }
   function exportResult() {
-    const current = {
-      created: new Date().toISOString(),
-      probabilities: model === "new"
-        ? recordProbabilitiesOf({
-            id: "",
-            model: "new",
-            project: project.name,
-            created: new Date().toISOString(),
-            result: "中去化",
-          })
-        : undefined,
-      result: model === "new" ? "中去化" : stockForecastRange,
-    };
-    const summaryHeader = model === "new"
-      ? ["预测时间", "低去化概率", "中去化概率", "高去化概率", "模型判定结果"]
-      : ["预测时间", "下月销售套数(90%置信区间)"];
-    const summaryRow = model === "new"
-      ? [
-          new Date(current.created).toLocaleString("zh-CN"),
-          probabilityText(current.probabilities?.low),
-          probabilityText(current.probabilities?.medium),
-          probabilityText(current.probabilities?.high),
-          current.result,
-        ]
-      : [new Date(current.created).toLocaleString("zh-CN"), stockForecastRange.replace("下月", "")];
+    const now = new Date();
+    const pad = (value: number) => String(value).padStart(2, "0");
+    const exportTime = `${now.getFullYear()}/${now.getMonth() + 1}/${now.getDate()} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+    const salePrice = `${Number(price).toLocaleString()} 元/㎡`;
+    const planOpening = opening.replaceAll("-", "/");
+    const currentProbabilities = model === "new"
+      ? recordProbabilitiesOf({
+          id: "",
+          model: "new",
+          project: project.name,
+          created: now.toISOString(),
+          result: "中去化",
+        })
+      : undefined;
+    const currentResult = currentProbabilities
+      ? `低去化概率${currentProbabilities.low.toFixed(2)}%，中去化概率${currentProbabilities.medium.toFixed(2)}%，高去化概率${currentProbabilities.high.toFixed(2)}%`
+      : stockForecastRange;
+    const currentKeyParams = model === "new"
+      ? `销售单价 ${salePrice} · 开盘 ${planOpening}`
+      : `销售单价 ${salePrice}`;
+    const modelJudgement = currentProbabilities
+      ? Object.entries({
+          低去化: currentProbabilities.low,
+          中去化: currentProbabilities.medium,
+          高去化: currentProbabilities.high,
+        }).sort((first, second) => second[1] - first[1])[0][0]
+      : "--";
+    const summaryRows = [
+      ["项目", project.name],
+      ["盘类型", model === "new" ? "新盘" : "存盘"],
+      ["预测时间", exportTime],
+      ["关键参数", currentKeyParams],
+      ["预测结果", currentResult],
+      ["模型判定", modelJudgement],
+    ];
     const sheet2Header = model === "new"
       ? ["预测时间", "销售单价", "计划开盘时间", "预测结果"]
       : ["预测时间", "销售单价", "预测结果"];
@@ -512,16 +522,14 @@ export default function SalesForecast() {
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(
       workbook,
-      XLSX.utils.aoa_to_sheet([summaryHeader, summaryRow]),
-      "Sheet1",
+      XLSX.utils.aoa_to_sheet(summaryRows),
+      "本次预测结果",
     );
     XLSX.utils.book_append_sheet(
       workbook,
       XLSX.utils.aoa_to_sheet([sheet2Header, ...sheet2Rows]),
-      "Sheet2",
+      "历史预测记录",
     );
-    const now = new Date();
-    const pad = (value: number) => String(value).padStart(2, "0");
     const timestamp = [
       now.getFullYear(),
       pad(now.getMonth() + 1),
@@ -533,20 +541,39 @@ export default function SalesForecast() {
   }
   // 改动点：行内导出单条历史记录，不依赖详情页。
   function exportRecord(item: RecordItem) {
+    const probabilities = recordProbabilitiesOf(item);
+    const result = probabilities
+      ? `低去化概率${probabilities.low.toFixed(2)}%，中去化概率${probabilities.medium.toFixed(2)}%，高去化概率${probabilities.high.toFixed(2)}%`
+      : displayRecordResult(item);
+    const modelJudgement = probabilities
+      ? Object.entries({
+          低去化: probabilities.low,
+          中去化: probabilities.medium,
+          高去化: probabilities.high,
+        }).sort((first, second) => second[1] - first[1])[0][0]
+      : "--";
     const rows = [
       ["项目", item.project],
       ["盘类型", item.model === "new" ? "新盘" : "存盘"],
       ["预测时间", new Date(item.created).toLocaleString("zh-CN")],
-      ["预测结果", displayRecordResult(item)],
-      ["关键参数快照", recordSnapshot(item)],
-      ["状态", recordStatusLabel(recordStatus(item))],
+      ["关键参数", recordSnapshot(item)],
+      ["预测结果", result],
+      ["模型判定", modelJudgement],
     ];
-    const csv = "\uFEFF" + rows.map((row) => row.map((value) => `"${String(value).replaceAll('"', '""')}"`).join(",")).join("\n");
-    const anchor = document.createElement("a");
-    anchor.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
-    anchor.download = `${item.project}-${item.model === "new" ? "新盘" : "存盘"}-预测记录.csv`;
-    anchor.click();
-    URL.revokeObjectURL(anchor.href);
+    const recordTime = new Date(item.created);
+    const pad = (value: number) => String(value).padStart(2, "0");
+    const timestamp = [
+      recordTime.getFullYear(),
+      pad(recordTime.getMonth() + 1),
+      pad(recordTime.getDate()),
+      `_${pad(recordTime.getHours())}${pad(recordTime.getMinutes())}${pad(recordTime.getSeconds())}`,
+    ].join("");
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, XLSX.utils.aoa_to_sheet(rows), "本次预测结果");
+    XLSX.writeFile(
+      workbook,
+      `${item.project}_${item.model === "new" ? "新盘" : "存盘"}_预测结果_${timestamp}.xlsx`,
+    );
   }
   // 改动点：复用历史记录参数，回填主页面预测表单。
   function reuseRecord(item: RecordItem) {
