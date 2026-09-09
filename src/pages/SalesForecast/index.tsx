@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   Activity,
   BarChart3,
@@ -189,6 +189,12 @@ const stockFeatures = [
   ["全国及城市销售指数", "全国及城市楼市大盘行情", "0.071"],
   ["项目价格偏离度", "项目定价与估值匹配度", "0.058"],
 ];
+const stockModelOverview = {
+  accuracy: "95.0%",
+  accuracySummary: "12个点命中12个（100.00%）",
+  accuracyDescription:
+    "先按目标月分别求和实际值和预测值，再判定每月汇总点是否命中；共12个月度点。月度预测总套数与实际总套数的绝对误差≦2套，或实际总套数非零且相对误差≦15%，记为命中。",
+};
 const businessOptions = [
   { key: "住宅", enabled: true },
   { key: "商业", enabled: true },
@@ -327,15 +333,22 @@ const infoMetricKeys = new Set([
   "未售套数",
 ]);
 
-function MetricHelp({ label }: { label: string }) {
-  const content = label.includes("去化")
+function MetricHelp({ label, content }: { label: string; content?: ReactNode }) {
+  const [open, setOpen] = useState(false);
+  const fallbackContent = label.includes("去化")
     ? "低去化：去化率 < 30%\n中去化：30% ≦ 去化率 < 70%\n高去化：去化率 ≧ 70%"
     : label === "AUC值"
       ? "AUC：衡量模型整体区分正负样本能力，值域0-1，越接近1判别效果越好。"
       : "KS：衡量好坏样本最大分离度，值越大两类样本区分拉开程度越强。";
+  const displayContent = content ?? fallbackContent;
   return (
-    <span className="metric-help">
-      <button type="button" aria-label={`${label}说明`}>
+    <span className={open ? "metric-help open" : "metric-help"}>
+      <button
+        type="button"
+        aria-label={`${label}说明`}
+        aria-expanded={open}
+        onClick={() => setOpen((value) => !value)}
+      >
         <HelpCircle />
       </button>
       <span className="metric-help-popover">
@@ -347,7 +360,7 @@ function MetricHelp({ label }: { label: string }) {
             <span><b style={{ color: "#10B981" }}>高去化</b>：去化率 ≧ 70%</span>
           </span>
         ) : (
-          <span>{content}</span>
+          <span>{displayContent}</span>
         )}
       </span>
     </span>
@@ -959,8 +972,19 @@ export default function SalesForecast() {
                 </div>
               ) : (
                 <div className="accuracy">
-                  <span>模型综合准确率</span>
-                  <b>95.0%</b>
+                  <span className="accuracy-label">
+                    模型综合准确率
+                    <MetricHelp
+                      label="模型综合准确率"
+                      content={
+                        <>
+                          <span>{stockModelOverview.accuracySummary}</span>
+                          <span>{stockModelOverview.accuracyDescription}</span>
+                        </>
+                      }
+                    />
+                  </span>
+                  <b>{stockModelOverview.accuracy}</b>
                 </div>
               )}
               <dl>
@@ -1000,14 +1024,14 @@ export default function SalesForecast() {
                       <BarChart3 />
                       影响结果的核心特征
                     </h2>
-                    <span className="ready-tag">{model === "new" ? "SHAP值" : "IV值"}</span>
+                    <span className="ready-tag">SHAP值</span>
                   </div>
                   <div className="feature-table">
                     <div className="feature-head">
                       <span>序号</span>
                       <span>特征名称</span>
                       <span>特征分类</span>
-                      <span>{model === "new" ? "SHAP值" : "IV值"}</span>
+                      <span>SHAP值</span>
                     </div>
                     {features.map(([name, category, iv], index) => (
                       <div className="feature-row" key={name}>
