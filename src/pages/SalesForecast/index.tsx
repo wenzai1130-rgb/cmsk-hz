@@ -681,7 +681,7 @@ export default function SalesForecast() {
                   aria-expanded={businessTypeOpen}
                   onClick={() => setBusinessTypeOpen((open) => !open)}
                   onBlur={() => setTimeout(() => setBusinessTypeOpen(false), 180)}
-                  className="h-9 px-3 rounded-md border border-[var(--color-brand)] bg-[var(--color-brand-soft)] text-[var(--color-brand)] text-sm font-medium flex items-center gap-2 min-w-[110px] hover:bg-white transition-colors"
+                  className="h-[35px] px-3 rounded-md border border-[var(--color-brand)] bg-[var(--color-brand-soft)] text-[var(--color-brand)] text-sm font-medium flex items-center gap-2 min-w-[110px] hover:bg-white transition-colors"
                 >
                   <span className="flex-1 text-left">{businessType}</span>
                   <ChevronDown className="w-4 h-4" />
@@ -859,6 +859,8 @@ export default function SalesForecast() {
                   <input
                     type="number"
                     value={price}
+                    disabled={model === "stock"}
+                    className={model === "stock" ? "parameter-input-disabled" : undefined}
                     onChange={(event) => setPrice(event.target.value)}
                   />
                 </label>
