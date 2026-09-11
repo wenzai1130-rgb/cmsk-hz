@@ -355,13 +355,13 @@ function MetricHelp({ label, content }: { label: string; content?: ReactNode }) 
       <span className="metric-help-popover">
         <strong>{label}说明</strong>
         {showThresholds ? (
-          <span className="depletion-thresholds" style={{ color: "#1E293B" }}>
-            <span><b style={{ color: "#DC2626" }}>低去化</b>：去化率 &lt; 30%</span>
-            <span><b style={{ color: "#F59E0B" }}>中去化</b>：30% ≦ 去化率 &lt; 70%</span>
-            <span><b style={{ color: "#10B981" }}>高去化</b>：去化率 ≧ 70%</span>
+          <span className="metric-help-lines">
+            <span><b className="threshold-low">低去化</b>：去化率 &lt; 30%</span>
+            <span><b className="threshold-medium">中去化</b>：30% ≦ 去化率 &lt; 70%</span>
+            <span><b className="threshold-high">高去化</b>：去化率 ≧ 70%</span>
           </span>
         ) : (
-          <span>{displayContent}</span>
+          <span className="metric-help-text">{displayContent}</span>
         )}
       </span>
     </span>
