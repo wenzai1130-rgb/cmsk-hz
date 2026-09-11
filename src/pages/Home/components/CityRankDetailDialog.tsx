@@ -201,6 +201,20 @@ export function CityRankDetailDialog({
     return withPct;
   }, [sourceRows, isProject, group, keyword, sortKey, sortDir]);
 
+  const sumValue = (key: NumKey) => filtered.reduce((sum, row) => sum + ((row as any)[key] as number), 0);
+  const totalValue = (key: NumKey) => {
+    if (key === "yearAchieve") {
+      const target = sumValue("yearTarget");
+      return target ? +((sumValue("yearSigned") / target) * 100).toFixed(2) : 0;
+    }
+    if (key === "monthAchieve") {
+      const target = sumValue("monthTarget");
+      return target ? +((sumValue("monthSigned") / target) * 100).toFixed(2) : 0;
+    }
+    if (key === "unsoldPct" || key === "reachUnsoldPct") return 100;
+    return +sumValue(key).toFixed(2);
+  };
+
   if (!open) return null;
 
   const toggleSort = (k: NumKey) => {
@@ -243,7 +257,17 @@ export function CityRankDetailDialog({
       +(avg("unsold") * factor).toFixed(2), +avg("unsoldPct").toFixed(2),
       +(avg("reachUnsold") * factor).toFixed(2), +avg("reachUnsoldPct").toFixed(2),
     ];
-    const ws = XLSX.utils.aoa_to_sheet([headers, avgRow, ...body]);
+    const rows = [headers, avgRow, ...body];
+    if (!isProject && filtered.length > 0) {
+      rows.push([
+        "合计", group, "全部合计",
+        +(totalValue("yearTarget") * factor).toFixed(2), +(totalValue("yearSigned") * factor).toFixed(2), totalValue("yearAchieve"),
+        +(totalValue("monthTarget") * factor).toFixed(2), +(totalValue("monthSigned") * factor).toFixed(2), totalValue("monthAchieve"),
+        +(totalValue("unsold") * factor).toFixed(2), totalValue("unsoldPct"),
+        +(totalValue("reachUnsold") * factor).toFixed(2), totalValue("reachUnsoldPct"),
+      ]);
+    }
+    const ws = XLSX.utils.aoa_to_sheet(rows);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, isProject ? "项目排名" : "城市公司排名");
     const now = new Date();
@@ -375,6 +399,26 @@ export function CityRankDetailDialog({
                         </th>
                       ))}
                     </tr>
+                    {!isProject && filtered.length > 0 && (
+                      <tr className="bg-[#EEF6FF] text-[#1E293B]" style={{ height: 32 }}>
+                        <td className="px-2 text-left border-t border-[#E2E8F0]">
+                          <span className="px-1.5 h-4 inline-flex items-center rounded text-[10px] font-medium bg-[#DBEAFE] text-[#1D4ED8]">合计</span>
+                        </td>
+                        <td className="px-2 text-left text-[#64748B] border-t border-[#E2E8F0]">{group}</td>
+                        <td className="px-2 text-left font-medium border-t border-[#E2E8F0]">全部合计</td>
+                        {allCols.map((c) => {
+                          const raw = totalValue(c.key);
+                          const v = c.scale ? +(raw * factor).toFixed(2) : raw;
+                          return (
+                            <td key={c.key} className="px-1.5 text-right border-l border-t border-[#E2E8F0]">
+                              <span className="tabular-nums font-semibold">
+                                {c.fmt(v)}
+                              </span>
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    )}
                     {/* Average row (in thead so it sticks with header, no gap) */}
                     <tr className="bg-[#F8FAFC] text-[#1E293B]" style={{ height: 32 }}>
                       <td className="px-2 text-left border-t border-[#E2E8F0]">
