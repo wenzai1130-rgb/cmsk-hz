@@ -254,6 +254,12 @@ function filterTree(rows: Row[], k: string): Row[] {
   return out;
 }
 
+function collectLeaves(rows: Row[]): Row[] {
+  return rows.flatMap((row) => (
+    row.children?.length ? collectLeaves(row.children) : [row]
+  ));
+}
+
 // ---- Sortable numeric columns ----
 type SortKey = keyof Metrics | "openDate" | null;
 
@@ -383,6 +389,40 @@ export function RateDetailDialog({
 
   const filtered = useMemo(() => filterTree(topRows, keyword.trim()), [topRows, keyword]);
 
+  const totalMetrics = useMemo<Metrics | null>(() => {
+    const leaves = collectLeaves(filtered);
+    if (!leaves.length) return null;
+    const sum = (key: keyof Metrics) => leaves.reduce((total, row) => total + row[key], 0);
+    const startStock = sum("startStock");
+    const newAdd = sum("newAdd");
+    const soldOld = sum("soldOld");
+    const soldNew = sum("soldNew");
+    const remainOld = sum("remainOld");
+    const remainNew = sum("remainNew");
+    const rate = (numerator: number, denominator: number) =>
+      denominator > 0 ? +((numerator / denominator) * 100).toFixed(2) : Number.NaN;
+    const metrics: Metrics = {
+      startStock: +startStock.toFixed(2),
+      newAdd: +newAdd.toFixed(2),
+      soldOld: +soldOld.toFixed(2),
+      soldNew: +soldNew.toFixed(2),
+      remainOld: +remainOld.toFixed(2),
+      remainNew: +remainNew.toFixed(2),
+      rateOldStock: rate(soldOld, startStock),
+      rateCurTarget: rate(soldNew, newAdd),
+      rateYearTarget: rate(soldOld + soldNew, startStock + newAdd),
+    };
+    if (mode === "达售") {
+      return {
+        ...metrics,
+        rateOldStock: adjustRate(metrics.rateOldStock),
+        rateCurTarget: adjustRate(metrics.rateCurTarget),
+        rateYearTarget: adjustRate(metrics.rateYearTarget),
+      };
+    }
+    return metrics;
+  }, [filtered, mode]);
+
   const sorted = useMemo(() => {
     if (dim === "业态") return filtered;
     if (!sortKey) return filtered;
@@ -505,6 +545,21 @@ export function RateDetailDialog({
         r.rateYearTarget,
       ]);
     });
+    if (filteredRows.length > 0 && totalMetrics) {
+      const value = (v: number) => Number.isFinite(v) ? v : "--";
+      aoa.push([
+        "合计",
+        ...(dim === "项目" ? ["全部", "全部", "全部合计", "--"] : ["全部合计"]),
+        totalMetrics.startStock,
+        totalMetrics.newAdd,
+        totalMetrics.soldNew,
+        totalMetrics.remainNew,
+        value(totalMetrics.rateCurTarget),
+        +(totalMetrics.soldOld + totalMetrics.soldNew).toFixed(2),
+        +(totalMetrics.remainOld + totalMetrics.remainNew).toFixed(2),
+        value(totalMetrics.rateYearTarget),
+      ]);
+    }
 
     const ws = XLSX.utils.aoa_to_sheet(aoa);
     const wb = XLSX.utils.book_new();
@@ -566,8 +621,8 @@ export function RateDetailDialog({
       : <ArrowDown className="w-3 h-3 text-[#1677FF]" />;
   };
 
-  const numCell = (v: number, isPct = false, active = false) => (
-    <td className={`px-2 py-2.5 text-right tabular-nums border-b border-[#F1F5F9] whitespace-nowrap ${active ? "text-[var(--color-brand)] font-medium" : "text-[#475569]"}`}>
+  const numCell = (v: number, isPct = false, active = false, className?: string) => (
+    <td className={className ?? `px-2 py-2.5 text-right tabular-nums border-b border-[#F1F5F9] whitespace-nowrap ${active ? "text-[var(--color-brand)] font-medium" : "text-[#475569]"}`}>
       {isPct ? pct(v) : fmt2(v)}
     </td>
   );
@@ -578,14 +633,14 @@ export function RateDetailDialog({
   const yearSold = (r: Row) => +(r.soldOld + r.soldNew).toFixed(2);
   const yearRemain = (r: Row) => +(r.remainOld + r.remainNew).toFixed(2);
   const projectExtra = (r: Row) => r as Row & { cityGroup?: string; cityCompany?: string };
-  const groupTh = "sticky top-0 z-20 bg-[#F1F5F9] border-b border-l border-[#E2E8F0] px-2 py-2 text-center font-medium text-[#475569] whitespace-nowrap";
-  const subTh = "sticky top-[33px] z-20 bg-[#F8FAFC] border-b border-l border-[#E2E8F0] px-2 py-1.5 text-center font-medium text-[#475569] whitespace-nowrap";
-  const leafTh = "sticky top-[64px] z-20 bg-white border-b border-l border-[#EEF2F7] px-2 py-1.5 text-right font-normal text-[#64748B] whitespace-nowrap";
+  const groupTh = "sticky top-0 z-20 h-[33px] bg-[#F1F5F9] border-b border-l border-[#E2E8F0] px-2 py-0 text-center font-medium text-[#475569] leading-none whitespace-nowrap";
+  const subTh = "sticky top-[33px] z-20 h-[27px] bg-[#F8FAFC] border-b border-l border-[#E2E8F0] px-2 py-0 text-center font-medium text-[#475569] leading-none whitespace-nowrap";
+  const leafTh = "sticky top-[60px] z-20 h-[33px] bg-white border-b border-l border-[#EEF2F7] px-2 py-0 text-right font-normal text-[#64748B] leading-none whitespace-nowrap";
   const subSortable = (key: NonNullable<SortKey>, label: ReactNode, columnId = String(key)) => (
     <th
       rowSpan={2}
       onClick={() => onSort(key, columnId)}
-      className={`${subTh} cursor-pointer select-none ${isSortColumn(columnId) ? "text-[var(--color-brand)] font-medium" : ""}`}
+      className={`${subTh} h-[60px] cursor-pointer select-none ${isSortColumn(columnId) ? "text-[var(--color-brand)] font-medium" : ""}`}
       style={{ minWidth: 82 }}
     >
       <span className="inline-flex items-center justify-center gap-1">
@@ -606,32 +661,37 @@ export function RateDetailDialog({
       </span>
     </th>
   );
-  const metricCells = (r: Row) => (
+  const totalMetricTd = "sticky top-[93px] z-20 bg-[#EEF6FF] px-3 py-2.5 text-right tabular-nums font-semibold text-[#1E293B] border-b border-l border-[#E2E8F0] whitespace-nowrap";
+  const totalInfoTd = "sticky top-[93px] z-20 bg-[#EEF6FF] px-3 py-2.5 text-left text-[#1E293B] border-b border-l border-[#E2E8F0] whitespace-nowrap";
+  const metricCells = (r: Metrics, total = false) => {
+    const cellClass = total ? totalMetricTd : undefined;
+    return (
     <>
-      {numCell(r.startStock, false, isSortColumn("monthStartStock"))}
-      {numCell(r.newAdd, false, isSortColumn("monthNewAdd"))}
-      <td className={`px-2 py-2.5 text-right tabular-nums border-b border-l border-[#F1F5F9] whitespace-nowrap ${isSortColumn("monthSoldOld") ? "text-[var(--color-brand)] font-medium" : "text-[#475569]"}`}>{fmt2(r.soldOld)}</td>
-      {numCell(r.soldNew, false, isSortColumn("monthSoldNew"))}
-      {numCell(monthSold(r), false, isSortColumn("monthSoldTotal"))}
-      <td className={`px-2 py-2.5 text-right tabular-nums border-b border-l border-[#F1F5F9] whitespace-nowrap ${isSortColumn("monthRemainOld") ? "text-[var(--color-brand)] font-medium" : "text-[#475569]"}`}>{fmt2(r.remainOld)}</td>
-      {numCell(r.remainNew, false, isSortColumn("monthRemainNew"))}
-      {numCell(monthRemain(r), false, isSortColumn("monthRemainTotal"))}
-      <td className={`px-2 py-2.5 text-right tabular-nums border-b border-l border-[#F1F5F9] whitespace-nowrap ${isSortColumn("monthRateOldStock") ? "text-[var(--color-brand)] font-medium" : "text-[#475569]"}`}>{pct(r.rateOldStock)}</td>
-      {numCell(r.rateCurTarget, true, isSortColumn("monthRateCur"))}
-      {numCell(monthRate(r), true, isSortColumn("monthRateTotal"))}
-      <td className={`px-2 py-2.5 text-right tabular-nums border-b border-l border-[#F1F5F9] whitespace-nowrap ${isSortColumn("yearStartStock") ? "text-[var(--color-brand)] font-medium" : "text-[#475569]"}`}>{fmt2(r.startStock)}</td>
-      {numCell(r.newAdd, false, isSortColumn("yearNewAdd"))}
-      <td className={`px-2 py-2.5 text-right tabular-nums border-b border-l border-[#F1F5F9] whitespace-nowrap ${isSortColumn("yearSoldOld") ? "text-[var(--color-brand)] font-medium" : "text-[#475569]"}`}>{fmt2(r.soldOld)}</td>
-      {numCell(r.soldNew, false, isSortColumn("yearSoldNew"))}
-      {numCell(yearSold(r), false, isSortColumn("yearSoldTotal"))}
-      <td className={`px-2 py-2.5 text-right tabular-nums border-b border-l border-[#F1F5F9] whitespace-nowrap ${isSortColumn("yearRemainOld") ? "text-[var(--color-brand)] font-medium" : "text-[#475569]"}`}>{fmt2(r.remainOld)}</td>
-      {numCell(r.remainNew, false, isSortColumn("yearRemainNew"))}
-      {numCell(yearRemain(r), false, isSortColumn("yearRemainTotal"))}
-      <td className={`px-2 py-2.5 text-right tabular-nums border-b border-l border-[#F1F5F9] whitespace-nowrap ${isSortColumn("yearRateOldStock") ? "text-[var(--color-brand)] font-medium" : "text-[#475569]"}`}>{pct(r.rateOldStock)}</td>
-      {numCell(r.rateCurTarget, true, isSortColumn("yearRateCur"))}
-      <td className={`px-2 py-2.5 text-right tabular-nums border-b border-[#F1F5F9] whitespace-nowrap ${isSortColumn("yearRateTotal") ? "text-[var(--color-brand)] font-medium" : "text-[#475569]"}`}>{pct(r.rateYearTarget)}</td>
+      {numCell(r.startStock, false, isSortColumn("monthStartStock"), cellClass)}
+      {numCell(r.newAdd, false, isSortColumn("monthNewAdd"), cellClass)}
+      <td className={cellClass ?? `px-2 py-2.5 text-right tabular-nums border-b border-l border-[#F1F5F9] whitespace-nowrap ${isSortColumn("monthSoldOld") ? "text-[var(--color-brand)] font-medium" : "text-[#475569]"}`}>{fmt2(r.soldOld)}</td>
+      {numCell(r.soldNew, false, isSortColumn("monthSoldNew"), cellClass)}
+      {numCell(monthSold(r), false, isSortColumn("monthSoldTotal"), cellClass)}
+      <td className={cellClass ?? `px-2 py-2.5 text-right tabular-nums border-b border-l border-[#F1F5F9] whitespace-nowrap ${isSortColumn("monthRemainOld") ? "text-[var(--color-brand)] font-medium" : "text-[#475569]"}`}>{fmt2(r.remainOld)}</td>
+      {numCell(r.remainNew, false, isSortColumn("monthRemainNew"), cellClass)}
+      {numCell(monthRemain(r), false, isSortColumn("monthRemainTotal"), cellClass)}
+      <td className={cellClass ?? `px-2 py-2.5 text-right tabular-nums border-b border-l border-[#F1F5F9] whitespace-nowrap ${isSortColumn("monthRateOldStock") ? "text-[var(--color-brand)] font-medium" : "text-[#475569]"}`}>{pct(r.rateOldStock)}</td>
+      {numCell(r.rateCurTarget, true, isSortColumn("monthRateCur"), cellClass)}
+      {numCell(monthRate(r), true, isSortColumn("monthRateTotal"), cellClass)}
+      <td className={cellClass ?? `px-2 py-2.5 text-right tabular-nums border-b border-l border-[#F1F5F9] whitespace-nowrap ${isSortColumn("yearStartStock") ? "text-[var(--color-brand)] font-medium" : "text-[#475569]"}`}>{fmt2(r.startStock)}</td>
+      {numCell(r.newAdd, false, isSortColumn("yearNewAdd"), cellClass)}
+      <td className={cellClass ?? `px-2 py-2.5 text-right tabular-nums border-b border-l border-[#F1F5F9] whitespace-nowrap ${isSortColumn("yearSoldOld") ? "text-[var(--color-brand)] font-medium" : "text-[#475569]"}`}>{fmt2(r.soldOld)}</td>
+      {numCell(r.soldNew, false, isSortColumn("yearSoldNew"), cellClass)}
+      {numCell(yearSold(r), false, isSortColumn("yearSoldTotal"), cellClass)}
+      <td className={cellClass ?? `px-2 py-2.5 text-right tabular-nums border-b border-l border-[#F1F5F9] whitespace-nowrap ${isSortColumn("yearRemainOld") ? "text-[var(--color-brand)] font-medium" : "text-[#475569]"}`}>{fmt2(r.remainOld)}</td>
+      {numCell(r.remainNew, false, isSortColumn("yearRemainNew"), cellClass)}
+      {numCell(yearRemain(r), false, isSortColumn("yearRemainTotal"), cellClass)}
+      <td className={cellClass ?? `px-2 py-2.5 text-right tabular-nums border-b border-l border-[#F1F5F9] whitespace-nowrap ${isSortColumn("yearRateOldStock") ? "text-[var(--color-brand)] font-medium" : "text-[#475569]"}`}>{pct(r.rateOldStock)}</td>
+      {numCell(r.rateCurTarget, true, isSortColumn("yearRateCur"), cellClass)}
+      <td className={cellClass ?? `px-2 py-2.5 text-right tabular-nums border-b border-[#F1F5F9] whitespace-nowrap ${isSortColumn("yearRateTotal") ? "text-[var(--color-brand)] font-medium" : "text-[#475569]"}`}>{pct(r.rateYearTarget)}</td>
     </>
-  );
+    );
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
@@ -779,6 +839,30 @@ export function RateDetailDialog({
                 {leafSortable("rateCurTarget", "当年取证", true, "yearRateCur")}
                 {leafSortable("rateYearTarget", "年度取证", true, "yearRateTotal")}
               </tr>
+              {totalMetrics && (
+                <tr>
+                  <td
+                    className="sticky left-0 top-[93px] z-30 bg-[#EEF6FF] border-b border-[#E2E8F0] px-3 py-2.5 text-center whitespace-nowrap"
+                    style={{ width: W_IDX, minWidth: W_IDX }}
+                  >
+                    <span className="px-1.5 h-4 inline-flex items-center rounded text-[10px] font-medium bg-[#DBEAFE] text-[#1D4ED8]">合计</span>
+                  </td>
+                  {dim === "项目" ? (
+                    <>
+                      <td className={totalInfoTd}>全部</td>
+                      <td className={totalInfoTd}>全部</td>
+                      <td className={`${totalInfoTd} font-medium`}>全部合计</td>
+                      <td className={totalInfoTd}>--</td>
+                    </>
+                  ) : (
+                    <td
+                      className="sticky top-[93px] z-30 bg-[#EEF6FF] border-b border-r border-[#E2E8F0] px-3 py-2.5 text-left text-[#1E293B] font-medium whitespace-nowrap"
+                      style={{ width: W_NAME, minWidth: W_NAME, left: NAME_LEFT, position: "sticky" }}
+                    >全部合计</td>
+                  )}
+                  {metricCells(totalMetrics, true)}
+                </tr>
+              )}
             </thead>
             <tbody>
               {visibleRows.map((r, idx) => {
