@@ -214,10 +214,10 @@ function projectInfo(project: Project, model: Model) {
     ["装修标准", "精装"],
     ["开盘时间", project.open],
     ["项目去化率", soldRate],
-    ["剩余货值", model === "new" ? project.remaining : "9.05亿元"],
+    ["已推剩余货值", model === "new" ? project.remaining : "9.05亿元"],
     ["销售均价", "78,000元/㎡"],
-    ["总套数", `${totalUnits.toLocaleString()}套`],
-    ["未售套数", `${unsoldUnits}套`],
+    ["已推总套数", `${totalUnits.toLocaleString()}套`],
+    ["已推未售套数", `${unsoldUnits}套`],
   ];
 }
 
@@ -327,10 +327,10 @@ function ForecastDatePicker({
 const infoMetricKeys = new Set([
   "项目名称",
   "项目去化率",
-  "剩余货值",
+  "已推剩余货值",
   "销售均价",
-  "总套数",
-  "未售套数",
+  "已推总套数",
+  "已推未售套数",
 ]);
 
 function MetricHelp({ label, content }: { label: string; content?: ReactNode }) {
@@ -341,6 +341,7 @@ function MetricHelp({ label, content }: { label: string; content?: ReactNode }) 
       ? "AUC：衡量模型整体区分正负样本能力，值域0-1，越接近1判别效果越好。"
       : "KS：衡量好坏样本最大分离度，值越大两类样本区分拉开程度越强。";
   const displayContent = content ?? fallbackContent;
+  const showThresholds = !content && label.includes("去化");
   return (
     <span className={open ? "metric-help open" : "metric-help"}>
       <button
@@ -353,7 +354,7 @@ function MetricHelp({ label, content }: { label: string; content?: ReactNode }) 
       </button>
       <span className="metric-help-popover">
         <strong>{label}说明</strong>
-        {label.includes("去化") ? (
+        {showThresholds ? (
           <span className="depletion-thresholds" style={{ color: "#1E293B" }}>
             <span><b style={{ color: "#DC2626" }}>低去化</b>：去化率 &lt; 30%</span>
             <span><b style={{ color: "#F59E0B" }}>中去化</b>：30% ≦ 去化率 &lt; 70%</span>
@@ -831,7 +832,15 @@ export default function SalesForecast() {
             <div className="info-grid">
               {projectInfo(project, model).map(([key, value]) => (
                 <div key={key}>
-                  <span>{key}</span>
+                  <span>
+                    <span className="info-label-text">{key}</span>
+                    {key === "项目去化率" && (
+                      <MetricHelp
+                        label="项目去化率口径"
+                        content="项目去化率 = 签约套数 / 已推总套数"
+                      />
+                    )}
+                  </span>
                   <b className={infoMetricKeys.has(key) ? "metric-value" : "static-value"}>
                     {value}
                   </b>
