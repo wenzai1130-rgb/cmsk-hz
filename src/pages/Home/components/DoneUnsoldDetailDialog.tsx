@@ -505,6 +505,7 @@ function GroupedTable({
   sortable = true,
   neutralRateHeader = false,
   unit = "亿",
+  topTotalRow,
 }: {
   rows: ProjectRow[];
   withIndex: boolean;
@@ -519,6 +520,7 @@ function GroupedTable({
   sortable?: boolean;
   neutralRateHeader?: boolean;
   unit?: "亿" | "万";
+  topTotalRow?: SummaryRow;
 }) {
   const sortedTextClass = (k: SortKey, fallback = "text-[#1E293B]") => (
     sortKey === k ? "text-[#3B82F6] font-medium" : fallback
@@ -573,6 +575,28 @@ function GroupedTable({
           </tr>
         </thead>
         <tbody>
+          {topTotalRow && (() => {
+            const r = topTotalRow;
+            const doneSub = r.doneStart + r.doneNew;
+            const soldSub = r.soldStart + r.soldNew;
+            const rateSub = doneSub > 0 ? soldSub / doneSub * 100 : 0;
+            return (
+              <tr className="bg-[#EAF2FF] text-[#1E293B] font-semibold">
+                {withIndex && <td className="px-3 py-2.5 border-b border-r border-[#DCE7F5]" />}
+                <td className="px-3 py-2.5 text-left border-b border-r border-[#DCE7F5]">{r.name}</td>
+                <MoneyTd value={r.doneStart} className={`border-b border-l border-[#DCE7F5] ${sortedTextClass("doneStart")}`} />
+                <MoneyTd value={r.doneNew} className={`border-b border-[#DCE7F5] ${sortedTextClass("doneNew")}`} />
+                <MoneyTd value={doneSub} className={`border-b border-r border-[#DCE7F5] ${sortedTextClass("doneSub", "text-[#1E293B] font-semibold")}`} />
+                <MoneyTd value={r.soldStart} className={`border-b border-[#DCE7F5] ${sortedTextClass("soldStart")}`} />
+                <MoneyTd value={r.soldNew} className={`border-b border-[#DCE7F5] ${sortedTextClass("soldNew")}`} />
+                <MoneyTd value={soldSub} className={`border-b border-r border-[#DCE7F5] ${sortedTextClass("soldSub", "text-[#1E293B] font-semibold")}`} />
+                {showRemainColumns && <td className="border-b border-r border-[#DCE7F5]" colSpan={3} />}
+                <td className={`px-3 py-2.5 text-right tabular-nums border-b border-[#DCE7F5] ${sortedTextClass("rateStart")}`}>{pct2(r.rateStart)}</td>
+                <td className={`px-3 py-2.5 text-right tabular-nums border-b border-[#DCE7F5] ${sortedTextClass("rateNew")}`}>{pct2(r.rateNew)}</td>
+                <td className={`px-3 py-2.5 text-right tabular-nums border-b border-[#DCE7F5] ${sortedTextClass("rateSub", "text-[#1E293B] font-semibold")}`}>{pct2(rateSub)}</td>
+              </tr>
+            );
+          })()}
           {rows.map((r, i) => {
             const doneSub = r.doneStart + r.doneNew;
             const soldSub = r.soldStart + r.soldNew;
@@ -759,6 +783,22 @@ export function DoneUnsoldDetailDialog({ open, onOpenChange }: { open: boolean; 
     const keyword = projectKeyword.trim().toLowerCase();
     return !keyword ? showList : showList.filter((row) => row.name.toLowerCase().includes(keyword));
   }, [showList, projectKeyword]);
+  const projectTotal = useMemo(() => {
+    const rows = PROJECTS[activeYe];
+    const doneStart = rows.reduce((sum, row) => sum + row.doneStart, 0);
+    const doneNew = rows.reduce((sum, row) => sum + row.doneNew, 0);
+    const soldStart = rows.reduce((sum, row) => sum + row.soldStart, 0);
+    const soldNew = rows.reduce((sum, row) => sum + row.soldNew, 0);
+    return {
+      name: "合计",
+      doneStart: +doneStart.toFixed(2),
+      doneNew: +doneNew.toFixed(2),
+      soldStart: +soldStart.toFixed(2),
+      soldNew: +soldNew.toFixed(2),
+      rateStart: doneStart > 0 ? +(soldStart / doneStart * 100).toFixed(2) : 0,
+      rateNew: doneNew > 0 ? +(soldNew / doneNew * 100).toFixed(2) : 0,
+    } satisfies SummaryRow;
+  }, [activeYe]);
   if (!open) return null;
 
   const onSortDetail = (k: SortKey) => {
@@ -912,6 +952,7 @@ export function DoneUnsoldDetailDialog({ open, onOpenChange }: { open: boolean; 
               otherRow={other}
               onToggleOther={() => setOtherDialogOpen(true)}
               neutralRateHeader
+              topTotalRow={projectTotal}
             />
 
             {/* pager */}
@@ -964,6 +1005,14 @@ function OtherProjectsDialog({
     setSortDir("desc");
   }, [open, activeYe]);
 
+  const rows = useMemo(() => splitProjects(PROJECTS[dialogActiveYe]).foldList, [dialogActiveYe]);
+  const filteredRows = useMemo(() => {
+    const normalizedKeyword = keyword.trim().toLowerCase();
+    return !normalizedKeyword
+      ? rows
+      : rows.filter((row) => row.name.toLowerCase().includes(normalizedKeyword));
+  }, [keyword, rows]);
+
   if (!open) return null;
 
   const onSort = (key: SortKey) => {
@@ -978,13 +1027,6 @@ function OtherProjectsDialog({
       setSortDir(null);
     } else setSortDir("desc");
   };
-  const rows = useMemo(() => splitProjects(PROJECTS[dialogActiveYe]).foldList, [dialogActiveYe]);
-  const filteredRows = useMemo(() => {
-    const normalizedKeyword = keyword.trim().toLowerCase();
-    return !normalizedKeyword
-      ? rows
-      : rows.filter((row) => row.name.toLowerCase().includes(normalizedKeyword));
-  }, [keyword, rows]);
   const wanRows = toWanProjectRows(filteredRows);
   const sortedRows = sortRows(wanRows, sortKey, sortDir);
 
@@ -1009,7 +1051,7 @@ function OtherProjectsDialog({
             <X className="w-5 h-5" />
           </button>
         </div>
-        <div className="px-6 pt-6 pb-4 flex items-center justify-end gap-2 border-b border-[#F1F5F9] bg-[#FAFBFD]">
+        <div className="px-5 py-2 flex items-center justify-end gap-2 border-b border-[#F1F5F9] bg-[#FAFBFD]">
           <div className="relative">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#94A3B8] pointer-events-none" />
             <Input
@@ -1026,7 +1068,7 @@ function OtherProjectsDialog({
             size="md"
           />
         </div>
-        <div className="flex-1 min-h-0 overflow-y-auto p-6 bg-[#FAFBFD]">
+        <div className="flex-1 min-h-0 overflow-y-auto px-5 py-3 bg-[#FAFBFD]">
           {sortedRows.length > 0 ? (
             <GroupedTable
               rows={sortedRows}
