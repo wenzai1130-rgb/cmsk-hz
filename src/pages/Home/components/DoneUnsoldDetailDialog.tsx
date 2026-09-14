@@ -9,7 +9,6 @@ import {
   ChevronLeft,
   ChevronRight,
   ChevronDown,
-  ChevronUp,
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
@@ -152,6 +151,18 @@ function splitProjects(rows: ProjectRow[]) {
     rateNew: null,
   } satisfies ProjectRow;
   return { showList, foldList, other };
+}
+
+function toWanProjectRows(rows: ProjectRow[]): ProjectRow[] {
+  return rows.map((row) => ({
+    name: row.name,
+    doneStart: +(row.doneStart * 10000).toFixed(2),
+    doneNew: +(row.doneNew * 10000).toFixed(2),
+    soldStart: +(row.soldStart * 10000).toFixed(2),
+    soldNew: +(row.soldNew * 10000).toFixed(2),
+    rateStart: row.rateStart,
+    rateNew: row.rateNew,
+  }));
 }
 
 function genProjects(seed: string, base: number, count: number): ProjectRow[] {
@@ -489,12 +500,11 @@ function GroupedTable({
   onSort,
   showRemainColumns = true,
   otherRow,
-  otherChildren = [],
-  otherExpanded = false,
   onToggleOther,
   highlightedNames,
   sortable = true,
   neutralRateHeader = false,
+  unit = "亿",
 }: {
   rows: ProjectRow[];
   withIndex: boolean;
@@ -504,12 +514,11 @@ function GroupedTable({
   onSort: (k: SortKey) => void;
   showRemainColumns?: boolean;
   otherRow?: ProjectRow | null;
-  otherChildren?: ProjectRow[];
-  otherExpanded?: boolean;
   onToggleOther?: () => void;
   highlightedNames?: Set<string>;
   sortable?: boolean;
   neutralRateHeader?: boolean;
+  unit?: "亿" | "万";
 }) {
   const sortedTextClass = (k: SortKey, fallback = "text-[#1E293B]") => (
     sortKey === k ? "text-[#3B82F6] font-medium" : fallback
@@ -545,12 +554,12 @@ function GroupedTable({
             <th colSpan={3} className={`${neutralRateHeader ? "bg-[#F1F5F9] text-[#1E293B]" : "bg-[#E8F1FF] text-[#3B82F6]"} px-3 py-2 text-center font-semibold border-b border-[#E2E8F0]`}>去化率</th>
           </tr>
           <tr className="bg-[#F1F5F9] text-[#475569]">
-            <Th k="doneStart" leftBorder>年初库存(亿)</Th>
-            <Th k="doneNew">本年新增(亿)</Th>
-            <Th k="doneSub">小计(亿)</Th>
-            <Th k="soldStart" leftBorder>年初库存(亿)</Th>
-            <Th k="soldNew">本年新增(亿)</Th>
-            <Th k="soldSub">小计(亿)</Th>
+            <Th k="doneStart" leftBorder>年初库存({unit})</Th>
+            <Th k="doneNew">本年新增({unit})</Th>
+            <Th k="doneSub">小计({unit})</Th>
+            <Th k="soldStart" leftBorder>年初库存({unit})</Th>
+            <Th k="soldNew">本年新增({unit})</Th>
+            <Th k="soldSub">小计({unit})</Th>
             {showRemainColumns && (
               <>
                 <Th k="remainStart" leftBorder>年初库存(亿)</Th>
@@ -611,9 +620,9 @@ function GroupedTable({
                 <tr className="bg-[#F8FAFC] hover:bg-[#F1F5F9] transition-colors">
                   {withIndex && <td className="px-3 py-2.5 text-center text-[#94A3B8] border-b border-r border-[#EEF1F6]">-</td>}
                   <td className="px-3 py-2.5 text-left text-[#475569] border-b border-r border-[#EEF1F6] whitespace-nowrap">
-                    <button type="button" onClick={onToggleOther} className="inline-flex items-center gap-1.5 text-left text-[#3B82F6] hover:text-[#2563EB]" aria-expanded={otherExpanded}>
-                      {otherExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                    <button type="button" onClick={onToggleOther} className="inline-flex items-center gap-1.5 text-left text-[#3B82F6] hover:text-[#2563EB]" aria-haspopup="dialog">
                       其他
+                      <ChevronDown className="w-3.5 h-3.5" />
                     </button>
                   </td>
                   <MoneyTd value={r.doneStart} className="border-b border-l border-[#EEF1F6] text-[#475569]" />
@@ -631,30 +640,6 @@ function GroupedTable({
                   <td className="px-3 py-2.5 text-right text-[#94A3B8] border-b border-[#EEF1F6]">--</td>
                   <td className="px-3 py-2.5 text-right text-[#94A3B8] border-b border-[#EEF1F6]">--</td>
                 </tr>
-                {otherExpanded && otherChildren.map((child, childIndex) => {
-                  const childDoneSub = child.doneStart + child.doneNew;
-                  const childSoldSub = child.soldStart + child.soldNew;
-                  return (
-                    <tr key={`fold-${child.name}`} className={`${childIndex % 2 === 0 ? "bg-white" : "bg-[#FAFBFD]"} text-[12px] text-[#94A3B8]`}>
-                      {withIndex && <td className="px-3 py-2.5 border-b border-r border-[#F1F5F9]" />}
-                      <td className="px-3 py-2.5 pl-8 text-left text-[#1E293B] border-b border-r border-[#F1F5F9] whitespace-nowrap">{child.name}</td>
-                      <MoneyTd value={child.doneStart} className="border-b border-l border-[#F1F5F9]" />
-                      <MoneyTd value={child.doneNew} className="border-b border-[#F1F5F9]" />
-                      <MoneyTd value={childDoneSub} className="border-b border-r border-[#F1F5F9]" />
-                      <MoneyTd value={child.soldStart} className="border-b border-[#F1F5F9]" />
-                      <MoneyTd value={child.soldNew} className="border-b border-[#F1F5F9]" />
-                      <MoneyTd value={childSoldSub} className="border-b border-r border-[#F1F5F9]" />
-                      {showRemainColumns && <>
-                        <MoneyTd value={child.doneStart - child.soldStart} className="border-b border-l border-[#F1F5F9]" />
-                        <MoneyTd value={child.doneNew - child.soldNew} className="border-b border-[#F1F5F9]" />
-                        <MoneyTd value={childDoneSub - childSoldSub} className="border-b border-r border-[#F1F5F9]" />
-                      </>}
-                      <td className="px-3 py-2.5 text-right tabular-nums border-b border-[#F1F5F9]">{pct2(child.rateStart)}</td>
-                      <td className="px-3 py-2.5 text-right tabular-nums border-b border-[#F1F5F9]">{pct2(child.rateNew)}</td>
-                      <td className="px-3 py-2.5 text-right tabular-nums border-b border-[#F1F5F9]">{pct2(childDoneSub > 0 ? childSoldSub / childDoneSub * 100 : null)}</td>
-                    </tr>
-                  );
-                })}
               </>
             );
           })()}
@@ -746,7 +731,7 @@ export function DoneUnsoldDetailDialog({ open, onOpenChange }: { open: boolean; 
   const [sortKey, setSortKey] = useState<SortKey | null>("doneSub");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [projectKeyword, setProjectKeyword] = useState("");
-  const [otherExpanded, setOtherExpanded] = useState(false);
+  const [otherDialogOpen, setOtherDialogOpen] = useState(false);
 
   // independent legend / hover state per chart
   const [yHidden, setYHidden] = useState<Record<string, boolean>>({});
@@ -763,26 +748,17 @@ export function DoneUnsoldDetailDialog({ open, onOpenChange }: { open: boolean; 
 
   useEffect(() => {
     setPage(1);
-    setOtherExpanded(false);
+    setOtherDialogOpen(false);
     // 切换业态 tab 时恢复默认排序：当前已竣未售小计降序
     setSortKey("doneSub");
     setSortDir("desc");
   }, [activeYe]);
   useEffect(() => { setPage(1); }, [pageSize, projectKeyword]);
   const { showList, foldList, other } = useMemo(() => splitProjects(PROJECTS[activeYe]), [activeYe]);
-  const foldMatches = useMemo(() => {
-    const keyword = projectKeyword.trim().toLowerCase();
-    return !keyword || foldList.some((row) => row.name.toLowerCase().includes(keyword));
-  }, [foldList, projectKeyword]);
   const projectsAll = useMemo(() => {
     const keyword = projectKeyword.trim().toLowerCase();
     return !keyword ? showList : showList.filter((row) => row.name.toLowerCase().includes(keyword));
   }, [showList, projectKeyword]);
-  useEffect(() => {
-    const keyword = projectKeyword.trim();
-    if (keyword && foldMatches) setOtherExpanded(true);
-  }, [foldMatches, projectKeyword]);
-
   if (!open) return null;
 
   const onSortDetail = (k: SortKey) => {
@@ -797,7 +773,6 @@ export function DoneUnsoldDetailDialog({ open, onOpenChange }: { open: boolean; 
   const curPage = Math.min(page, pageCount);
   const pageStart = (curPage - 1) * pageSize;
   const pageRows = sorted.slice(pageStart, pageStart + pageSize);
-  const displayedOtherChildren = otherExpanded && foldMatches ? foldList : [];
 
   const exportProjects = () => {
     const rows = PROJECTS[activeYe].map((row) => ({
@@ -935,10 +910,7 @@ export function DoneUnsoldDetailDialog({ open, onOpenChange }: { open: boolean; 
               onSort={onSortDetail}
               showRemainColumns={false}
               otherRow={other}
-              otherChildren={displayedOtherChildren}
-              otherExpanded={otherExpanded}
-              onToggleOther={() => setOtherExpanded((expanded) => !expanded)}
-              highlightedNames={new Set(displayedOtherChildren.map((row) => row.name))}
+              onToggleOther={() => setOtherDialogOpen(true)}
               neutralRateHeader
             />
 
@@ -959,6 +931,116 @@ export function DoneUnsoldDetailDialog({ open, onOpenChange }: { open: boolean; 
               </div>
             </div>
           </SectionCard>
+
+          <OtherProjectsDialog
+            open={otherDialogOpen}
+            activeYe={activeYe}
+            onOpenChange={setOtherDialogOpen}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function OtherProjectsDialog({
+  open,
+  activeYe,
+  onOpenChange,
+}: {
+  open: boolean;
+  activeYe: YeType;
+  onOpenChange: (value: boolean) => void;
+}) {
+  const [dialogActiveYe, setDialogActiveYe] = useState<YeType>(activeYe);
+  const [keyword, setKeyword] = useState("");
+  const [sortKey, setSortKey] = useState<SortKey | null>("doneSub");
+  const [sortDir, setSortDir] = useState<SortDir>("desc");
+
+  useEffect(() => {
+    setDialogActiveYe(activeYe);
+    setKeyword("");
+    setSortKey("doneSub");
+    setSortDir("desc");
+  }, [open, activeYe]);
+
+  if (!open) return null;
+
+  const onSort = (key: SortKey) => {
+    if (sortKey !== key) {
+      setSortKey(key);
+      setSortDir("desc");
+      return;
+    }
+    if (sortDir === "desc") setSortDir("asc");
+    else if (sortDir === "asc") {
+      setSortKey(null);
+      setSortDir(null);
+    } else setSortDir("desc");
+  };
+  const rows = useMemo(() => splitProjects(PROJECTS[dialogActiveYe]).foldList, [dialogActiveYe]);
+  const filteredRows = useMemo(() => {
+    const normalizedKeyword = keyword.trim().toLowerCase();
+    return !normalizedKeyword
+      ? rows
+      : rows.filter((row) => row.name.toLowerCase().includes(normalizedKeyword));
+  }, [keyword, rows]);
+  const wanRows = toWanProjectRows(filteredRows);
+  const sortedRows = sortRows(wanRows, sortKey, sortDir);
+
+  return (
+    <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/40">
+      <div className="absolute inset-0" onClick={() => onOpenChange(false)} />
+      <div
+        className="relative bg-white rounded-2xl border border-[#E2E8F0] shadow-2xl flex flex-col overflow-hidden"
+        style={{ width: "72vw", height: "72vh", maxWidth: 1400 }}
+      >
+        <div className="h-14 px-6 flex items-center justify-between border-b border-[#EEF1F6] shrink-0 bg-white">
+          <div className="flex items-center gap-3">
+            <span className="block w-1 h-5 rounded bg-[#1677FF]" />
+            <span className="text-[16px] leading-6 font-semibold text-[#1E293B]">{dialogActiveYe}·其他项目明细</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => onOpenChange(false)}
+            className="w-8 h-8 rounded-md flex items-center justify-center text-[#64748B] hover:bg-[#F1F5F9] transition-colors"
+            aria-label="关闭"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+        <div className="px-6 pt-6 pb-4 flex items-center justify-end gap-2 border-b border-[#F1F5F9] bg-[#FAFBFD]">
+          <div className="relative">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#94A3B8] pointer-events-none" />
+            <Input
+              value={keyword}
+              onChange={(event) => setKeyword(event.target.value)}
+              placeholder="搜索项目"
+              className="h-8 w-[220px] pl-8 pr-3 rounded-md border border-[#E2E8F0] bg-white text-[12px] text-[#1E293B] shadow-none placeholder:text-[#94A3B8] focus-visible:ring-1 focus-visible:ring-[#1677FF]/30 focus-visible:border-[#1677FF]"
+            />
+          </div>
+          <SegmentedTabs
+            value={dialogActiveYe}
+            onChange={setDialogActiveYe}
+            items={YE_TYPES}
+            size="md"
+          />
+        </div>
+        <div className="flex-1 min-h-0 overflow-y-auto p-6 bg-[#FAFBFD]">
+          {sortedRows.length > 0 ? (
+            <GroupedTable
+              rows={sortedRows}
+              withIndex
+              sortKey={sortKey}
+              sortDir={sortDir}
+              onSort={onSort}
+              showRemainColumns={false}
+              neutralRateHeader
+              unit="万"
+            />
+          ) : (
+            <div className="h-full flex items-center justify-center text-[13px] text-[#94A3B8]">暂无其他项目明细</div>
+          )}
         </div>
       </div>
     </div>

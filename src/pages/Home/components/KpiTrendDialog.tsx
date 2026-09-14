@@ -107,7 +107,6 @@ export function KpiTrendPopover({
 
   const data = useMemo(() => {
     const months = metric === "当月签约" ? buildFromPreviousYearJanuary() : buildMonthLabels();
-    const yearBoundaryIndex = months.findIndex((m, i) => i > 0 && m.key.endsWith("-01"));
     const series12 = SERIES_BY_METRIC[metric] ?? [];
     // 在最前面补一位"去年同月"值：由当前月值按确定性因子（0.72~0.92）推导，
     // 保证同一指标稳定复现，将序列拓展到 13 个月。
@@ -124,8 +123,6 @@ export function KpiTrendPopover({
         month: m.label,
         isCurrent: m.isCurrent,
         value: +value.toFixed(2),
-        lineBeforeYear: metric === "当月签约" && i >= yearBoundaryIndex ? null : +value.toFixed(2),
-        lineAfterYear: metric === "当月签约" && i < yearBoundaryIndex ? null : +value.toFixed(2),
         snapshotType: m.isCurrent ? "当前时点值" : "月末值",
       };
     });
@@ -253,7 +250,7 @@ export function KpiTrendPopover({
               />
               <Area
                 type="monotone"
-                dataKey={metric === "当月签约" ? "lineBeforeYear" : "value"}
+                dataKey="value"
                 stroke="none"
                 fill={`url(#kpi-area-${metric})`}
                 isAnimationActive
@@ -262,22 +259,9 @@ export function KpiTrendPopover({
                 activeDot={false}
                 tooltipType="none"
               />
-              {metric === "当月签约" && (
-                <Area
-                  type="monotone"
-                  dataKey="lineAfterYear"
-                  stroke="none"
-                  fill={`url(#kpi-area-${metric})`}
-                  isAnimationActive
-                  animationDuration={900}
-                  animationEasing="ease-out"
-                  activeDot={false}
-                  tooltipType="none"
-                />
-              )}
               <Line
                 type="monotone"
-                dataKey={metric === "当月签约" ? "lineBeforeYear" : "value"}
+                dataKey="value"
                 stroke={color}
                 strokeWidth={2.2}
                 isAnimationActive
@@ -321,40 +305,6 @@ export function KpiTrendPopover({
                   );
                 }}
               />
-              {metric === "当月签约" && (
-                <Line
-                  type="monotone"
-                  dataKey="lineAfterYear"
-                  stroke={color}
-                  strokeWidth={2.2}
-                  isAnimationActive
-                  animationDuration={1100}
-                  animationEasing="ease-out"
-                  dot={(props: any) => {
-                    if (props.value == null) return null;
-                    const isCur = props.index === data.length - 1;
-                    return <circle cx={props.cx} cy={props.cy} r={isCur ? 4.5 : 3.5} fill={isCur ? color : "#fff"} stroke={color} strokeWidth={2} />;
-                  }}
-                  activeDot={{ r: 5, fill: color, stroke: "#fff", strokeWidth: 2 }}
-                  label={(props: any) => {
-                    const { x = 0, y = 0, value, index = 0 } = props;
-                    if (value == null) return null;
-                    const isCur = index === data.length - 1;
-                    return (
-                      <text
-                        x={x}
-                        y={index % 2 === 0 ? y - 10 : y + 16}
-                        fill={isCur ? color : "#1E293B"}
-                        fontSize={isCur ? 11 : 10}
-                        fontWeight={isCur ? 700 : 500}
-                        textAnchor="middle"
-                      >
-                        {formatNumber(Number(value))}
-                      </text>
-                    );
-                  }}
-                />
-              )}
             </ComposedChart>
           </ResponsiveContainer>
         </div>
