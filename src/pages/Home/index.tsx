@@ -1502,7 +1502,7 @@ function HomePage() {
       desc: [
         "【展示内容】核心指标：未售总货值、新拿地货值（当年新拿地），后面有趋势小图标；辅助指标：环比年初变化金额、新拿地项目平均权益比，后有问号图标。",
         "【交互规则】点击核心指标或其旁边的趋势图标，在下方弹出近 12 个月的折线图浮窗。浮窗颜色与卡片主色调一致。新拿地项目平均权益比右侧提供 info 图标 Hover 提示，展示计算公式。",
-        '【数据规则】未售总货值跟随顶部口径（全口径 / 权益）与指标（金额 / 面积）联动；新拿地项目平均权益比固定在全口径口径下展示，不受口径切换影响；金额单位统一为"亿"，面积单位为"万㎡"，数值统一保留 2 位小数；。趋势浮窗默认按"金额-亿"展示近 12 个月月末值，末月为当前时点值。',
+        '【数据规则】未售总货值跟随顶部口径（全口径 / 权益）与指标（金额 / 面积）联动；新拿地项目平均权益比固定在全口径口径下展示，不受口径切换影响；新拿地项目平均权益比 = 权益地价 / 总地价；金额单位统一为"亿"，面积单位为"万㎡"，数值统一保留 2 位小数。趋势浮窗默认按"金额-亿"展示近 12 个月月末值，末月为当前时点值。',
         '【边界处理】新拿地项目个数为 0 时，平均权益比展示"--"；趋势浮窗中某月无数据时，该点缺失，前后点断开，Tooltip 展示"--"。',
       ].join("\n"),
 
@@ -1526,9 +1526,9 @@ function HomePage() {
       moduleId: "land-year",
       title: "按拿地时间",
       desc: [
-        '【展示内容】左侧环形图按拿地年份（2026年、2025年、2024年、2023年、2022年、2021年及之前）展示未售货值分布；扇区外侧通过引导线展示年份、货值、占比；中心显示当前聚焦年份的"未售货值"金额与单位，未聚焦时显示"总未售货值"；中间区域展示选中年份的核心指标；右侧展示已售货值按销售年份的分解明细，仅展示 2023 年及之后销售年份。',
-        "【交互规则】点击或悬停环形图扇区、点击外侧标注，可聚焦该拿地年份：对应扇区高亮、其他扇区降透明度，中心数值切换为该年份未售货值，中间指标区同步更新为选中年份数据；移出悬停后恢复选中态展示。右上角提供'查看趋势'入口，可打开按拿地时间详情弹窗。指标行带 info 图标，Hover 展示公式说明。",
-        '【数据规则】各年份未售货值跟随顶部口径（全口径 / 权益）与指标（金额 / 面积）联动；面积模式下所有数值展示面积数据，单位为"万㎡"；各年份未售货值按全局总未售货值基准同比例缩放，确保环形图合计与顶部总货值一致；累计去化率 = 已售货值 /（已售+未售）；未售货值占比 = 该拿地年份未售货值 / 全部拿地年份未售货值合计。',
+        '【展示内容】左侧环形图按拿地年份时间线（2021年及之前、2022年、2023年、2024年、2025年、2026年）映射固定配色展示未售货值分布；扇区外侧通过引导线展示年份、货值、占比；中心显示当前聚焦年份的"未售货值"金额与单位，未聚焦时显示"总未售货值"；中间区域展示选中年份的核心指标；右侧默认展示按拿地年份分解明细，按 2023年、2024年、2025年、2026年 升序排列；选中具体拿地年份后展示该年份按销售年份的分解明细，仅展示 2023 年及之后销售年份。',
+        "【交互规则】默认展示全部拿地年份汇总数据，中间标题为「拿地整体指标」，右侧标题为「按拿地年份分解」，副标题均为「汇总全部拿地年份数据」，中心数值为全部年份未售货值合计；默认态所有年份标签保持常规文字色，不因默认选中年份高亮。点击环形图扇区或外侧标注后切换选中该拿地年份，选中年份标签变蓝加粗，中间标题更新为「{年份}拿地指标」，右侧标题更新为「{年份}已售分解」，中心数值、中间指标区和右侧分解表同步更新；悬停仅预览对应扇区和中心数值，不切换指标区与分解表；再次点击已选中年份可取消选中并恢复全部汇总展示。右上角提供'查看趋势'入口，可打开按拿地时间详情弹窗。指标行带 info 图标，Hover 展示公式说明。",
+        '【数据规则】各年份未售货值跟随顶部口径（全口径 / 权益）与指标（金额 / 面积）联动；面积模式下所有数值展示面积数据，单位为"万㎡"；各年份未售货值按全局总未售货值基准同比例缩放，确保环形图合计与顶部总货值一致。默认汇总态下，左侧展示全部年份未售合计；拿地指标表按剩余未售、未售货值占比、已售+未售、已售货值、累计去化率顺序展示全部年份合计；右侧「按拿地年份分解」按 2023年、2024年、2025年、2026年 顺序展示对应拿地年份已售货值及全部已售合计。点击选中年份后，指标顺序不变，右侧「{年份}已售分解」按该拿地年份的销售年份拆分；选中「2021年及之前」时，剩余未售、未售货值占比继续展示，已售+未售、已售货值、累计去化率展示「--」，右侧仅展示 2023 年及之后销售年份；累计去化率 = 已售货值 /（已售+未售）；未售货值占比 = 该拿地年份未售货值 / 全部拿地年份未售货值合计。',
         '【边界处理】当前筛选条件下无拿地年份数据时，模块展示空状态提示"暂无拿地时间数据"；某销售年份已售货值缺失时展示"--"；主卡右侧分解列表不展示 2021 年销售和 2022 年销售；数值统一保留 2 位小数，占比保留 2 位小数；极小值处理：数值低于当前展示精度时，图例展示为"<0.01"；列表与表格过长时容器内可滚动，不撑破卡片高度。',
       ].join("\n"),
     },
@@ -1629,7 +1629,7 @@ function HomePage() {
       desc: [
         '【展示内容】模块标题为"已竣未售分布"；左侧环形图展示已竣未售货值按业态（住宅 / 商业 / 公寓 / 写字楼 / 车位配套）的构成，中心展示合计金额与单位；右侧列表展示"全部业态"及各业态的货值、占比；右侧柱状图默认按货龄展示，支持切换为按形成年份展示，形成年份 X 轴依次为 2021及之前、2022、2023、2024、2025、2026。',
         '【交互规则】点击环形图扇区或左侧业态列表项后，当前业态高亮，右侧柱状图切换为该业态对应数据，柱体颜色同步使用该业态在系统中的固定业态色；点击"全部业态"恢复汇总数据；点击"按货龄 / 按形成年份"分段按钮切换右侧柱状图维度；右上角"查看详情"打开已竣未售明细弹窗。各业态项目明细表中的"其他"固定置于表尾且不参与排序；点击"其他"打开"{业态}·其他项目明细"二级弹窗，弹窗展示聚合进其他的项目明细，并支持项目名称搜索与业态切换。',
-        '【数据规则】跟随顶部口径（全口径/权益）与指标（金额/面积）联动；占比 = 该业态货值 / 竣工未售货值合计 ×100%；按货龄维度依次展示 24个月以上、18-24个月、12-18个月、12个月以内；按形成年份维度依次展示 2021及之前、2022、2023、2024、2025、2026；金额单位"亿"、面积单位"万㎡"，数值与占比统一保留 2 位小数。"其他"聚合已竣未售小计和本年已售小计均小于 1000万 的项目；二级弹窗复用主明细表结构，金额单位改为"万"，去化率不因单位换算变化。',
+        '【数据规则】跟随顶部口径（全口径/权益）与指标（金额/面积）联动；占比 = 该业态货值 / 竣工未售货值合计 ×100%；按货龄维度依次展示 24个月以上、18-24个月、12-18个月、12个月以内；按形成年份维度依次展示 2021及之前、2022、2023、2024、2025、2026；金额单位"亿"、面积单位"万㎡"，数值与占比统一保留 2 位小数。已竣未售业态分析表格一级表头保持「本年已售」「去化率」；「本年已售」下设年初库存(亿)、累计(亿)两列，累计 = 年初库存 + 本年新增；「去化率」下设年初库存、累计两列，累计去化率 = 本年已售累计 ÷ 当前已竣未售小计；「其他」聚合已竣未售小计和本年已售小计均小于 1000万 的项目；二级弹窗复用主明细表结构，表头同步生效，金额单位改为"万"，去化率不因单位换算变化。',
         '【边界处理】某业态货值为 0 时环形不展示色块，列表可保留并置灰；合计为 0 时中心展示"--"并给出空状态提示；极小值处理：数值低于展示精度时图例展示为"<0.01"，Tooltip 展示精确值；点击环形图不展示浏览器默认焦点框。',
       ].join("\n"),
     },
@@ -1837,7 +1837,7 @@ function HomePage() {
                                   <HelpCircle className="w-3 h-3 text-muted-foreground/70 cursor-help hover:text-[#1677FF] transition-colors" />
                                 </TooltipTrigger>
                                 <TooltipContent side="top" className="bg-white text-slate-700 border border-[#E2E8F0] shadow-[0_8px_24px_-8px_rgba(15,23,42,0.18)] max-w-[240px] text-[11px] leading-relaxed">
-                                  新拿地项目平均权益比 = 各新拿地项目的单独权益比例求和 / 新拿地项目总个数 N
+                                  新拿地项目平均权益比 = 权益地价 / 总地价
                                 </TooltipContent>
                               </Tooltip>
                             </TooltipProvider>
@@ -2564,6 +2564,7 @@ function LandYearCard({
     const yr = parseInt(k, 10);
     return yr <= currentYear;
   });
+  const earlySales = visibleSaleKeys.filter((k) => k.startsWith("2021") || k.startsWith("2022"));
 
   // ---- 总未售货值口径对齐：将原始 LAND_YEAR 数据按口径目标值同比例放缩 ----
   // 目标总未售货值（金额口径下的亿元数），面积口径再 × 0.62
@@ -2606,12 +2607,50 @@ function LandYearCard({
       name: LAND_YEAR_LABELS[i],
       key: k,
       value: +u.toFixed(2),
-      color: LAND_COLORS[i],
+      color: LAND_COLORS[LAND_YEAR_KEYS.length - 1 - i],
     };
   });
   const totalUnsold = pieData.reduce((s, p) => s + p.value, 0);
   // 该拿地年份未售货值占总未售货值之比
   const unsoldShare = totalUnsold > 0 ? (curUnsold / totalUnsold) * 100 : 0;
+  const allTotal = LAND_YEAR
+    .filter((item) => visibleLandKeys.includes(item.year))
+    .reduce((sum, item) => sum + item.total * factor, 0);
+  const allSold = visibleLandKeys.reduce((sum, key) => {
+    const item = LAND_YEAR.find((landYear) => landYear.year === key)!;
+    const salesSum = visibleSaleKeys.reduce(
+      (acc, saleKey) => acc + (LAND_YEAR_SALES[key]?.[saleKey] ?? 0),
+      0,
+    );
+    return sum + salesSum * factor;
+  }, 0);
+  const allUnsold = pieData.reduce((sum, item) => sum + item.value, 0);
+  const showTotalSummary = !hasFocusedLandYear;
+  const summaryTotal = allTotal;
+  const summarySold = allSold;
+  const summaryUnsold = allUnsold;
+  const summaryRate = summaryTotal > 0 ? (summarySold / summaryTotal) * 100 : 0;
+  const summaryShare = summaryTotal > 0 ? (summaryUnsold / summaryTotal) * 100 : 0;
+  const selectedSaleRows = showTotalSummary
+    ? visibleLandKeys.filter((key) => key !== "2021及以前" && key !== "2022").reverse().map((key) => ({
+        key,
+        label: LAND_YEAR_LABELS[LAND_YEAR_KEYS.indexOf(key)],
+        value: visibleSaleKeys.reduce(
+          (sum, saleKey) => sum + ((LAND_YEAR_SALES[key]?.[saleKey] ?? 0) * factor),
+          0,
+        ),
+      }))
+    : [
+        ...displaySaleKeys.map((key) => ({
+          key,
+          label: key.replace("销售", ""),
+          value: sales?.[key] == null ? null : sales?.[key]! * factor,
+        })),
+      ];
+  const selectedSaleTotal = selectedSaleRows.reduce(
+    (sum, row) => sum + (row.value ?? 0),
+    0,
+  );
   const toggleLandYear = (key: string) => {
     if (hasFocusedLandYear && selected === key) {
       setHasFocusedLandYear(false);
@@ -2646,7 +2685,7 @@ function LandYearCard({
     const isSel = selected === payload.key;
     const isFocus = !focusKey || focusKey === payload.key;
     const opacity = isFocus ? 1 : 0.42;
-    const textColor = isSel ? "#1677FF" : "#475569";
+    const textColor = hasFocusedLandYear && isSel ? "#1677FF" : "#475569";
 
     return (
       <g
@@ -2657,7 +2696,7 @@ function LandYearCard({
       >
         <path d={`M${sx},${sy}L${mx},${my}L${dotX},${labelY}`} fill="none" stroke={payload.color} strokeWidth={isFocus ? 1.2 : 1} opacity={opacity} />
         <circle cx={dotX} cy={labelY} r={2} fill={payload.color} opacity={opacity} />
-        <text x={textX} y={labelY - 12} textAnchor={textAnchor} fill={textColor} fontSize={10.5} fontWeight={isSel ? 600 : 500} opacity={opacity}>
+        <text x={textX} y={labelY - 12} textAnchor={textAnchor} fill={textColor} fontSize={10.5} fontWeight={hasFocusedLandYear && isSel ? 600 : 500} opacity={opacity}>
           {payload.name}
         </text>
         <text x={textX} y={labelY + 1} textAnchor={textAnchor} fill="#111827" fontSize={9.5} fontWeight={500} opacity={opacity}>
@@ -2768,10 +2807,12 @@ function LandYearCard({
         <div className="flex flex-col min-h-0 min-w-0">
           <div className="mb-1 flex items-center gap-2 whitespace-nowrap">
             <span className="w-1 h-4 rounded bg-[var(--color-brand)]" />
-            <span className="text-[13px] font-semibold text-foreground">{selectedLabel}拿地指标</span>
+            <span className="text-[13px] font-semibold text-foreground">
+              {showTotalSummary ? "拿地整体指标" : `${selectedLabel}拿地指标`}
+            </span>
           </div>
           <div className="mb-2 pl-2.5 text-[11px] text-[#64748B] truncate">
-            当前选中拿地年份的核心指标
+            {showTotalSummary ? "汇总全部拿地年份数据" : "当前选中拿地年份的核心指标"}
           </div>
           <div className="rounded-md border border-[#EEF1F6] overflow-hidden text-[12px] flex flex-col">
             <div className="grid grid-cols-[minmax(0,1fr)_82px] bg-[#F1F5F9]">
@@ -2780,23 +2821,23 @@ function LandYearCard({
             </div>
 
             {[
-              { label: "已售+未售", value: curTotal.toFixed(2) },
-              { label: "已售货值", value: curSold.toFixed(2) },
-              {
-                label: "累计去化率",
-                value: `${dehua.toFixed(2)}%`,
-                tip: "累计去化率 = 已售货值 /（已售+未售）",
-              },
-              { label: "剩余未售", value: curUnsold.toFixed(2) },
+              { label: "剩余未售", value: (showTotalSummary ? summaryUnsold : curUnsold).toFixed(2) },
               {
                 label: "未售货值占比",
-                value: `${unsoldShare.toFixed(2)}%`,
+                value: `${(showTotalSummary ? summaryShare : unsoldShare).toFixed(2)}%`,
                 tip: "未售货值占比 = 该拿地年份未售货值 / 全部拿地年份未售货值合计；反映该年份在总未售货值结构中的占比。",
+              },
+              { label: "已售+未售", value: (showTotalSummary ? summaryTotal : curTotal).toFixed(2) },
+              { label: "已售货值", value: (showTotalSummary ? summarySold : curSold).toFixed(2) },
+              {
+                label: "累计去化率",
+                value: `${(showTotalSummary ? summaryRate : dehua).toFixed(2)}%`,
+                tip: "累计去化率 = 已售货值 /（已售+未售）",
               },
             ]
               .map((row, i) => ({
                 ...row,
-                value: effectiveSelected === "2021及以前" && i < 3 ? "-" : row.value,
+                value: effectiveSelected === "2021及以前" && i >= 2 ? "-" : row.value,
               }))
               .map((row, i) => (
               <div
@@ -2831,35 +2872,32 @@ function LandYearCard({
         <div className="flex flex-col min-h-0 min-w-0">
           <div className="mb-1 flex items-center gap-2">
             <span className="w-1 h-4 rounded bg-[var(--color-brand)]" />
-            <span className="text-[13px] font-semibold text-foreground">{selectedLabel}已售货值分解</span>
+            <span className="text-[13px] font-semibold text-foreground">
+              {showTotalSummary ? "按拿地年份分解" : `${selectedLabel}已售分解`}
+            </span>
           </div>
           <div className="mb-2 pl-2.5 text-[11px] text-[#64748B]">
-            对应当前拿地年份的销售年份拆分
+            {showTotalSummary ? "汇总全部拿地年份数据" : "该拿地年份按销售年份拆分"}
           </div>
           <div className="rounded-md border border-[#EEF1F6] overflow-hidden text-[12px] shrink-0">
             <div className="grid grid-cols-[1fr_68px] bg-[#F1F5F9]">
-              <div className="px-2.5 py-1.5 font-semibold text-foreground border-r border-[#EEF1F6]">销售年份</div>
+              <div className="px-2.5 py-1.5 font-semibold text-foreground border-r border-[#EEF1F6]">
+                {showTotalSummary ? "拿地年份" : "销售年份"}
+              </div>
               <div className="px-2.5 py-1.5 font-semibold text-foreground text-right whitespace-nowrap">已售（{unit}）</div>
             </div>
-            {displaySaleKeys.map((k, i) => {
-              const v = sales?.[k];
-              const year = k.replace("销售", "");
-              return (
-                <div key={k} className={`grid grid-cols-[1fr_68px] ${i % 2 === 0 ? "bg-white" : "bg-[#F8FAFC]"}`}>
-                  <div className="px-2.5 py-1.5 text-muted-foreground border-r border-[#EEF1F6]">{year}</div>
-                  <div className="px-2.5 py-1.5 text-right tabular-nums text-foreground">
-                    {v == null ? <span className="text-muted-foreground">--</span> : (v * factor).toFixed(2)}
-                  </div>
+            {selectedSaleRows.map((row, i) => (
+              <div key={row.key} className={`grid grid-cols-[1fr_68px] ${i % 2 === 0 ? "bg-white" : "bg-[#F8FAFC]"}`}>
+                <div className="px-2.5 py-1.5 text-muted-foreground border-r border-[#EEF1F6]">{row.label}</div>
+                <div className="px-2.5 py-1.5 text-right tabular-nums text-foreground">
+                  {row.value == null ? <span className="text-muted-foreground">--</span> : row.value.toFixed(2)}
                 </div>
-              );
-            })}
+              </div>
+            ))}
             <div className="grid grid-cols-[1fr_68px] bg-[#F1F5F9] border-t border-[#EEF1F6]">
               <div className="px-2.5 py-1.5 font-semibold text-foreground border-r border-[#EEF1F6]">合计</div>
               <div className="px-2.5 py-1.5 text-right tabular-nums text-foreground font-semibold">
-                {(() => {
-                  const sum = displaySaleKeys.reduce((s, k) => s + (sales?.[k] ?? 0), 0);
-                  return (sum * factor).toFixed(2);
-                })()}
+                {selectedSaleTotal.toFixed(2)}
               </div>
             </div>
           </div>

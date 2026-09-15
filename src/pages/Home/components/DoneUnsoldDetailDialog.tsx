@@ -429,9 +429,9 @@ function ExportBtn({ onClick }: { onClick: () => void }) {
 type SortDir = "asc" | "desc" | null;
 type SortKey =
   | "doneStart" | "doneNew" | "doneSub"
-  | "soldStart" | "soldNew" | "soldSub"
+  | "soldStart" | "soldNew"
   | "remainStart" | "remainNew" | "remainSub"
-  | "rateStart" | "rateNew" | "rateSub";
+  | "rateStart" | "rateNew";
 
 function sortRows<T extends ProjectRow>(rows: T[], key: SortKey | null, dir: SortDir): T[] {
   if (!key || !dir) return rows;
@@ -441,17 +441,12 @@ function sortRows<T extends ProjectRow>(rows: T[], key: SortKey | null, dir: Sor
       case "doneNew": return r.doneNew;
       case "doneSub": return r.doneStart + r.doneNew;
       case "soldStart": return r.soldStart;
-      case "soldNew": return r.soldNew;
-      case "soldSub": return r.soldStart + r.soldNew;
+      case "soldNew": return r.soldStart + r.soldNew;
       case "remainStart": return r.doneStart - r.soldStart;
       case "remainNew": return r.doneNew - r.soldNew;
       case "remainSub": return (r.doneStart + r.doneNew) - (r.soldStart + r.soldNew);
       case "rateStart": return r.rateStart;
       case "rateNew": return r.rateNew;
-      case "rateSub": {
-        const ds = r.doneStart + r.doneNew;
-        return ds > 0 ? (r.soldStart + r.soldNew) / ds * 100 : null;
-      }
     }
   };
   return [...rows].sort((a, b) => {
@@ -539,7 +534,7 @@ function GroupedTable({
 
   return (
     <div className="overflow-auto rounded-lg border border-[#EEF1F6]">
-      <table className="min-w-full text-[13px] border-collapse">
+      <table className="w-full table-auto text-[13px] border-collapse">
         <thead className="sticky top-0 z-10">
           <tr className="bg-[#F1F5F9] text-[#1E293B]">
             {withIndex && (
@@ -549,19 +544,18 @@ function GroupedTable({
               {withIndex ? "项目名称" : "业态"}
             </th>
             <th colSpan={3} className="bg-[#F1F5F9] px-3 py-2 text-center font-semibold border-b border-r border-[#E2E8F0]">当前已竣未售</th>
-            <th colSpan={3} className="bg-[#F1F5F9] px-3 py-2 text-center font-semibold border-b border-r border-[#E2E8F0]">本年已售</th>
+            <th colSpan={2} className="bg-[#F1F5F9] px-3 py-2 text-center font-semibold border-b border-r border-[#E2E8F0]">本年已售</th>
             {showRemainColumns && (
               <th colSpan={3} className="bg-[#F1F5F9] px-3 py-2 text-center font-semibold border-b border-r border-[#E2E8F0]">剩余已竣未售</th>
             )}
-            <th colSpan={3} className={`${neutralRateHeader ? "bg-[#F1F5F9] text-[#1E293B]" : "bg-[#E8F1FF] text-[#3B82F6]"} px-3 py-2 text-center font-semibold border-b border-[#E2E8F0]`}>去化率</th>
+            <th colSpan={2} className={`${neutralRateHeader ? "bg-[#F1F5F9] text-[#1E293B]" : "bg-[#E8F1FF] text-[#3B82F6]"} px-3 py-2 text-center font-semibold border-b border-[#E2E8F0]`}>去化率</th>
           </tr>
           <tr className="bg-[#F1F5F9] text-[#475569]">
             <Th k="doneStart" leftBorder>年初库存({unit})</Th>
             <Th k="doneNew">本年新增({unit})</Th>
             <Th k="doneSub">小计({unit})</Th>
             <Th k="soldStart" leftBorder>年初库存({unit})</Th>
-            <Th k="soldNew">本年新增({unit})</Th>
-            <Th k="soldSub">小计({unit})</Th>
+            <Th k="soldNew">累计({unit})</Th>
             {showRemainColumns && (
               <>
                 <Th k="remainStart" leftBorder>年初库存(亿)</Th>
@@ -570,16 +564,15 @@ function GroupedTable({
               </>
             )}
             <Th k="rateStart" leftBorder>年初库存</Th>
-            <Th k="rateNew">本年新增</Th>
-            <Th k="rateSub">小计</Th>
+            <Th k="rateNew">累计</Th>
           </tr>
         </thead>
         <tbody>
           {topTotalRow && (() => {
             const r = topTotalRow;
             const doneSub = r.doneStart + r.doneNew;
-            const soldSub = r.soldStart + r.soldNew;
-            const rateSub = doneSub > 0 ? soldSub / doneSub * 100 : 0;
+            const soldCum = r.soldStart + r.soldNew;
+            const rateCum = doneSub > 0 ? soldCum / doneSub * 100 : 0;
             return (
               <tr className="bg-[#EAF2FF] text-[#1E293B] font-semibold">
                 {withIndex && <td className="px-3 py-2.5 border-b border-r border-[#DCE7F5]" />}
@@ -588,12 +581,10 @@ function GroupedTable({
                 <MoneyTd value={r.doneNew} className={`border-b border-[#DCE7F5] ${sortedTextClass("doneNew")}`} />
                 <MoneyTd value={doneSub} className={`border-b border-r border-[#DCE7F5] ${sortedTextClass("doneSub", "text-[#1E293B] font-semibold")}`} />
                 <MoneyTd value={r.soldStart} className={`border-b border-[#DCE7F5] ${sortedTextClass("soldStart")}`} />
-                <MoneyTd value={r.soldNew} className={`border-b border-[#DCE7F5] ${sortedTextClass("soldNew")}`} />
-                <MoneyTd value={soldSub} className={`border-b border-r border-[#DCE7F5] ${sortedTextClass("soldSub", "text-[#1E293B] font-semibold")}`} />
+                <MoneyTd value={soldCum} className={`border-b border-r border-[#DCE7F5] ${sortedTextClass("soldNew", "text-[#1E293B] font-semibold")}`} />
                 {showRemainColumns && <td className="border-b border-r border-[#DCE7F5]" colSpan={3} />}
                 <td className={`px-3 py-2.5 text-right tabular-nums border-b border-[#DCE7F5] ${sortedTextClass("rateStart")}`}>{pct2(r.rateStart)}</td>
-                <td className={`px-3 py-2.5 text-right tabular-nums border-b border-[#DCE7F5] ${sortedTextClass("rateNew")}`}>{pct2(r.rateNew)}</td>
-                <td className={`px-3 py-2.5 text-right tabular-nums border-b border-[#DCE7F5] ${sortedTextClass("rateSub", "text-[#1E293B] font-semibold")}`}>{pct2(rateSub)}</td>
+                <td className={`px-3 py-2.5 text-right tabular-nums border-b border-[#DCE7F5] ${sortedTextClass("rateNew", "text-[#1E293B] font-semibold")}`}>{pct2(rateCum)}</td>
               </tr>
             );
           })()}
@@ -603,7 +594,8 @@ function GroupedTable({
             const remainStart = r.doneStart - r.soldStart;
             const remainNew = r.doneNew - r.soldNew;
             const remainSub = doneSub - soldSub;
-            const rateSub = doneSub > 0 ? soldSub / doneSub * 100 : 0;
+            const soldCum = r.soldStart + r.soldNew;
+            const rateCum = doneSub > 0 ? soldCum / doneSub * 100 : 0;
             const baseBg = i % 2 === 0 ? "bg-white" : "bg-[#FAFBFD]";
             return (
               <tr key={i} className={`${baseBg} hover:bg-[#F5F9FF] transition-colors`}>
@@ -617,8 +609,7 @@ function GroupedTable({
                 <MoneyTd value={r.doneNew} className={`border-b border-[#EEF1F6] ${sortedTextClass("doneNew")}`} />
                 <MoneyTd value={doneSub} className={`border-b border-r border-[#EEF1F6] ${sortedTextClass("doneSub", "text-[#1E293B] font-medium")}`} />
                 <MoneyTd value={r.soldStart} className={`border-b border-[#EEF1F6] ${sortedTextClass("soldStart")}`} />
-                <MoneyTd value={r.soldNew} className={`border-b border-[#EEF1F6] ${sortedTextClass("soldNew")}`} />
-                <MoneyTd value={soldSub} className={`border-b border-r border-[#EEF1F6] ${sortedTextClass("soldSub", "text-[#1E293B] font-medium")}`} />
+                <MoneyTd value={soldCum} className={`border-b border-r border-[#EEF1F6] ${sortedTextClass("soldNew", "text-[#1E293B] font-medium")}`} />
                 {showRemainColumns && (
                   <>
                     <MoneyTd value={remainStart} className={`border-b border-l border-[#EEF1F6] ${sortedTextClass("remainStart")}`} />
@@ -627,8 +618,7 @@ function GroupedTable({
                   </>
                 )}
                 <td className={`px-3 py-2.5 text-right tabular-nums border-b border-[#EEF1F6] ${sortedTextClass("rateStart")}`}>{pct2(r.rateStart)}</td>
-                <td className={`px-3 py-2.5 text-right tabular-nums border-b border-[#EEF1F6] ${sortedTextClass("rateNew")}`}>{pct2(r.rateNew)}</td>
-                <td className={`px-3 py-2.5 text-right tabular-nums border-b border-[#EEF1F6] ${sortedTextClass("rateSub", "text-[#1E293B] font-medium")}`}>{pct2(rateSub)}</td>
+                <td className={`px-3 py-2.5 text-right tabular-nums border-b border-[#EEF1F6] ${sortedTextClass("rateNew", "text-[#1E293B] font-medium")}`}>{pct2(rateCum)}</td>
               </tr>
             );
           })}
@@ -653,14 +643,12 @@ function GroupedTable({
                   <MoneyTd value={r.doneNew} className="border-b border-[#EEF1F6] text-[#475569]" />
                   <MoneyTd value={doneSub} className="border-b border-r border-[#EEF1F6] text-[#475569]" />
                   <MoneyTd value={r.soldStart} className="border-b border-[#EEF1F6] text-[#475569]" />
-                  <MoneyTd value={r.soldNew} className="border-b border-[#EEF1F6] text-[#475569]" />
                   <MoneyTd value={soldSub} className="border-b border-r border-[#EEF1F6] text-[#475569]" />
                   {showRemainColumns && <>
                     <MoneyTd value={remainStart} className="border-b border-l border-[#EEF1F6] text-[#475569]" />
                     <MoneyTd value={remainNew} className="border-b border-[#EEF1F6] text-[#475569]" />
                     <MoneyTd value={remainSub} className="border-b border-r border-[#EEF1F6] text-[#475569]" />
                   </>}
-                  <td className="px-3 py-2.5 text-right text-[#94A3B8] border-b border-[#EEF1F6]">--</td>
                   <td className="px-3 py-2.5 text-right text-[#94A3B8] border-b border-[#EEF1F6]">--</td>
                   <td className="px-3 py-2.5 text-right text-[#94A3B8] border-b border-[#EEF1F6]">--</td>
                 </tr>
@@ -674,7 +662,6 @@ function GroupedTable({
             const remainStart = r.doneStart - r.soldStart;
             const remainNew = r.doneNew - r.soldNew;
             const remainSub = doneSub - soldSub;
-            const rateSub = doneSub > 0 ? soldSub / doneSub * 100 : 0;
             return (
               <tr className="bg-[#EAF2FF] text-[#1E293B] font-semibold">
                 {withIndex && <td className="px-3 py-2.5 border-r border-[#DCE7F5]" />}
@@ -683,8 +670,7 @@ function GroupedTable({
                 <MoneyTd value={r.doneNew} className={sortedTextClass("doneNew")} />
                 <MoneyTd value={doneSub} className={`border-r border-[#DCE7F5] ${sortedTextClass("doneSub", "text-[#1E293B] font-semibold")}`} />
                 <MoneyTd value={r.soldStart} className={sortedTextClass("soldStart")} />
-                <MoneyTd value={r.soldNew} className={sortedTextClass("soldNew")} />
-                <MoneyTd value={soldSub} className={`border-r border-[#DCE7F5] ${sortedTextClass("soldSub", "text-[#1E293B] font-semibold")}`} />
+                <MoneyTd value={soldSub} className={`border-r border-[#DCE7F5] ${sortedTextClass("soldNew", "text-[#1E293B] font-semibold")}`} />
                 {showRemainColumns && (
                   <>
                     <MoneyTd value={remainStart} className={`border-l border-[#DCE7F5] ${sortedTextClass("remainStart")}`} />
@@ -693,8 +679,7 @@ function GroupedTable({
                   </>
                 )}
                 <td className={`px-3 py-2.5 text-right tabular-nums ${sortedTextClass("rateStart")}`}>{pct2(r.rateStart)}</td>
-                <td className={`px-3 py-2.5 text-right tabular-nums ${sortedTextClass("rateNew")}`}>{pct2(r.rateNew)}</td>
-                <td className={`px-3 py-2.5 text-right tabular-nums ${sortedTextClass("rateSub", "text-[#1E293B] font-semibold")}`}>{pct2(rateSub)}</td>
+                <td className={`px-3 py-2.5 text-right tabular-nums ${sortedTextClass("rateNew", "text-[#1E293B] font-semibold")}`}>{pct2(doneSub > 0 ? soldSub / doneSub * 100 : 0)}</td>
               </tr>
             );
           })()}
@@ -821,8 +806,7 @@ export function DoneUnsoldDetailDialog({ open, onOpenChange }: { open: boolean; 
       "已竣未售本年新增(亿)": row.doneNew,
       "已竣未售小计(亿)": +(row.doneStart + row.doneNew).toFixed(2),
       "本年已售年初库存(亿)": row.soldStart,
-      "本年已售本年新增(亿)": row.soldNew,
-      "本年已售小计(亿)": +(row.soldStart + row.soldNew).toFixed(2),
+      "本年已售累计(亿)": +(row.soldStart + row.soldNew).toFixed(2),
       "剩余已竣未售(亿)": +(row.doneStart + row.doneNew - row.soldStart - row.soldNew).toFixed(2),
     }));
     const ws = XLSX.utils.json_to_sheet(rows);
