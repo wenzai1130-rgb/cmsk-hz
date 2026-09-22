@@ -7,13 +7,21 @@ ROOT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 SOURCE_PLIST="$ROOT_DIR/scripts/${LABEL}.plist"
 TARGET_PLIST="$HOME/Library/LaunchAgents/${LABEL}.plist"
 GUI_DOMAIN="gui/$(id -u)"
-LOG_FILE="/tmp/cmsk-hz-vite-${PORT}.log"
+LOG_DIR="$ROOT_DIR/logs/dev-service"
+LOG_FILE="$LOG_DIR/vite-${PORT}.log"
 
 service_loaded() {
   launchctl print "$GUI_DOMAIN/$LABEL" >/dev/null 2>&1
 }
 
+log_event() {
+  mkdir -p "$LOG_DIR"
+  printf '[%s] %s\n' "$(date '+%Y-%m-%d %H:%M:%S %z')" "$1" >>"$LOG_FILE"
+}
+
 install_service() {
+  mkdir -p "$LOG_DIR"
+  log_event "开始安装并启动预览服务"
   mkdir -p "$(dirname "$TARGET_PLIST")"
   cp "$SOURCE_PLIST" "$TARGET_PLIST"
   launchctl bootout "$GUI_DOMAIN/$LABEL" >/dev/null 2>&1 || true
@@ -22,13 +30,13 @@ install_service() {
   sleep 2
 
   if lsof -tiTCP:"$PORT" -sTCP:LISTEN >/dev/null 2>&1; then
+    log_event "预览服务启动成功：http://127.0.0.1:${PORT}"
     echo "预览服务已安装并启动：http://127.0.0.1:${PORT}"
     echo "日志：$LOG_FILE"
   else
+    log_event "预览服务启动失败：端口 ${PORT} 未就绪；保留服务注册与日志"
     echo "服务已注册，但端口尚未就绪，请查看：$LOG_FILE" >&2
     tail -40 "$LOG_FILE" >&2 || true
-    launchctl bootout "$GUI_DOMAIN/$LABEL" >/dev/null 2>&1 || true
-    rm -f "$TARGET_PLIST"
     exit 1
   fi
 }
@@ -36,6 +44,7 @@ install_service() {
 uninstall_service() {
   launchctl bootout "$GUI_DOMAIN/$LABEL" >/dev/null 2>&1 || true
   rm -f "$TARGET_PLIST"
+  log_event "预览服务已停止并移除开机启动"
   echo "预览服务已停止并移除开机启动"
 }
 
@@ -47,6 +56,7 @@ case "${1:-start}" in
     uninstall_service
     ;;
   restart)
+    log_event "手动重启预览服务"
     launchctl kickstart -k "$GUI_DOMAIN/$LABEL"
     echo "预览服务已重启"
     ;;
